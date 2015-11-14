@@ -5,7 +5,7 @@
 
 using namespace std;
 
-#define FOCUS_VOLTAGE_MIN 20.0
+#define FOCUS_VOLTAGE_MIN 24.0
 #define FOCUS_VOLTAGE_MAX 70.0
 
 

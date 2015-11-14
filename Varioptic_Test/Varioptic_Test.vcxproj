@@ -145,10 +145,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="ComCasp32.dll" />
+    <ClCompile Include="Varioptic_Class.cpp" />
+    <ClCompile Include="varioptic_tesst_no_dll.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="varioptic_test.cpp" />
+    <ClInclude Include="varioptic_class.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
