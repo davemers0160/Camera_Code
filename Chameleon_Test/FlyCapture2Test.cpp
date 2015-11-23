@@ -24,6 +24,7 @@
 #include <string>
 #include <vector>
 #include <iomanip>
+#include <ctime>
 #include <windows.h> 
 
 // OPENCV includes
@@ -41,6 +42,9 @@
 using namespace std;
 using namespace cv;
 using namespace FlyCapture2;
+
+
+void getcurrenttime(char currenttime[]);
 
 void PrintBuildInfo()
 {
@@ -83,18 +87,17 @@ int RunSingleCamera( PGRGuid guid )
     Camera cam;
 	char* Window1 = "Video Display";
 	char key = 0;
-	double fps = 60.0;
+	double fps = 10.0;
 	int codec = CV_FOURCC('M', 'J', 'P', 'G');
 	unsigned int image_rows, image_cols, rowBytes;
 	Size image_size; 
 	Mat video_frame;
 	VideoWriter outputVideo;
-	string save_file = "test_recording.avi";
-	int delay = (int)(1);
+	int delay = 1;
 	int Casp_retVal = 0;
 	unsigned int idx=0;
 	string port;// = "\\\\.\\COM1";
-	double voltage[2] = { 42.0, 44.0 };
+	double voltage[2] = { 40.0, 41.0 };
 	varioptic_class Casp_Lens;
 	BOOL comm_result;
 	LPCWSTR lpFileName = L"\\\\.\\COM5";
@@ -103,7 +106,12 @@ int RunSingleCamera( PGRGuid guid )
 	DCB serialParams = { 0 };
 	char rx_data[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 	OVERLAPPED osReader = { 0 };
+	double tick;
+	char currenttime[80];
 
+	getcurrenttime(currenttime);
+
+	string save_file = "test_recording_" + (string)currenttime + ".avi";
 
 	serialParams.DCBlength = sizeof(serialParams);
 
@@ -195,14 +203,13 @@ int RunSingleCamera( PGRGuid guid )
 			return EXIT_FAILURE;
 		}
 
-
 	}
 	
 	idx = 0;
 	//for ( int imageCnt=0; imageCnt < k_numImages; imageCnt++ )
 	while (key != 'q')
     {                
-
+		//tick = (double)getTickCount();		// start timing process 
 		Casp_Lens.voltage(voltage[(idx & 0x01)]);
 		WriteFile(serialHandle, Casp_Lens.Packet, Casp_Lens.packet_length + 1, &dwBytesWritten, NULL);
 		// clear tx and rx serial buffers
@@ -221,16 +228,7 @@ int RunSingleCamera( PGRGuid guid )
         // Create a converted image
 
 
-        // Convert the raw image	PIXEL_FORMAT_RGB
-        //error = rawImage.Convert( PIXEL_FORMAT_MONO8, &convertedImage );
-		/*
-		error = rawImage.Convert(PIXEL_FORMAT_RGB, &convertedImage);
-        if (error != PGRERROR_OK)
-        {
-            PrintError( error );
-            return -1;
-        } 
-		*/
+        // Convert the raw image	PIXEL_FORMAT_BGR for opencv
 		error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
 		if (error != PGRERROR_OK)
 		{
@@ -240,24 +238,21 @@ int RunSingleCamera( PGRGuid guid )
 
 
 		// display images
-		//char key = 0;
-
-
 
 		image_data = convertedImageCV.GetData();		
-		//Mat image = Mat();
-		//Mat image = cv::Mat(convertedImageCV.GetRows(), convertedImageCV.GetCols(), CV_8UC3, image_data, rowBytes);
 		video_frame = Mat(image_size, CV_8UC3, image_data, rowBytes);
 		
-		
-		imshow(Window1, video_frame);
+		ReadFile(serialHandle, rx_data, sizeof(rx_data), &dwRead, &osReader);	
+
+		//imshow(Window1, video_frame);
 		outputVideo.write(video_frame);
-
-
-
 		key = waitKey(delay);
-		ReadFile(serialHandle, rx_data, sizeof(rx_data), &dwRead, &osReader);
+
 		idx++;
+		//tick = (double)getTickCount() - tick;
+		//cout << "Execution Time: " << fixed << setw(5) << setprecision(0) << (tick*1000. / getTickFrequency()) << "ms" << endl;
+
+
 		/*
         // Create a unique filename
 		ostringstream filename;
@@ -301,7 +296,7 @@ int RunSingleCamera( PGRGuid guid )
 int main(int /*argc*/, char** /*argv*/)
 {    
     PrintBuildInfo();
-
+	
     Error error;
 
     // Since this application saves images in the current folder
@@ -316,7 +311,7 @@ int main(int /*argc*/, char** /*argv*/)
 	fclose(tempFile);
 	remove("test.txt");
 
-    BusManager busMgr;
+	BusManager busMgr;
     unsigned int numCameras;
     error = busMgr.GetNumOfCameras(&numCameras);
     if (error != PGRERROR_OK)
@@ -337,6 +332,9 @@ int main(int /*argc*/, char** /*argv*/)
             return -1;
         }
 
+
+
+
         RunSingleCamera( guid );
     }
 
@@ -344,4 +342,26 @@ int main(int /*argc*/, char** /*argv*/)
     cin.ignore();
 
     return 0;
+}
+
+
+
+
+
+// support functions
+void getcurrenttime(char currenttime[])
+{
+	time_t rawtime;
+	struct tm * timeinfo;
+	
+
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+
+	strftime(currenttime, 80, "%d%m%Y_%H%M%S", timeinfo);
+	string str(currenttime);
+	//cout << currenttime << endl;
+	//cout << str << endl;
+
+	//return 0;
 }
