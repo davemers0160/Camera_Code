@@ -148,11 +148,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="FlyCapture2Test.cpp" />
+    <ClCompile Include="Camera_Main.cpp" />
+    <ClCompile Include="Config_Chameleon.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="Varioptic_Class.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Config_Chameleon.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="varioptic_class.h" />

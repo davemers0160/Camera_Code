@@ -45,6 +45,7 @@ using namespace FlyCapture2;
 
 
 void getcurrenttime(char currenttime[]);
+bool configLensDriver(LPCWSTR port, HANDLE serialHandle);
 
 void PrintBuildInfo()
 {
@@ -79,15 +80,15 @@ void PrintError( Error error )
     error.PrintErrorTrace();
 }
 
-int RunSingleCamera( PGRGuid guid )
+int RunSingleCamera(PGRGuid guid, HANDLE serialHandle)
 {
-    const int k_numImages = 10;
+    //const int k_numImages = 10;
 
     Error error;
     Camera cam;
 	char* Window1 = "Video Display";
 	char key = 0;
-	double fps = 10.0;
+	double fps = 30.0;
 	int codec = CV_FOURCC('M', 'J', 'P', 'G');
 	unsigned int image_rows, image_cols, rowBytes;
 	Size image_size; 
@@ -96,16 +97,16 @@ int RunSingleCamera( PGRGuid guid )
 	int delay = 1;
 	int Casp_retVal = 0;
 	unsigned int idx=0;
-	string port;// = "\\\\.\\COM1";
+	//string port;// = "\\\\.\\COM1";
 	double voltage[2] = { 40.0, 41.0 };
 	varioptic_class Casp_Lens;
 	BOOL comm_result;
-	LPCWSTR lpFileName = L"\\\\.\\COM5";
-	unsigned long dwBytesWritten, dwRead;
-	HANDLE serialHandle;
-	DCB serialParams = { 0 };
-	char rx_data[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-	OVERLAPPED osReader = { 0 };
+	
+	unsigned long dwBytesWritten;// , dwRead;
+	//HANDLE serialHandle;
+	//DCB serialParams = { 0 };
+	//char rx_data[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+	//OVERLAPPED osReader = { 0 };
 	double tick;
 	char currenttime[80];
 
@@ -113,7 +114,7 @@ int RunSingleCamera( PGRGuid guid )
 
 	string save_file = "test_recording_" + (string)currenttime + ".avi";
 
-	serialParams.DCBlength = sizeof(serialParams);
+	//serialParams.DCBlength = sizeof(serialParams);
 
 	namedWindow(Window1, WINDOW_NORMAL);
 
@@ -169,39 +170,39 @@ int RunSingleCamera( PGRGuid guid )
 		outputVideo.open(save_file, codec, fps, image_size, true);
 		cout << "video size: " << image_cols << " x " << image_rows << endl;
 		
-		// open up serial port and set paramters
-		serialHandle = CreateFileW(lpFileName, GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+	//	// open up serial port and set paramters
+	//	serialHandle = CreateFileW(lpFileName, GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 
-		if (!GetCommState(serialHandle, &serialParams))
-			cout << "Error getting information from the specified serial port" << endl;
+	//	if (!GetCommState(serialHandle, &serialParams))
+	//		cout << "Error getting information from the specified serial port" << endl;
 
-		//GetCommState(serialHandle, &serialParams);
-		serialParams.BaudRate = 57600;
-		serialParams.ByteSize = 8;
-		serialParams.StopBits = ONESTOPBIT;
-		serialParams.Parity = NOPARITY;
+	//	//GetCommState(serialHandle, &serialParams);
+	//	serialParams.BaudRate = 57600;
+	//	serialParams.ByteSize = 8;
+	//	serialParams.StopBits = ONESTOPBIT;
+	//	serialParams.Parity = NOPARITY;
 
-		comm_result = SetCommState(serialHandle, &serialParams);
-		if (!comm_result)
-		{
-			cout << "Error setting serial port configuration" << endl;
-			return EXIT_FAILURE;
-		}
+	//	comm_result = SetCommState(serialHandle, &serialParams);
+	//	if (!comm_result)
+	//	{
+	//		cout << "Error setting serial port configuration" << endl;
+	//		return EXIT_FAILURE;
+	//	}
 
-		// Set timeouts
-		COMMTIMEOUTS timeout = { 0 };
-		timeout.ReadIntervalTimeout = 50;
-		timeout.ReadTotalTimeoutConstant = 50;
-		timeout.ReadTotalTimeoutMultiplier = 50;
-		timeout.WriteTotalTimeoutConstant = 50;
-		timeout.WriteTotalTimeoutMultiplier = 10;
+	//	// Set timeouts
+	//	COMMTIMEOUTS timeout = { 0 };
+	//	timeout.ReadIntervalTimeout = 50;
+	//	timeout.ReadTotalTimeoutConstant = 50;
+	//	timeout.ReadTotalTimeoutMultiplier = 50;
+	//	timeout.WriteTotalTimeoutConstant = 50;
+	//	timeout.WriteTotalTimeoutMultiplier = 10;
 
-		comm_result = SetCommTimeouts(serialHandle, &timeout);
-		if (!comm_result)
-		{
-			cout << "Error setting serial port timeout parameters" << endl;
-			return EXIT_FAILURE;
-		}
+	//	comm_result = SetCommTimeouts(serialHandle, &timeout);
+	//	if (!comm_result)
+	//	{
+	//		cout << "Error setting serial port timeout parameters" << endl;
+	//		return EXIT_FAILURE;
+	//	}
 
 	}
 	
@@ -209,7 +210,7 @@ int RunSingleCamera( PGRGuid guid )
 	//for ( int imageCnt=0; imageCnt < k_numImages; imageCnt++ )
 	while (key != 'q')
     {                
-		//tick = (double)getTickCount();		// start timing process 
+		tick = (double)getTickCount();		// start timing process 
 		Casp_Lens.voltage(voltage[(idx & 0x01)]);
 		WriteFile(serialHandle, Casp_Lens.Packet, Casp_Lens.packet_length + 1, &dwBytesWritten, NULL);
 		// clear tx and rx serial buffers
@@ -242,15 +243,15 @@ int RunSingleCamera( PGRGuid guid )
 		image_data = convertedImageCV.GetData();		
 		video_frame = Mat(image_size, CV_8UC3, image_data, rowBytes);
 		
-		ReadFile(serialHandle, rx_data, sizeof(rx_data), &dwRead, &osReader);	
+		//ReadFile(serialHandle, rx_data, sizeof(rx_data), &dwRead, &osReader);	
 
 		//imshow(Window1, video_frame);
 		outputVideo.write(video_frame);
 		key = waitKey(delay);
 
 		idx++;
-		//tick = (double)getTickCount() - tick;
-		//cout << "Execution Time: " << fixed << setw(5) << setprecision(0) << (tick*1000. / getTickFrequency()) << "ms" << endl;
+		tick = (double)getTickCount() - tick;
+		cout << "Execution Time: " << fixed << setw(5) << setprecision(0) << (tick*1000. / getTickFrequency()) << "ms" << endl;
 
 
 		/*
@@ -295,13 +296,25 @@ int RunSingleCamera( PGRGuid guid )
 
 int main(int /*argc*/, char** /*argv*/)
 {    
-    PrintBuildInfo();
 	
-    Error error;
+	// Camera specific variables
+	Error error;
+	BusManager busMgr;
+    PGRGuid guid;
+	
+	// Serial Port specific variables
+	LPCWSTR commPort = L"\\\\.\\COM5";
+
+	unsigned int numCameras;
+
+
+    PrintBuildInfo();
+    
 
     // Since this application saves images in the current folder
     // we must ensure that we have permission to write to this folder.
     // If we do not have permission, fail right away.
+	/*
 	FILE* tempFile = fopen("test.txt", "w+");
 	if (tempFile == NULL)
 	{
@@ -310,38 +323,35 @@ int main(int /*argc*/, char** /*argv*/)
 	}
 	fclose(tempFile);
 	remove("test.txt");
+	*/
 
-	BusManager busMgr;
-    unsigned int numCameras;
+
     error = busMgr.GetNumOfCameras(&numCameras);
     if (error != PGRERROR_OK)
     {
         PrintError( error );
-        return -1;
+		return EXIT_FAILURE;
     }
 
     cout << "Number of cameras detected: " << numCameras << endl; 
 
-    for (unsigned int i=0; i < numCameras; i++)
+    //for (unsigned int i=0; i < numCameras; i++)
+    //{
+    
+    error = busMgr.GetCameraFromIndex(1, &guid);
+    if (error != PGRERROR_OK)
     {
-        PGRGuid guid;
-        error = busMgr.GetCameraFromIndex(i, &guid);
-        if (error != PGRERROR_OK)
-        {
-            PrintError( error );
-            return -1;
-        }
-
-
-
-
-        RunSingleCamera( guid );
+        PrintError( error );
+        return EXIT_FAILURE;
     }
+
+    RunSingleCamera( guid );
+    //}
 
     cout << "Done! Press Enter to exit..." << endl; 
     cin.ignore();
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 
@@ -358,10 +368,69 @@ void getcurrenttime(char currenttime[])
 	time(&rawtime);
 	timeinfo = localtime(&rawtime);
 
-	strftime(currenttime, 80, "%d%m%Y_%H%M%S", timeinfo);
+	strftime(currenttime, 80, "%m%d%Y_%H%M%S", timeinfo);
 	string str(currenttime);
 	//cout << currenttime << endl;
 	//cout << str << endl;
 
 	//return 0;
 }
+
+bool configLensDriver(LPCWSTR commPort, HANDLE serialHandle)
+{
+	bool status = false;
+	//HANDLE serialHandle;
+	DCB serialParams = { 0 };
+
+	serialParams.DCBlength = sizeof(serialParams);
+
+	// open up serial port and set paramters
+	serialHandle = CreateFileW(commPort, GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+
+	if (!GetCommState(serialHandle, &serialParams))
+		cout << "Error getting information from the specified serial port" << endl;
+
+	//GetCommState(serialHandle, &serialParams);
+	serialParams.BaudRate = 57600;
+	serialParams.ByteSize = 8;
+	serialParams.StopBits = ONESTOPBIT;
+	serialParams.Parity = NOPARITY;
+
+	status = SetCommState(serialHandle, &serialParams);
+	if (!status)
+	{
+		cout << "Error setting serial port configuration" << endl;
+		return status;
+	}
+
+	// Set timeouts
+	COMMTIMEOUTS timeout = { 0 };
+	timeout.ReadIntervalTimeout = 50;
+	timeout.ReadTotalTimeoutConstant = 50;
+	timeout.ReadTotalTimeoutMultiplier = 50;
+	timeout.WriteTotalTimeoutConstant = 50;
+	timeout.WriteTotalTimeoutMultiplier = 10;
+
+	status = SetCommTimeouts(serialHandle, &timeout);
+	if (!status)
+	{
+		cout << "Error setting serial port timeout parameters" << endl;
+		return status;
+	}
+
+	return status;
+
+}	// end of configLensDriver
+
+Error cameraConnect(PGRGuid guid, Camera cam)
+{
+
+
+}	// end of cameraConnect
+
+
+Error videoCapture(Camera cam, HANDLE serialHandle)
+{
+
+
+}	// end of videoCapture
