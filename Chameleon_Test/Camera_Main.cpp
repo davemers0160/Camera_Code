@@ -70,6 +70,7 @@ int main(int /*argc*/, char** /*argv*/)
 	unsigned int numCameras;
 	unsigned int offsetX, offsetY, width, height;
 	PixelFormat pixelFormat;
+	Property shutter, gain;
 
 
 	// Serial Port specific variables
@@ -132,7 +133,15 @@ int main(int /*argc*/, char** /*argv*/)
 	pixelFormat = PIXEL_FORMAT_411YUV8;
 	configImagerFormat(cam, offsetX, offsetY, width, height, pixelFormat);
 
+	configProperty(shutter, SHUTTER, true, true);
+	configProperty(gain, GAIN, false, false);
 
+	error = setProperty(cam, gain, 4.0);
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+		return EXIT_FAILURE;
+	}
 
 	// begin the video capture
 	videoCapture(cam, lensDriver, save_file);
@@ -177,7 +186,7 @@ void getcurrenttime(char currenttime[])
 
 bool configLensDriver(LPCWSTR commPort, HANDLE &serialHandle)
 {
-	bool status = false;
+	BOOL status = false;
 	//HANDLE serialHandle;
 	DCB serialParams = { 0 };
 
@@ -199,7 +208,7 @@ bool configLensDriver(LPCWSTR commPort, HANDLE &serialHandle)
 	if (!status)
 	{
 		cout << "Error setting serial port configuration" << endl;
-		return status;
+		return false;
 	}
 
 	// Set timeouts
@@ -214,10 +223,10 @@ bool configLensDriver(LPCWSTR commPort, HANDLE &serialHandle)
 	if (!status)
 	{
 		cout << "Error setting serial port timeout parameters" << endl;
-		return status;
+		return false;
 	}
 
-	return status;
+	return true;
 
 }	// end of configLensDriver
 
@@ -227,7 +236,7 @@ bool configLensDriver(LPCWSTR commPort, HANDLE &serialHandle)
 int videoCapture(Camera &cam, HANDLE lensDriver, string save_file)
 {
 
-	unsigned long dwBytesWritten;// , dwRead;
+	unsigned long dwBytesWritten;
 	double tick;
 
 	Error error;
@@ -246,8 +255,9 @@ int videoCapture(Camera &cam, HANDLE lensDriver, string save_file)
 	varioptic_class Casp_Lens;
 	//BOOL comm_result;
 
-	//unsigned long dwBytesWritten;// , dwRead;
-	//double tick;
+	unsigned long dwRead;
+	char rx_data[4] = { 0, 0, 0, 0 };
+	OVERLAPPED osReader = { 0 };
 
 	namedWindow(Window1, WINDOW_NORMAL);       
 
@@ -279,7 +289,7 @@ int videoCapture(Camera &cam, HANDLE lensDriver, string save_file)
 		}
 		image_cols = convertedImageCV.GetCols();
 		image_rows = convertedImageCV.GetRows();
-		rowBytes = (double)convertedImageCV.GetDataSize() / (double)convertedImageCV.GetRows();
+		rowBytes = (unsigned int)((double)convertedImageCV.GetDataSize() / (double)convertedImageCV.GetRows());
 		image_size = Size((int)image_cols, (int)image_rows);
 		outputVideo.open(save_file, codec, fps, image_size, true);
 		cout << "video size: " << image_cols << " x " << image_rows << endl;
@@ -295,7 +305,7 @@ int videoCapture(Camera &cam, HANDLE lensDriver, string save_file)
 		// send infocus voltage to lens driver
 		Casp_Lens.voltage(voltage[0]);
 		WriteFile(lensDriver, Casp_Lens.Packet, Casp_Lens.packet_length + 1, &dwBytesWritten, NULL);
-	
+		ReadFile(lensDriver, rx_data, sizeof(rx_data), &dwRead, &osReader);	
 
 		// Retrieve an image
 		error = cam.RetrieveBuffer(&rawImage);

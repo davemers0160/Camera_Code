@@ -101,26 +101,34 @@ void configImagerFormat(Camera &cam, unsigned int offsetX, unsigned int offsetY,
 
 }	// end of configCam
 
-void setShutter()
+void configProperty(Property &prop, PropertyType type, bool mode, bool OnOff)
 {
 
-}
+	//Define the property to adjust.
+	prop.type = type;
+	//Ensure the property is on.
+	if (OnOff == true)
+	{
+		prop.onOff = true;
+	}
 
+	//Ensure auto-adjust mode is off.
+	prop.autoManualMode = mode;
+	//Ensure the property is set up to use absolute value control.
+	prop.absControl = true;
+	//Set the absolute value of shutter to 20 ms.
 
-void setFrameRate()
+}	// end of configProperty
+
+Error setProperty(Camera &cam, Property &prop, float value)
 {
+	Error error;
 
+	prop.absValue = value;
+	error = cam.SetProperty(&prop);
 
-
-}
-
-
-void setGain()
-{
-
-
-}
-
+	return error;
+}	// end of setProperty
 
 
 void setWBRed()
