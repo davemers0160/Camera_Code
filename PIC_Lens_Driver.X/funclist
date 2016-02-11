@@ -1,0 +1,20 @@
+_Timer_config: CODE, 1009 0 13
+_ISR: CODE, 4 0 67
+_putChar: CODE, 1054 0 9
+_main: CODE, 84 0 505
+_DriverType: STRCODE, 1283 0 1
+_DriverAddress: STRCODE, 1282 0 1
+_I2C_Write: CODE, 785 0 74
+_send_Packet: CODE, 859 0 52
+_I2C_Error: CODE, 1033 0 11
+__initialization: CODE, 73 0 7
+_msDelay: CODE, 988 0 21
+_Firmware: STRCODE, 1280 0 2
+_check: CODE, 589 0 196
+_SN: STRCODE, 1284 0 1
+_register_config: CODE, 957 0 31
+___lwmod: CODE, 911 0 46
+_UART_config: CODE, 1044 0 10
+_MSSP_config: CODE, 1022 0 11
+_EE_config: CODE, 1285 0 3
+Total: 1061

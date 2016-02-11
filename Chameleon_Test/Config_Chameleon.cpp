@@ -34,20 +34,20 @@ void PrintCameraInfo(CameraInfo* pCamInfo)
 
 }
 
-void cameraConnect(PGRGuid guid, Camera &cam)
+void cameraConnect(PGRGuid guid, Camera *cam)
 {
 	Error error;
 	//	Camera cam;
 	CameraInfo camInfo;
 
-	error = cam.Connect(&guid);
+	error = cam->Connect(&guid);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
 		//return error;
 	}
 
-	error = cam.GetCameraInfo(&camInfo);
+	error = cam->GetCameraInfo(&camInfo);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
@@ -61,7 +61,7 @@ void cameraConnect(PGRGuid guid, Camera &cam)
 }	// end of cameraConnect
 
 
-void configImagerFormat(Camera &cam, unsigned int offsetX, unsigned int offsetY, unsigned int width, unsigned int height, PixelFormat pixelFormat)
+void configImagerFormat(Camera *cam, unsigned int offsetX, unsigned int offsetY, unsigned int width, unsigned int height, PixelFormat pixelFormat)
 {
 	Format7ImageSettings CameraSettings;
 	Format7PacketInfo PacketInfo;
@@ -76,7 +76,7 @@ void configImagerFormat(Camera &cam, unsigned int offsetX, unsigned int offsetY,
 	CameraSettings.pixelFormat = pixelFormat;
 		
     // Validate the settings to make sure that they are valid
-	error = cam.ValidateFormat7Settings(&CameraSettings, &validSettings, &PacketInfo);
+	error = cam->ValidateFormat7Settings(&CameraSettings, &validSettings, &PacketInfo);
     if (error != PGRERROR_OK)
     {
         PrintError( error );
@@ -91,7 +91,7 @@ void configImagerFormat(Camera &cam, unsigned int offsetX, unsigned int offsetY,
     }
 
     // Set the settings to the camera
-    error = cam.SetFormat7Configuration(&CameraSettings, PacketInfo.recommendedBytesPerPacket );
+	error = cam->SetFormat7Configuration(&CameraSettings, PacketInfo.recommendedBytesPerPacket);
     if (error != PGRERROR_OK)
     {
         PrintError( error );
@@ -120,12 +120,12 @@ void configProperty(Property &prop, PropertyType type, bool mode, bool OnOff)
 
 }	// end of configProperty
 
-Error setProperty(Camera &cam, Property &prop, float value)
+Error setProperty(Camera *cam, Property &prop, float value)
 {
 	Error error;
 
 	prop.absValue = value;
-	error = cam.SetProperty(&prop);
+	error = cam->SetProperty(&prop);
 
 	return error;
 }	// end of setProperty
