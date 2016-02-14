@@ -27,17 +27,18 @@
 #include "Config_Chameleon.h"
 
 // Varioptic Lens Includes
-#include "varioptic_class.h"
+#include "Lens_Driver.h"
 
 using namespace std;
 using namespace cv;
 using namespace FlyCapture2;
+using namespace Lens_Driver;
 
 
 void getcurrenttime(char currenttime[]);
 bool configLensDriver(LPCWSTR port, HANDLE &serialHandle);
 //void cameraConnect(PGRGuid guid, Camera &cam);
-int videoCapture(Camera &cam, HANDLE serialHandle, string save_file);
+int videoCapture(Camera *cam, HANDLE serialHandle, string save_file);
 
 
 void PrintBuildInfo()
@@ -55,7 +56,19 @@ void PrintBuildInfo()
 }
 
 
+void PrintDriverInfo(LensDriverInfo *LensInfo)
+{
+	cout << "*** LENS DRIVER INFO ***" << endl;
+	cout << "Serial Number: " << (unsigned int)LensInfo->SerialNumber << endl;
+	cout << "Firmware Version: " << (unsigned int)LensInfo->FirmwareVersion[0] << "." << setfill('0') << setw(2) << (unsigned int)LensInfo->FirmwareVersion[1] << endl;
+	if (LensInfo->DriverType == 0)
+	{
+		cout << "Driver Type: Microchip HV892" << endl;
+	}
+	cout << endl;
+	
 
+}	// end of PrintDriverInfo
 
 
 int main(int /*argc*/, char** /*argv*/)
@@ -65,16 +78,23 @@ int main(int /*argc*/, char** /*argv*/)
 	Error error;
 	BusManager busMgr;
     PGRGuid guid;
-	Camera &cam = Camera();
+	Camera cam = Camera();
 	FC2Config cameraConfig;
 	unsigned int numCameras;
 	unsigned int offsetX, offsetY, width, height;
 	PixelFormat pixelFormat;
 	Property shutter, gain;
 
+	
+	//Lens_Driver test_lens;
+	//unsigned char data[4] = { 1, 2, 3, 4 };
+	LensTxPacket LensTx(CON,0);
+	LensRxPacket LensRx;
+	LensDriverInfo LensInfo;
+	unsigned char status;
 
 	// Serial Port specific variables
-	LPCWSTR commPort = L"\\\\.\\COM5";
+	LPCWSTR commPort = L"\\\\.\\COM7";
 	HANDLE lensDriver = NULL;
 
 	string save_file;
@@ -82,6 +102,9 @@ int main(int /*argc*/, char** /*argv*/)
 
 	VideoWriter outputVideo;
 
+	//test_lens.driver_type = 0;
+	//test_lens.setVoltage(10.0);
+	//test_lens.Packet.ByteCount = 1;
 
 	getcurrenttime(currenttime);
 
@@ -89,6 +112,19 @@ int main(int /*argc*/, char** /*argv*/)
     PrintBuildInfo();
     
 	configLensDriver(commPort, lensDriver);
+
+	sendLensPacket(LensTx, lensDriver);
+
+	status = readLensPacket(&LensRx, lensDriver, 9);
+
+	if (status == false)
+	{
+		cout << "Error communicating with lens driver." << endl;
+		return EXIT_FAILURE;
+	}
+	setLensDriverInfo(&LensInfo, LensRx);
+	PrintDriverInfo(&LensInfo);
+
 
     error = busMgr.GetNumOfCameras(&numCameras);
     if (error != PGRERROR_OK)
@@ -110,7 +146,7 @@ int main(int /*argc*/, char** /*argv*/)
     }
 
 	// connect to the camera
-	cameraConnect(guid, cam);
+	cameraConnect(guid, &cam);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
@@ -126,17 +162,20 @@ int main(int /*argc*/, char** /*argv*/)
 	}
 
 	// configure the image size and the pixel format for the video
-	offsetX = 40;
-	offsetY = 224;
-	width = 1200;
-	height = 768;
+	// 1.216 MB/s
+	offsetX = 80;		// 40
+	width = 1120;		// 1200;
+	
+	offsetY = 228;		// 224;
+	height = 724;		// 768;
+
 	pixelFormat = PIXEL_FORMAT_411YUV8;
-	configImagerFormat(cam, offsetX, offsetY, width, height, pixelFormat);
+	configImagerFormat(&cam, offsetX, offsetY, width, height, pixelFormat);
 
 	configProperty(shutter, SHUTTER, true, true);
 	configProperty(gain, GAIN, false, false);
 
-	error = setProperty(cam, gain, 4.0);
+	error = setProperty(&cam, gain, 4.0);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
@@ -144,7 +183,7 @@ int main(int /*argc*/, char** /*argv*/)
 	}
 
 	// begin the video capture
-	videoCapture(cam, lensDriver, save_file);
+	videoCapture(&cam, lensDriver, save_file);
 
 	// Disconnect the camera
 	error = cam.Disconnect();
@@ -199,11 +238,11 @@ bool configLensDriver(LPCWSTR commPort, HANDLE &serialHandle)
 		cout << "Error getting information from the specified serial port" << endl;
 
 	//GetCommState(serialHandle, &serialParams);
-	serialParams.BaudRate = 57600;
+	serialParams.BaudRate = 250000;
 	serialParams.ByteSize = 8;
-	serialParams.StopBits = ONESTOPBIT;
+	serialParams.StopBits = TWOSTOPBITS;
 	serialParams.Parity = NOPARITY;
-
+	
 	status = SetCommState(serialHandle, &serialParams);
 	if (!status)
 	{
@@ -214,7 +253,7 @@ bool configLensDriver(LPCWSTR commPort, HANDLE &serialHandle)
 	// Set timeouts
 	COMMTIMEOUTS timeout = { 0 };
 	timeout.ReadIntervalTimeout = 50;
-	timeout.ReadTotalTimeoutConstant = 50;
+	timeout.ReadTotalTimeoutConstant = 100;
 	timeout.ReadTotalTimeoutMultiplier = 50;
 	timeout.WriteTotalTimeoutConstant = 50;
 	timeout.WriteTotalTimeoutMultiplier = 10;
@@ -233,10 +272,10 @@ bool configLensDriver(LPCWSTR commPort, HANDLE &serialHandle)
 
 
 
-int videoCapture(Camera &cam, HANDLE lensDriver, string save_file)
+int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 {
 
-	unsigned long dwBytesWritten;
+	//unsigned long dwBytesWritten;
 	double tick;
 
 	Error error;
@@ -249,20 +288,23 @@ int videoCapture(Camera &cam, HANDLE lensDriver, string save_file)
 	Mat video_frame;
 	VideoWriter outputVideo;
 	int delay = 1;
-	int Casp_retVal = 0;
+	//int Casp_retVal = 0;
 	unsigned int idx = 0;
-	double voltage[2] = { 40.0, 43.0 };
-	varioptic_class Casp_Lens;
+	//double voltage[2] = { 40.0, 43.0 };
+	//varioptic_class Casp_Lens;
+	//Lens_Driver Casp_Lens;
+	LensFocus LensDfD(38.295, 40.345);
+	LensTxPacket Focus(FAST_SET_VOLT, 1, &LensDfD.Focus[0]);
+	LensTxPacket DeFocus(FAST_SET_VOLT, 1, &LensDfD.Focus[1]);
+
 	//BOOL comm_result;
 
-	unsigned long dwRead;
-	char rx_data[4] = { 0, 0, 0, 0 };
-	OVERLAPPED osReader = { 0 };
+
 
 	namedWindow(Window1, WINDOW_NORMAL);       
 
 	// Start capturing images
-	error = cam.StartCapture();
+	error = cam->StartCapture();
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
@@ -273,7 +315,7 @@ int videoCapture(Camera &cam, HANDLE lensDriver, string save_file)
 	Image convertedImageCV;
 	unsigned char *image_data = NULL;
 
-	error = cam.RetrieveBuffer(&rawImage);
+	error = cam->RetrieveBuffer(&rawImage);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
@@ -297,18 +339,21 @@ int videoCapture(Camera &cam, HANDLE lensDriver, string save_file)
 	}
 
 	idx = 0;
-
+	sendLensPacket(Focus, lensDriver);
 	while (key != 'q')
 	{
 		tick = (double)getTickCount();		// start timing process 
 
 		// send infocus voltage to lens driver
-		Casp_Lens.voltage(voltage[0]);
-		WriteFile(lensDriver, Casp_Lens.Packet, Casp_Lens.packet_length + 1, &dwBytesWritten, NULL);
-		ReadFile(lensDriver, rx_data, sizeof(rx_data), &dwRead, &osReader);	
+		
+		//Casp_Lens.voltage(voltage[0]);
+		//WriteFile(lensDriver, Casp_Lens.Packet, Casp_Lens.packet_length + 1, &dwBytesWritten, NULL);
+		//ReadFile(lensDriver, rx_data, sizeof(rx_data), &dwRead, &osReader);	
+
+
 
 		// Retrieve an image
-		error = cam.RetrieveBuffer(&rawImage);
+		error = cam->RetrieveBuffer(&rawImage);
 		if (error != PGRERROR_OK)
 		{
 			PrintError(error);
@@ -328,21 +373,24 @@ int videoCapture(Camera &cam, HANDLE lensDriver, string save_file)
 		video_frame = Mat(image_size, CV_8UC3, image_data, rowBytes);
 
 		//ReadFile(lensDriver, rx_data, sizeof(rx_data), &dwRead, &osReader);	
-		
+
+		// send blurred voltage to lens driver
+		sendLensPacket(DeFocus, lensDriver);
+
 		// display images
 		//imshow(Window1, video_frame);
 		outputVideo.write(video_frame);
-		key = waitKey(delay);
+		//key = waitKey(delay);
 
 		//tick = (double)getTickCount() - tick;
 		//cout << "Execution Time: " << fixed << setw(5) << setprecision(0) << (tick*1000. / getTickFrequency()) << "ms" << endl;
 
-		// send blurred voltage to lens driver
-		Casp_Lens.voltage(voltage[1]);
-		WriteFile(lensDriver, Casp_Lens.Packet, Casp_Lens.packet_length + 1, &dwBytesWritten, NULL);
+		
+		//Casp_Lens.voltage(voltage[1]);
+		//WriteFile(lensDriver, Casp_Lens.Packet, Casp_Lens.packet_length + 1, &dwBytesWritten, NULL);
 
 		// Retrieve an image
-		error = cam.RetrieveBuffer(&rawImage);
+		error = cam->RetrieveBuffer(&rawImage);
 		if (error != PGRERROR_OK)
 		{
 			PrintError(error);
@@ -365,12 +413,14 @@ int videoCapture(Camera &cam, HANDLE lensDriver, string save_file)
 
 		//ReadFile(lensDriver, rx_data, sizeof(rx_data), &dwRead, &osReader);	
 
+		sendLensPacket(Focus, lensDriver);
+
 		//imshow(Window1, video_frame);
 		outputVideo.write(video_frame);
 		key = waitKey(delay);
 
 		tick = (double)getTickCount() - tick;
-		cout << "Execution Time: " << fixed << setw(5) << setprecision(0) << (tick*1000. / getTickFrequency()) << "ms" << endl;
+		cout << "Execution Time: " << fixed << setw(5) << setprecision(0) << (tick*1000.0 / getTickFrequency()) << "ms" << endl;
 
 	}
 
@@ -381,7 +431,7 @@ int videoCapture(Camera &cam, HANDLE lensDriver, string save_file)
 	//CloseHandle(serialHandle);
 
 	// Stop capturing images
-	error = cam.StopCapture();
+	error = cam->StopCapture();
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
