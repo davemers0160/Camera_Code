@@ -195,7 +195,7 @@ bool Lens_Driver::readLensPacket(LensRxPacket *Packet, HANDLE lensDriver, unsign
 
 }
 
-void Lens_Driver::setLensDriverInfo(LensDriverInfo *LensInfo, LensRxPacket Packet)
+void Lens_Driver::getLensDriverInfo(LensDriverInfo *LensInfo, LensRxPacket Packet)
 {
 	LensInfo->SerialNumber = Packet.Data[0];
 	LensInfo->FirmwareVersion[0] = Packet.Data[1];

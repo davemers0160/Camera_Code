@@ -167,7 +167,7 @@ namespace Lens_Driver
 	//unsigned char genChecksum(Packet_Struct Packet);
 	unsigned char sendLensPacket(LensTxPacket Packet, HANDLE lensDriver);
 	bool readLensPacket(LensRxPacket *Packet, HANDLE lensDriver, unsigned char count);
-	void setLensDriverInfo(LensDriverInfo *LensInfo, LensRxPacket Packet);
+	void getLensDriverInfo(LensDriverInfo *LensInfo, LensRxPacket Packet);
 
 };
 

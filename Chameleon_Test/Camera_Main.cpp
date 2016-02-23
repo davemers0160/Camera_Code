@@ -12,25 +12,30 @@
 #include <vector>
 #include <iomanip>
 #include <ctime>
+#include <chrono>
 
 // windows Includes
 #include <windows.h> 
 
 // OPENCV Includes
-#include <opencv2/core/core.hpp>           
-#include <opencv2/highgui/highgui.hpp>     
-#include <opencv2/imgproc/imgproc.hpp>  
+#define USE_OPENCV
+
+#ifdef USE_OPENCV
+	#include <opencv2/core/core.hpp>           
+	#include <opencv2/highgui/highgui.hpp>     
+	#include <opencv2/imgproc/imgproc.hpp>  
+	using namespace cv;
+#endif
 
 // Point Grey Includes
 #include "stdafx.h"
 #include "include/FlyCapture2.h"
 #include "Config_Chameleon.h"
 
-// Varioptic Lens Includes
+// Lens Driver Includes
 #include "Lens_Driver.h"
 
 using namespace std;
-using namespace cv;
 using namespace FlyCapture2;
 using namespace Lens_Driver;
 
@@ -94,13 +99,12 @@ int main(int /*argc*/, char** /*argv*/)
 	unsigned char status;
 
 	// Serial Port specific variables
-	LPCWSTR commPort = L"\\\\.\\COM7";
+	string port = "\\\\.\\COM7";
+	LPCWSTR commPort = L"\\\\.\\COM7"; //(LPCWSTR)port.c_str();	//"\\\\.\\COM7";
 	HANDLE lensDriver = NULL;
 
 	string save_file;
 	char currenttime[80];
-
-	VideoWriter outputVideo;
 
 	//test_lens.driver_type = 0;
 	//test_lens.setVoltage(10.0);
@@ -120,9 +124,10 @@ int main(int /*argc*/, char** /*argv*/)
 	if (status == false)
 	{
 		cout << "Error communicating with lens driver." << endl;
+		cin.ignore();
 		return EXIT_FAILURE;
 	}
-	setLensDriverInfo(&LensInfo, LensRx);
+	getLensDriverInfo(&LensInfo, LensRx);
 	PrintDriverInfo(&LensInfo);
 
 
@@ -130,18 +135,17 @@ int main(int /*argc*/, char** /*argv*/)
     if (error != PGRERROR_OK)
     {
         PrintError( error );
+		cin.ignore();
 		return EXIT_FAILURE;
     }
 
     cout << "Number of cameras detected: " << numCameras << endl; 
-
-    //for (unsigned int i=0; i < numCameras; i++)
-    //{
     
     error = busMgr.GetCameraFromIndex(0, &guid);
     if (error != PGRERROR_OK)
     {
         PrintError( error );
+		cin.ignore();
         return EXIT_FAILURE;
     }
 
@@ -150,6 +154,7 @@ int main(int /*argc*/, char** /*argv*/)
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
+		cin.ignore();
 		return EXIT_FAILURE;
 	}
 
@@ -158,6 +163,7 @@ int main(int /*argc*/, char** /*argv*/)
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
+		cin.ignore();
 		return EXIT_FAILURE;
 	}
 
@@ -274,34 +280,55 @@ bool configLensDriver(LPCWSTR commPort, HANDLE &serialHandle)
 
 int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 {
+	// timing variables
+	auto tick1 = chrono::high_resolution_clock::now();
+	auto tick2 = chrono::high_resolution_clock::now();
+	double duration=0;
 
-	//unsigned long dwBytesWritten;
-	double tick;
-
-	Error error;
-	char* Window1 = "Video Display";
-	char key = 0;
-	double fps = 30.0;
-	int codec = CV_FOURCC('M', 'J', 'P', 'G');
-	unsigned int image_rows, image_cols, rowBytes;
-	Size image_size;
-	Mat video_frame;
-	VideoWriter outputVideo;
-	int delay = 1;
-	//int Casp_retVal = 0;
+	unsigned int key = 0;
+	float fps = 30.0;
 	unsigned int idx = 0;
-	//double voltage[2] = { 40.0, 43.0 };
-	//varioptic_class Casp_Lens;
-	//Lens_Driver Casp_Lens;
+	unsigned int image_rows, image_cols;
+	unsigned int numCaptures = 100;
+
+	// Lend Driver Variables
 	LensFocus LensDfD(38.295, 40.345);
 	LensTxPacket Focus(FAST_SET_VOLT, 1, &LensDfD.Focus[0]);
 	LensTxPacket DeFocus(FAST_SET_VOLT, 1, &LensDfD.Focus[1]);
 
-	//BOOL comm_result;
+	// Camera variables
+	Error error;
+	Image rawImage;
+
+#ifdef USE_OPENCV
+	// OpenCV variables	
+	int codec = CV_FOURCC('M', 'J', 'P', 'G');
+	unsigned int rowBytes;
+	Size image_size;
+	Mat video_frame;
+	VideoWriter outputVideo;
+	char* Window1 = "Video Display";
+	int delay = 1;
+	Image convertedImageCV;
+	//namedWindow(Window1, WINDOW_NORMAL);   
+
+#else
+	AVIRecorder videoFile;
+	MJPGOption option;
+	option.frameRate = fps;
+	option.quality = 100;
+	
+	// Point Grey FlyCapture2 AVI saving 
+	error = videoFile.AVIOpen(save_file.c_str(), &option);
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+		return -1;
+	}
+#endif
 
 
-
-	namedWindow(Window1, WINDOW_NORMAL);       
+	    
 
 	// Start capturing images
 	error = cam->StartCapture();
@@ -311,8 +338,7 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 		return -1;
 	}
 
-	Image rawImage;
-	Image convertedImageCV;
+	
 	unsigned char *image_data = NULL;
 
 	error = cam->RetrieveBuffer(&rawImage);
@@ -323,34 +349,39 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 	}
 	else
 	{
+
+#ifdef USE_OPENCV
+		// OpenCV functions to save video
 		error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
 		if (error != PGRERROR_OK)
 		{
 			PrintError(error);
 			return -1;
 		}
+		
 		image_cols = convertedImageCV.GetCols();
 		image_rows = convertedImageCV.GetRows();
 		rowBytes = (unsigned int)((double)convertedImageCV.GetDataSize() / (double)convertedImageCV.GetRows());
 		image_size = Size((int)image_cols, (int)image_rows);
+		
 		outputVideo.open(save_file, codec, fps, image_size, true);
+#else
+		image_cols = rawImage.GetCols();
+		image_rows = rawImage.GetRows();
+
+#endif
+
 		cout << "video size: " << image_cols << " x " << image_rows << endl;
 
 	}
 
 	idx = 0;
 	sendLensPacket(Focus, lensDriver);
-	while (key != 'q')
+
+
+	while (key < numCaptures)
 	{
-		tick = (double)getTickCount();		// start timing process 
-
-		// send infocus voltage to lens driver
-		
-		//Casp_Lens.voltage(voltage[0]);
-		//WriteFile(lensDriver, Casp_Lens.Packet, Casp_Lens.packet_length + 1, &dwBytesWritten, NULL);
-		//ReadFile(lensDriver, rx_data, sizeof(rx_data), &dwRead, &osReader);	
-
-
+		tick1 = chrono::high_resolution_clock::now();
 
 		// Retrieve an image
 		error = cam->RetrieveBuffer(&rawImage);
@@ -360,6 +391,10 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 			continue;
 		}
 
+		// send blurred voltage to lens driver
+		sendLensPacket(DeFocus, lensDriver);
+
+#ifdef USE_OPENCV
 		// Convert the raw image	PIXEL_FORMAT_BGR for opencv
 		error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
 		if (error != PGRERROR_OK)
@@ -368,67 +403,92 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 			return -1;
 		}
 
-		// convert data to opencv format
+		// Convert data to opencv format
 		image_data = convertedImageCV.GetData();
 		video_frame = Mat(image_size, CV_8UC3, image_data, rowBytes);
 
-		//ReadFile(lensDriver, rx_data, sizeof(rx_data), &dwRead, &osReader);	
+		// display images
+		//imshow(Window1, video_frame);
+		outputVideo.write(video_frame);
 
-		// send blurred voltage to lens driver
-		sendLensPacket(DeFocus, lensDriver);
+#else
+		// FlyCapture2 Append image to AVI file
+		error = videoFile.AVIAppend(&rawImage);
+		if (error != PGRERROR_OK)
+		{
+			PrintError(error);
+			continue;
+		}
+
+#endif
+
+		// Retrieve an image
+		error = cam->RetrieveBuffer(&rawImage);
+		if (error != PGRERROR_OK)
+		{
+			PrintError(error);
+			continue;
+		}
+
+		sendLensPacket(Focus, lensDriver);
+
+
+#ifdef USE_OPENCV
+		// Convert the raw image	PIXEL_FORMAT_BGR for opencv
+		error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
+		if (error != PGRERROR_OK)
+		{
+			PrintError(error);
+			return -1;
+		}
+
+		// Convert data to opencv format
+		image_data = convertedImageCV.GetData();
+		video_frame = Mat(image_size, CV_8UC3, image_data, rowBytes);
 
 		// display images
 		//imshow(Window1, video_frame);
 		outputVideo.write(video_frame);
 		//key = waitKey(delay);
 
-		//tick = (double)getTickCount() - tick;
-		//cout << "Execution Time: " << fixed << setw(5) << setprecision(0) << (tick*1000. / getTickFrequency()) << "ms" << endl;
-
-		
-		//Casp_Lens.voltage(voltage[1]);
-		//WriteFile(lensDriver, Casp_Lens.Packet, Casp_Lens.packet_length + 1, &dwBytesWritten, NULL);
-
-		// Retrieve an image
-		error = cam->RetrieveBuffer(&rawImage);
+#else
+		// FlyCapture2 Append image to AVI file
+		error = videoFile.AVIAppend(&rawImage);
 		if (error != PGRERROR_OK)
 		{
 			PrintError(error);
 			continue;
 		}
 
-		// Convert the raw image	PIXEL_FORMAT_BGR for opencv
-		error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
-		if (error != PGRERROR_OK)
-		{
-			PrintError(error);
-			return -1;
-		}
+#endif
 
+		//tick = (double)getTickCount() - tick;
+		tick2 = chrono::high_resolution_clock::now();
+		duration += chrono::duration_cast<std::chrono::milliseconds>(tick2 - tick1).count();
 
-		// display images
-
-		image_data = convertedImageCV.GetData();
-		video_frame = Mat(image_size, CV_8UC3, image_data, rowBytes);
-
-		//ReadFile(lensDriver, rx_data, sizeof(rx_data), &dwRead, &osReader);	
-
-		sendLensPacket(Focus, lensDriver);
-
-		//imshow(Window1, video_frame);
-		outputVideo.write(video_frame);
-		key = waitKey(delay);
-
-		tick = (double)getTickCount() - tick;
-		cout << "Execution Time: " << fixed << setw(5) << setprecision(0) << (tick*1000.0 / getTickFrequency()) << "ms" << endl;
+		key++;
 
 	}
 
+	cout << "Average Execution Time: " << fixed << setw(5) << setprecision(2) << (duration / (numCaptures*2)) << "ms" << endl;
+
+	// Finish writing video and close out file
+#ifdef USE_OPENCV
+	// OpenCV functions to complete Actions
 	outputVideo.release();
 	destroyAllWindows();
-	cout << "Finished Writing Video!" << endl;
 
-	//CloseHandle(serialHandle);
+#else
+	// FlyCapture2 functions to complete actions
+	error = videoFile.AVIClose();
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+		return -1;
+	}
+#endif
+
+	cout << "Finished Writing Video!" << endl;
 
 	// Stop capturing images
 	error = cam->StopCapture();
