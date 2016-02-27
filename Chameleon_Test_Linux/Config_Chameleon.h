@@ -10,7 +10,7 @@ void configImagerFormat(Camera *cam, unsigned int offsetX, unsigned int offsetY,
 void PrintError(Error error);
 void PrintCameraInfo(CameraInfo* pCamInfo);
 void configProperty(Property &prop, PropertyType type, bool mode, bool OnOff);
-//Error setProperty(Camera &cam, Property &prop, float value);
+Error setProperty(Camera *cam, Property &prop, float value);
 
 
 #endif

@@ -122,16 +122,16 @@ void configProperty(Property &prop, PropertyType type, bool mode, bool OnOff)
 }	// end of configProperty
 
 
-/*
-Error setProperty(Camera &cam, Property &prop, float value)
+
+Error setProperty(Camera *cam, Property &prop, float value)
 {
 	Error error;
 
 	prop.absValue = value;
-	error = cam.SetProperty(&prop);
+	error = cam->SetProperty(&prop);
 
 	return error;
 }	// end of setProperty
-*/
+
 
 

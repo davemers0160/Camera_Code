@@ -4,7 +4,7 @@ Camera_Main.d: ../Camera_Main.cpp ../stdafx.h ../include/FlyCapture2.h \
  ../include/CameraBase.h ../include/GigECamera.h ../include/Image.h \
  ../include/Utilities.h ../include/AVIRecorder.h \
  ../include/TopologyNode.h ../include/ImageStatistics.h \
- ../Config_Chameleon.h ../varioptic_class.h
+ ../Config_Chameleon.h ../Lens_Driver.h ../ftd2xx.h ../WinTypes.h
 
 ../stdafx.h:
 
@@ -36,4 +36,8 @@ Camera_Main.d: ../Camera_Main.cpp ../stdafx.h ../include/FlyCapture2.h \
 
 ../Config_Chameleon.h:
 
-../varioptic_class.h:
+../Lens_Driver.h:
+
+../ftd2xx.h:
+
+../WinTypes.h:

@@ -4,5 +4,5 @@
 
 USER_OBJS :=
 
-LIBS := -lflycapture -lopencv_imgproc -lopencv_highgui -lopencv_core -lopencv_video
+LIBS := -lopencv_core -lopencv_imgproc -lopencv_highgui -lftd2xx -lflycapture
 

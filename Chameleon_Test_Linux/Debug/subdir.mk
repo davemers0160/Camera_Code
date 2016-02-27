@@ -6,18 +6,21 @@
 CPP_SRCS += \
 ../Camera_Main.cpp \
 ../Config_Chameleon.cpp \
+../Lens_Driver.cpp \
 ../Varioptic_Class.cpp \
 ../stdafx.cpp 
 
 OBJS += \
 ./Camera_Main.o \
 ./Config_Chameleon.o \
+./Lens_Driver.o \
 ./Varioptic_Class.o \
 ./stdafx.o 
 
 CPP_DEPS += \
 ./Camera_Main.d \
 ./Config_Chameleon.d \
+./Lens_Driver.d \
 ./Varioptic_Class.d \
 ./stdafx.d 
 
@@ -26,7 +29,7 @@ CPP_DEPS += \
 %.o: ../%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
-	g++ -I/usr/local/include/opencv2 -O0 -g3 -Wall -c -fmessage-length=0 -v -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o "$@" "$<"
+	g++ -I/usr/local/include/opencv2 -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
