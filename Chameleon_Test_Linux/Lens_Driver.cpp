@@ -193,6 +193,10 @@ bool Lens_Driver::readLensPacket(LensRxPacket *Packet, FT_HANDLE lensDriver, uns
 		Packet->Checksum = (rx_data[idx + 2] << 8) | rx_data[idx + 3];
 
 		status = checkChecksum(*Packet);
+		if(status == false)
+		{
+			std::cout << "checksum in data packet does not match." << std::endl;
+		}
 
 	}
 	else

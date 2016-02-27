@@ -150,9 +150,9 @@ int main(int /*argc*/, char** /*argv*/)
 
 	//configLensDriver(commPort, lensDriver);
 
-	//sendLensPacket(LensTx, lensDriver);
+	sendLensPacket(LensTx, lensDriver);
 
-	//status = readLensPacket(&LensRx, lensDriver, 9);
+	status = readLensPacket(&LensRx, lensDriver, 9);
 
 	if (status == false)
 	{
