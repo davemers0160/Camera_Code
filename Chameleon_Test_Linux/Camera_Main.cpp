@@ -103,7 +103,7 @@ int main(int /*argc*/, char** /*argv*/)
 	unsigned int offsetX, offsetY, width, height;
 	PixelFormat pixelFormat;
 	Property shutter, gain;
-	unsigned int numCaptures = 10;
+	unsigned int numCaptures = 5*60*55;
 
 	
 	//Lens_Driver test_lens;
@@ -332,7 +332,7 @@ int videoCapture(Camera *cam, FT_HANDLE lensDriver, string save_file, unsigned i
 	//double duration=0;
 
 	unsigned int key = 0;
-	float fps = 30.0;
+	float fps = 55.0;
 	//unsigned int idx = 0;
 	unsigned int image_rows, image_cols;
 	//unsigned int numCaptures = 200;

@@ -20,4 +20,19 @@ http://www.upubuntu.com/2011/06/how-to-delay-execution-of-command-on.html
 # is being compiled against.
 https://sourceforge.net/p/predef/wiki/OperatingSystems/
 
+# This is how to add the autostart capability in the GUI interface
+# 1. Create a .desktop file in /home/odroid/.config/autostart/
+# 2. Add the following:
+
+[Desktop Entry]
+Name=Chameleon Launch
+Comment=Autostart Entry for Chameleon Camera
+Type=Application
+Exec=/home/odroid/BicycleCamera/Camera_Startup.sh
+Terminal=false
+
+# Where "Camera_Startup.sh" is the script file that starts the program with
+# the required amount of delay.
+
+
 
