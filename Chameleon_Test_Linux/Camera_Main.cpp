@@ -208,7 +208,7 @@ int main(int /*argc*/, char** /*argv*/)
 	offsetY = 228;		// 224;
 	height = 724;		// 768;
 
-	pixelFormat = PIXEL_FORMAT_411YUV8;
+	pixelFormat = PIXEL_FORMAT_422YUV8;
 	configImagerFormat(&cam, offsetX, offsetY, width, height, pixelFormat);
 
 	configProperty(shutter, SHUTTER, true, true);
@@ -548,6 +548,7 @@ FT_HANDLE OpenComPort(ftdiDeviceDetails *device, string descript)
 	DWORD ID;
 	DWORD Type;
 	DWORD LocId;
+	DWORD iOldVID, iOldPID;
 	char SerialNumber[16];
 	char Description[64];
 	LONG lComPortNumber;
@@ -561,6 +562,8 @@ FT_HANDLE OpenComPort(ftdiDeviceDetails *device, string descript)
 
 	if (numDevices > 0)
 	{
+		//FT_GetVIDPID(&iOldVID, &iOldPID);
+		//FT_STATUS status = FT_SetVIDPID (0x0403, 0x0A23);
 		if (FT_GetDeviceInfoList(devInfo, &numDevices) == FT_OK)
 		{
 			while ((dev_number < (int)numDevices) && !found)
