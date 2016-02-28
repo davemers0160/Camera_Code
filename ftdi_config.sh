@@ -1,7 +1,8 @@
 #!/bin/bash
 
 #begin
+echo "Configuring FTDI Drivers."
 sudo rmmod ftdi_sio
 
-echo "odroid"
-echo
+return 0
+

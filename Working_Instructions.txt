@@ -1,0 +1,23 @@
+
+# This link tells how to setup the LINUX OS to run a script at startup
+# This is used to configure the FTDI drivers to stop using the ftdi-sio driver
+# in favor of allowing the ftd2xx drivers that are used by the code.
+http://www.upubuntu.com/2015/08/how-to-executerun-bash-script-at-system.html
+
+# This link tells how to configure the OS to bypass the need to request
+# a user login name.  The solution was to do the following:
+# create a file /etc/lightdm/lightdm.conf and add the following content:
+# [SeatDefaults]
+# autologin-user=odroid
+# autologin-user-timeout=0
+# This might only work for lightdm which is the GUI interface for Ubuntu 15.04
+http://askubuntu.com/questions/51086/how-do-i-enable-auto-login-in-lightdm
+
+# Thi link shows how to delay the start of a script.
+http://www.upubuntu.com/2011/06/how-to-delay-execution-of-command-on.html
+
+# These links are good refs for preprocessor headings to determine which OS
+# is being compiled against.
+https://sourceforge.net/p/predef/wiki/OperatingSystems/
+
+

@@ -55,7 +55,7 @@ struct ftdiDeviceDetails //structure storage for FTDI device details
 void getcurrenttime(char currenttime[]);
 //bool configLensDriver(LPCWSTR port, HANDLE &serialHandle);
 //void cameraConnect(PGRGuid guid, Camera &cam);
-int videoCapture(Camera *cam, FT_HANDLE serialHandle, string save_file);
+int videoCapture(Camera *cam, FT_HANDLE serialHandle, string save_file, unsigned int numCaptures);
 FT_HANDLE OpenComPort(ftdiDeviceDetails *device, string descript);
 
 
@@ -103,6 +103,7 @@ int main(int /*argc*/, char** /*argv*/)
 	unsigned int offsetX, offsetY, width, height;
 	PixelFormat pixelFormat;
 	Property shutter, gain;
+	unsigned int numCaptures = 10;
 
 	
 	//Lens_Driver test_lens;
@@ -120,7 +121,9 @@ int main(int /*argc*/, char** /*argv*/)
 	//LPCWSTR commPort = L"\\\\.\\COM7"; //(LPCWSTR)port.c_str();	//"\\\\.\\COM7";
 	//HANDLE lensDriver = NULL;
 
-	string save_file;
+	string videoSaveFile;
+	string gpsSaveFile;
+	string imuSaveFile;
 	char currenttime[80];
 
 	//test_lens.driver_type = 0;
@@ -129,8 +132,14 @@ int main(int /*argc*/, char** /*argv*/)
 
 	getcurrenttime(currenttime);
 
-	save_file = "test_recording_" + (string)currenttime + ".avi";
-    PrintBuildInfo();
+// place videos in specific location based on the OS that the code is running on
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
+	videoSaveFile = "test_recording_" + (string)currenttime + ".avi";
+#else
+	videoSaveFile = "/home/odroid/Videos/test_recording_" + (string)currenttime + ".avi";
+#endif
+
+	PrintBuildInfo();
 
 	// check for lens driver
 	while (lensDriver == NULL)
@@ -208,6 +217,8 @@ int main(int /*argc*/, char** /*argv*/)
 	offsetY = 228;		// 224;
 	height = 724;		// 768;
 
+	cout << "Configuring Camera!" << endl;
+
 	pixelFormat = PIXEL_FORMAT_422YUV8;
 	configImagerFormat(&cam, offsetX, offsetY, width, height, pixelFormat);
 
@@ -222,10 +233,12 @@ int main(int /*argc*/, char** /*argv*/)
 	}
 
 	// begin the video capture
-	videoCapture(&cam, lensDriver, save_file);
+	cout << "Beginning Video Capture." << endl;
+	videoCapture(&cam, lensDriver, videoSaveFile, numCaptures);
 
 	// Disconnect the camera
 	error = cam.Disconnect();
+
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
@@ -311,7 +324,7 @@ bool configLensDriver(LPCWSTR commPort, HANDLE &serialHandle)
 
 
 
-int videoCapture(Camera *cam, FT_HANDLE lensDriver, string save_file)
+int videoCapture(Camera *cam, FT_HANDLE lensDriver, string save_file, unsigned int numCaptures)
 {
 	// timing variables
 	//auto tick1 = chrono::high_resolution_clock::now();
@@ -322,7 +335,7 @@ int videoCapture(Camera *cam, FT_HANDLE lensDriver, string save_file)
 	float fps = 30.0;
 	//unsigned int idx = 0;
 	unsigned int image_rows, image_cols;
-	unsigned int numCaptures = 200;
+	//unsigned int numCaptures = 200;
 
 	// Lend Driver Variables
 	LensFocus LensDfD(38.295, 40.345);
