@@ -22,7 +22,7 @@
 #define USE_OPENCV
 
 #ifdef USE_OPENCV
-	#include <opencv2/core/core.hpp>           
+	#include <opencv2/core/core.hpp>
 	#include <opencv2/highgui/highgui.hpp>     
 	#include <opencv2/imgproc/imgproc.hpp>  
 	using namespace cv;
@@ -103,7 +103,7 @@ int main(int /*argc*/, char** /*argv*/)
 	unsigned int offsetX, offsetY, width, height;
 	PixelFormat pixelFormat;
 	Property shutter, gain;
-	unsigned int numCaptures = 5*60*55;
+	unsigned int numCaptures = 100;
 
 	
 	//Lens_Driver test_lens;
@@ -136,7 +136,8 @@ int main(int /*argc*/, char** /*argv*/)
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
 	videoSaveFile = "test_recording_" + (string)currenttime + ".avi";
 #else
-	videoSaveFile = "/home/odroid/Videos/test_recording_" + (string)currenttime + ".avi";
+	//videoSaveFile = "/home/odroid/Videos/test_recording_" + (string)currenttime + ".avi";
+	videoSaveFile = "/media/odroid/TOSHIBA EXT/Videos/test_recording_" + (string)currenttime + ".avi";
 #endif
 
 	PrintBuildInfo();
@@ -167,7 +168,7 @@ int main(int /*argc*/, char** /*argv*/)
 	{
 		cout << "Error communicating with lens driver." << endl;
 		cin.ignore();
-		return EXIT_FAILURE;
+		return 1;
 	}
 	getLensDriverInfo(&LensInfo, LensRx);
 	PrintDriverInfo(&LensInfo);
@@ -178,7 +179,7 @@ int main(int /*argc*/, char** /*argv*/)
     {
         PrintError( error );
 		cin.ignore();
-		return EXIT_FAILURE;
+		return 1;
     }
 
     cout << "Number of cameras detected: " << numCameras << endl; 
@@ -188,7 +189,7 @@ int main(int /*argc*/, char** /*argv*/)
     {
         PrintError( error );
 		cin.ignore();
-        return EXIT_FAILURE;
+        return 1;
     }
 
 	// connect to the camera
@@ -197,7 +198,7 @@ int main(int /*argc*/, char** /*argv*/)
 	{
 		PrintError(error);
 		cin.ignore();
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	// Get the camera configuration
@@ -206,7 +207,7 @@ int main(int /*argc*/, char** /*argv*/)
 	{
 		PrintError(error);
 		cin.ignore();
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	// configure the image size and the pixel format for the video
@@ -214,8 +215,8 @@ int main(int /*argc*/, char** /*argv*/)
 	offsetX = 80;		// 40
 	width = 1120;		// 1200;
 	
-	offsetY = 228;		// 224;
-	height = 724;		// 768;
+	offsetY = 232;		// 224;
+	height = 720;		// 768;
 
 	cout << "Configuring Camera!" << endl;
 
@@ -225,11 +226,11 @@ int main(int /*argc*/, char** /*argv*/)
 	configProperty(shutter, SHUTTER, true, true);
 	configProperty(gain, GAIN, false, false);
 
-	error = setProperty(&cam, gain, 4.0);
+	error = setProperty(&cam, gain, 11.0);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	// begin the video capture
@@ -251,7 +252,7 @@ int main(int /*argc*/, char** /*argv*/)
     cout << "Done! Press Enter to exit..." << endl; 
     cin.ignore();
 
-    return EXIT_SUCCESS;
+    return 0;
 }
 
 
@@ -327,9 +328,12 @@ bool configLensDriver(LPCWSTR commPort, HANDLE &serialHandle)
 int videoCapture(Camera *cam, FT_HANDLE lensDriver, string save_file, unsigned int numCaptures)
 {
 	// timing variables
+
 	//auto tick1 = chrono::high_resolution_clock::now();
 	//auto tick2 = chrono::high_resolution_clock::now();
-	//double duration=0;
+	double duration=0;
+
+
 
 	unsigned int key = 0;
 	float fps = 55.0;
@@ -338,7 +342,8 @@ int videoCapture(Camera *cam, FT_HANDLE lensDriver, string save_file, unsigned i
 	//unsigned int numCaptures = 200;
 
 	// Lend Driver Variables
-	LensFocus LensDfD(38.295, 40.345);
+	LensFocus LensDfD((unsigned char)144, (unsigned char)140);
+	//LensFocus LensDfD(38.295, 40.345);
 	LensTxPacket Focus(FAST_SET_VOLT, 1, &LensDfD.Focus[0]);
 	LensTxPacket DeFocus(FAST_SET_VOLT, 1, &LensDfD.Focus[1]);
 
@@ -347,7 +352,9 @@ int videoCapture(Camera *cam, FT_HANDLE lensDriver, string save_file, unsigned i
 	Image rawImage;
 
 #ifdef USE_OPENCV
-	// OpenCV variables	
+	// OpenCV variables
+	double tick1, tick2;
+	double tickFreq = 1.0/getTickFrequency();
 	int codec = CV_FOURCC('M', 'J', 'P', 'G');
 	unsigned int rowBytes;
 	Size image_size;
@@ -359,6 +366,7 @@ int videoCapture(Camera *cam, FT_HANDLE lensDriver, string save_file, unsigned i
 	//namedWindow(Window1, WINDOW_NORMAL);   
 
 #else
+	clock_t tick1, tick2;
 	AVIRecorder videoFile;
 	MJPGOption option;
 	option.frameRate = fps;
@@ -373,9 +381,6 @@ int videoCapture(Camera *cam, FT_HANDLE lensDriver, string save_file, unsigned i
 	}
 #endif
 
-
-	    
-
 	// Start capturing images
 	error = cam->StartCapture();
 	if (error != PGRERROR_OK)
@@ -383,7 +388,6 @@ int videoCapture(Camera *cam, FT_HANDLE lensDriver, string save_file, unsigned i
 		PrintError(error);
 		return -1;
 	}
-
 	
 	unsigned char *image_data = NULL;
 
@@ -421,13 +425,15 @@ int videoCapture(Camera *cam, FT_HANDLE lensDriver, string save_file, unsigned i
 
 	}
 
-	//idx = 0;
 	sendLensPacket(Focus, lensDriver);
-
 
 	while (key < numCaptures)
 	{
-		//tick1 = chrono::high_resolution_clock::now();
+#ifdef USE_OPENCV
+		tick1 = (double)getTickCount();
+#else
+		tick1 = clock();
+#endif
 
 		// Retrieve an image
 		error = cam->RetrieveBuffer(&rawImage);
@@ -495,7 +501,6 @@ int videoCapture(Camera *cam, FT_HANDLE lensDriver, string save_file, unsigned i
 		// display images
 		//imshow(Window1, video_frame);
 		outputVideo.write(video_frame);
-		//key = waitKey(delay);
 
 #else
 		// FlyCapture2 Append image to AVI file
@@ -508,24 +513,34 @@ int videoCapture(Camera *cam, FT_HANDLE lensDriver, string save_file, unsigned i
 
 #endif
 
-		//tick = (double)getTickCount() - tick;
-		//tick2 = chrono::high_resolution_clock::now();
-		//duration += chrono::duration_cast<std::chrono::milliseconds>(tick2 - tick1).count();
 
+#ifdef USE_OPENCV
+		tick2 = (double)getTickCount();
+		duration += (tick2 - tick1);// * tickFreq;
+#else
+		tick2 = clock();
+		duration += (double)((tick2 - tick1)/ CLOCKS_PER_SEC);
+#endif
+
+		//cout << (double)(t2 - t1)/ CLOCKS_PER_SEC  << "ms / CPS: " << CLOCKS_PER_SEC << endl;
+		//cout << (tick2 - tick1) * tickFreq << "ms" << endl;
 		key++;
 
 	}
 
-	//cout << "Average Execution Time: " << fixed << setw(5) << setprecision(2) << (duration / (numCaptures*2)) << "ms" << endl;
+//	cout << "Average Execution Time: " << fixed << setw(5) << setprecision(2) << 1/((duration * tickFreq)/ (numCaptures*2)) << "ms" << endl;
+//	duration /= CLOCKS_PER_SEC;
 
 	// Finish writing video and close out file
 #ifdef USE_OPENCV
 	// OpenCV functions to complete Actions
+	cout << "Average Frame Rate (fps): " << dec << (unsigned short)(1/((duration * tickFreq)/ (numCaptures*2.0))) << endl;
 	outputVideo.release();
 	destroyAllWindows();
 
 #else
 	// FlyCapture2 functions to complete actions
+	cout << "Average Frame Rate (fps): " << dec << (unsigned short)(1.0/(duration/(numCaptures*2.0))) << endl;
 	error = videoFile.AVIClose();
 	if (error != PGRERROR_OK)
 	{
@@ -533,6 +548,7 @@ int videoCapture(Camera *cam, FT_HANDLE lensDriver, string save_file, unsigned i
 		return -1;
 	}
 #endif
+	sendLensPacket(Focus, lensDriver);
 
 	cout << "Finished Writing Video!" << endl;
 
