@@ -99,8 +99,8 @@ int main(int /*argc*/, char** /*argv*/)
 	unsigned char status;
 
 	// Serial Port specific variables
-	string port = "\\\\.\\COM7";
-	LPCWSTR commPort = L"\\\\.\\COM7"; //(LPCWSTR)port.c_str();	//"\\\\.\\COM7";
+	string port = "\\\\.\\COM9";
+	LPCWSTR commPort = L"\\\\.\\COM9"; //(LPCWSTR)port.c_str();	//"\\\\.\\COM7";
 	HANDLE lensDriver = NULL;
 
 	string save_file;
@@ -181,7 +181,7 @@ int main(int /*argc*/, char** /*argv*/)
 	configProperty(shutter, SHUTTER, true, true);
 	configProperty(gain, GAIN, false, false);
 
-	error = setProperty(&cam, gain, 4.0);
+	error = setProperty(&cam, gain, 12.0);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
@@ -292,7 +292,8 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 	unsigned int numCaptures = 100;
 
 	// Lend Driver Variables
-	LensFocus LensDfD(38.295, 40.345);
+	//LensFocus LensDfD(38.295, 40.345);
+	LensFocus LensDfD((unsigned char)144, (unsigned char)140);
 	LensTxPacket Focus(FAST_SET_VOLT, 1, &LensDfD.Focus[0]);
 	LensTxPacket DeFocus(FAST_SET_VOLT, 1, &LensDfD.Focus[1]);
 
@@ -303,6 +304,9 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 #ifdef USE_OPENCV
 	// OpenCV variables	
 	int codec = CV_FOURCC('M', 'J', 'P', 'G');
+	//int codec = CV_FOURCC('I', 'Y', 'U', 'V');	// completely uncompressed
+	//int codec = CV_FOURCC('I', '4', '2', '0');	// completely uncompressed
+
 	unsigned int rowBytes;
 	Size image_size;
 	Mat video_frame;
@@ -364,7 +368,7 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 		rowBytes = (unsigned int)((double)convertedImageCV.GetDataSize() / (double)convertedImageCV.GetRows());
 		image_size = Size((int)image_cols, (int)image_rows);
 		
-		outputVideo.open(save_file, codec, fps, image_size, true);
+		bool status = outputVideo.open(save_file, codec, fps, image_size, true);
 #else
 		image_cols = rawImage.GetCols();
 		image_rows = rawImage.GetRows();
@@ -470,7 +474,8 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 
 	}
 
-	cout << "Average Execution Time: " << fixed << setw(5) << setprecision(2) << (duration / (numCaptures*2)) << "ms" << endl;
+	//cout << "Average Frame Rate: " << fixed << setw(5) << setprecision(2) << (unsigned char)(1000/(duration/(numCaptures*2))) << endl;
+	cout << "Average Frame Rate: " << dec << (unsigned short)(1000 / (duration / (numCaptures * 2))) << endl;
 
 	// Finish writing video and close out file
 #ifdef USE_OPENCV
