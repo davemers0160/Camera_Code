@@ -103,7 +103,7 @@ int main(int /*argc*/, char** /*argv*/)
 	unsigned int offsetX, offsetY, width, height;
 	PixelFormat pixelFormat;
 	Property shutter, gain;
-	unsigned int numCaptures = 100;
+	unsigned int numCaptures = 1;
 
 	
 	//Lens_Driver test_lens;
@@ -136,8 +136,8 @@ int main(int /*argc*/, char** /*argv*/)
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
 	videoSaveFile = "test_recording_" + (string)currenttime + ".avi";
 #else
-	//videoSaveFile = "/home/odroid/Videos/test_recording_" + (string)currenttime + ".avi";
-	videoSaveFile = "/media/odroid/TOSHIBA EXT/Videos/test_recording_" + (string)currenttime + ".avi";
+	videoSaveFile = "/home/odroid/Videos/test_recording_" + (string)currenttime + ".avi";
+	//videoSaveFile = "/media/odroid/TOSHIBA EXT/Videos/test_recording_" + (string)currenttime + ".avi";
 #endif
 
 	PrintBuildInfo();
@@ -342,7 +342,7 @@ int videoCapture(Camera *cam, FT_HANDLE lensDriver, string save_file, unsigned i
 	//unsigned int numCaptures = 200;
 
 	// Lend Driver Variables
-	LensFocus LensDfD((unsigned char)144, (unsigned char)140);
+	LensFocus LensDfD((unsigned char)134, (unsigned char)138);
 	//LensFocus LensDfD(38.295, 40.345);
 	LensTxPacket Focus(FAST_SET_VOLT, 1, &LensDfD.Focus[0]);
 	LensTxPacket DeFocus(FAST_SET_VOLT, 1, &LensDfD.Focus[1]);
