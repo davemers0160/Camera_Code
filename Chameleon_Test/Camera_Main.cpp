@@ -29,7 +29,7 @@
 
 // Point Grey Includes
 #include "stdafx.h"
-#include "include/FlyCapture2.h"
+#include "FlyCapture2.h"
 #include "Config_Chameleon.h"
 
 // Lens Driver Includes
@@ -39,6 +39,14 @@ using namespace std;
 using namespace FlyCapture2;
 using namespace Lens_Driver;
 
+struct ftdiDeviceDetails //structure storage for FTDI device details
+{
+	int devNumber;
+	unsigned long type;
+	unsigned long BaudRate;
+	string Description;
+	string serialNumber;
+};
 
 void getcurrenttime(char currenttime[]);
 bool configLensDriver(LPCWSTR port, HANDLE &serialHandle);
@@ -80,7 +88,7 @@ int main(int /*argc*/, char** /*argv*/)
 {    
 	
 	// Camera specific variables
-	Error error;
+	FlyCapture2::Error error;
 	BusManager busMgr;
     PGRGuid guid;
 	Camera cam = Camera();
@@ -99,8 +107,8 @@ int main(int /*argc*/, char** /*argv*/)
 	unsigned char status;
 
 	// Serial Port specific variables
-	string port = "\\\\.\\COM9";
-	LPCWSTR commPort = L"\\\\.\\COM9"; //(LPCWSTR)port.c_str();	//"\\\\.\\COM7";
+	wstring port = L"\\\\.\\COM9";
+	LPCWSTR lensPort = port.c_str();	//L"\\\\.\\COM9"; //(LPCWSTR)port.c_str();	//"\\\\.\\COM7";
 	HANDLE lensDriver = NULL;
 
 	string save_file;
@@ -112,31 +120,31 @@ int main(int /*argc*/, char** /*argv*/)
 
 	getcurrenttime(currenttime);
 
-	save_file = "test_recording_" + (string)currenttime + ".avi";
-    PrintBuildInfo();
+	save_file = "test_recording_" + (string)currenttime + ".mp4";
     
-	configLensDriver(commPort, lensDriver);
+	PrintBuildInfo();
+
+	configLensDriver(lensPort, lensDriver);
 
 	sendLensPacket(LensTx, lensDriver);
-
 	status = readLensPacket(&LensRx, lensDriver, 9);
 
 	if (status == false)
 	{
 		cout << "Error communicating with lens driver." << endl;
 		cin.ignore();
-		return EXIT_FAILURE;
+		return 1;
 	}
 	getLensDriverInfo(&LensInfo, LensRx);
 	PrintDriverInfo(&LensInfo);
-
+	
 
     error = busMgr.GetNumOfCameras(&numCameras);
     if (error != PGRERROR_OK)
     {
         PrintError( error );
 		cin.ignore();
-		return EXIT_FAILURE;
+		return 1;
     }
 
     cout << "Number of cameras detected: " << numCameras << endl; 
@@ -146,7 +154,7 @@ int main(int /*argc*/, char** /*argv*/)
     {
         PrintError( error );
 		cin.ignore();
-        return EXIT_FAILURE;
+        return 1;
     }
 
 	// connect to the camera
@@ -155,7 +163,7 @@ int main(int /*argc*/, char** /*argv*/)
 	{
 		PrintError(error);
 		cin.ignore();
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	// Get the camera configuration
@@ -164,7 +172,7 @@ int main(int /*argc*/, char** /*argv*/)
 	{
 		PrintError(error);
 		cin.ignore();
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	// configure the image size and the pixel format for the video
@@ -175,7 +183,7 @@ int main(int /*argc*/, char** /*argv*/)
 	offsetY = 228;		// 224;
 	height = 724;		// 768;
 
-	pixelFormat = PIXEL_FORMAT_411YUV8;
+	pixelFormat = PIXEL_FORMAT_422YUV8;
 	configImagerFormat(&cam, offsetX, offsetY, width, height, pixelFormat);
 
 	configProperty(shutter, SHUTTER, true, true);
@@ -185,7 +193,7 @@ int main(int /*argc*/, char** /*argv*/)
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	// begin the video capture
@@ -196,7 +204,7 @@ int main(int /*argc*/, char** /*argv*/)
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
-		return -1;
+		return 1;
 	}
 
 	// disconnect from lens driver
@@ -205,7 +213,7 @@ int main(int /*argc*/, char** /*argv*/)
     cout << "Done! Press Enter to exit..." << endl; 
     cin.ignore();
 
-    return EXIT_SUCCESS;
+    return 0;
 }
 
 
@@ -286,10 +294,10 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 	double duration=0;
 
 	unsigned int key = 0;
-	float fps = 30.0;
+	float fps = 55.0;
 	unsigned int idx = 0;
 	unsigned int image_rows, image_cols;
-	unsigned int numCaptures = 100;
+	unsigned int numCaptures = 20;
 
 	// Lend Driver Variables
 	//LensFocus LensDfD(38.295, 40.345);
@@ -298,24 +306,31 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 	LensTxPacket DeFocus(FAST_SET_VOLT, 1, &LensDfD.Focus[1]);
 
 	// Camera variables
-	Error error;
+	FlyCapture2::Error error;
 	Image rawImage;
+	
 
 #ifdef USE_OPENCV
 	// OpenCV variables	
-	int codec = CV_FOURCC('M', 'J', 'P', 'G');
+	//int codec = -1;
+	//int codec = CV_FOURCC('D', 'V', 'I', 'X');		// 3.1.0 mp4 won't save, mpg won't save, avi good
+	//int codec = CV_FOURCC('M', 'J', 'P', 'G');	// 3.1.0 avi won't play, mp4 won't save, mpg won't play
+	int codec = CV_FOURCC('H', '2', '6', '4');		// 3.1.0 mp4 very blurry, mpg won't play, avi good
 	//int codec = CV_FOURCC('I', 'Y', 'U', 'V');	// completely uncompressed
 	//int codec = CV_FOURCC('I', '4', '2', '0');	// completely uncompressed
+	//int codec = CV_FOURCC('M', 'P', '4', '2');		// 3.1.0 very blocky under avi, mp4 won't save, mpg won't play
 
 	unsigned int rowBytes;
 	Size image_size;
 	Mat video_frame;
+	Mat video_frame2;
 	VideoWriter outputVideo;
 	char* Window1 = "Video Display";
 	int delay = 1;
 	Image convertedImageCV;
 	//namedWindow(Window1, WINDOW_NORMAL);   
-
+	unsigned char *image_data = NULL;
+	unsigned char *raw_data = NULL;
 #else
 	AVIRecorder videoFile;
 	MJPGOption option;
@@ -331,9 +346,6 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 	}
 #endif
 
-
-	    
-
 	// Start capturing images
 	error = cam->StartCapture();
 	if (error != PGRERROR_OK)
@@ -343,13 +355,12 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 	}
 
 	
-	unsigned char *image_data = NULL;
 
 	error = cam->RetrieveBuffer(&rawImage);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
-		key = 'q';
+		return -1;
 	}
 	else
 	{
@@ -363,11 +374,35 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 			return -1;
 		}
 		
+
+		double raw_temp = rawImage.GetDataSize();
+		double raw_rows = rawImage.GetRows();
 		image_cols = convertedImageCV.GetCols();
 		image_rows = convertedImageCV.GetRows();
-		rowBytes = (unsigned int)((double)convertedImageCV.GetDataSize() / (double)convertedImageCV.GetRows());
+		double temp = convertedImageCV.GetDataSize();
+		rowBytes = (unsigned int)(temp / (double)image_rows);
+		//rowBytes = (unsigned int)((double)convertedImageCV.GetDataSize() / (double)convertedImageCV.GetRows());
 		image_size = Size((int)image_cols, (int)image_rows);
 		
+
+		// temp to see what the data looks like
+		/*
+		raw_data = rawImage.GetData();
+		//BayerTileFormat bayerTemp = rawImage.GetBayerTileFormat();
+		image_data = convertedImageCV.GetData();
+		Mat video_frame2 = Mat(image_size, CV_8UC3, raw_data, rowBytes);
+		Mat video_frame16bit = Mat(image_size, CV_16UC3, raw_data);
+		Mat video_frame8bit = video_frame16bit.clone();
+
+		video_frame8bit.convertTo(video_frame8bit, CV_8UC2, 1/256);
+
+		video_frame = Mat(image_size, CV_8UC3, image_data, rowBytes);
+		//Mat rgb8BitMat(image_size, CV_8UC3);
+
+		cv::cvtColor(video_frame16bit, video_frame2, CV_BayerGB2BGR);
+		*/
+		// end temp
+
 		bool status = outputVideo.open(save_file, codec, fps, image_size, true);
 #else
 		image_cols = rawImage.GetCols();
@@ -379,8 +414,7 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 
 	}
 
-	idx = 0;
-	sendLensPacket(Focus, lensDriver);
+	//sendLensPacket(Focus, lensDriver);
 
 
 	while (key < numCaptures)
@@ -396,7 +430,7 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 		}
 
 		// send blurred voltage to lens driver
-		sendLensPacket(DeFocus, lensDriver);
+		//sendLensPacket(DeFocus, lensDriver);
 
 #ifdef USE_OPENCV
 		// Convert the raw image	PIXEL_FORMAT_BGR for opencv
@@ -408,6 +442,7 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 		}
 
 		// Convert data to opencv format
+		//image_data = rawImage.GetData();	// just to see what rawImage looks like
 		image_data = convertedImageCV.GetData();
 		video_frame = Mat(image_size, CV_8UC3, image_data, rowBytes);
 
@@ -434,7 +469,7 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 			continue;
 		}
 
-		sendLensPacket(Focus, lensDriver);
+		//sendLensPacket(Focus, lensDriver);
 
 
 #ifdef USE_OPENCV

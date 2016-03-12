@@ -9,13 +9,13 @@ This file contains the configures the routines for the Chameleon 3 camera.
 //#include <string>
 //#include <iomanip>
 
-#include "include/FlyCapture2.h"
+#include "FlyCapture2.h"
 #include "Config_Chameleon.h"
 
 using namespace FlyCapture2;
 using namespace std;
 
-void PrintError(Error error)
+void PrintError(FlyCapture2::Error error)
 {
 	error.PrintErrorTrace();
 }
@@ -36,7 +36,7 @@ void PrintCameraInfo(CameraInfo* pCamInfo)
 
 void cameraConnect(PGRGuid guid, Camera *cam)
 {
-	Error error;
+	FlyCapture2::Error error;
 	//	Camera cam;
 	CameraInfo camInfo;
 
@@ -65,7 +65,7 @@ void configImagerFormat(Camera *cam, unsigned int offsetX, unsigned int offsetY,
 {
 	Format7ImageSettings CameraSettings;
 	Format7PacketInfo PacketInfo;
-	Error error;
+	FlyCapture2::Error error;
 	bool validSettings;
 	
 	CameraSettings.mode = (Mode)0;
@@ -120,9 +120,9 @@ void configProperty(Property &prop, PropertyType type, bool mode, bool OnOff)
 
 }	// end of configProperty
 
-Error setProperty(Camera *cam, Property &prop, float value)
+FlyCapture2::Error setProperty(Camera *cam, Property &prop, float value)
 {
-	Error error;
+	FlyCapture2::Error error;
 
 	prop.absValue = value;
 	error = cam->SetProperty(&prop);
@@ -130,16 +130,3 @@ Error setProperty(Camera *cam, Property &prop, float value)
 	return error;
 }	// end of setProperty
 
-
-void setWBRed()
-{
-
-
-}
-
-
-void setWBBlue()
-{
-
-
-}
