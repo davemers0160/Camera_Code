@@ -145,18 +145,23 @@ void *multialloc(size_t s, int d, ...)
  * multifree releases all memory that we have already declared analogous to
  * free() when using malloc() 
  */
+/*
 void multifree(void *r,int d)
 {
-        void **p;
-        void *next;
-        int i;
+	void **p;
+	void *next;
+	int i;
 
-        for (p = (void **)r, i = 0; i < d; p = (void **) next,i++)
-          if (p != NULL) {
-            next = *p;
-            free((void *)p);
-            }
+	for (p = (void **)r, i = 0; i < d; p = (void **)next, i++)
+	{
+		if (p != NULL) 
+		{
+			next = *p;
+			free((void *)p);
+		}
+	}
 }
+*/
 
 
 

@@ -152,7 +152,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Code\allocate.cpp" />
+    <ClCompile Include="Code\createblur.cpp" />
+    <ClCompile Include="Code\map.cpp" />
     <ClCompile Include="Code\OpenCV_Shell.cpp" />
+    <ClCompile Include="Code\getOptions.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Code\allocate.h" />
