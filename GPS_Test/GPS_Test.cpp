@@ -3,13 +3,13 @@
 #include <iostream>
 #include <iomanip>
 #include <stdio.h> 
-#include <windows.h> 
+//#include <windows.h>
 #include <ctime>
 #include <vector>
 #include <string>
 #include <sstream>
 #include <fstream>
-#include <stdio.h>
+#include <cstdlib>
 
 #include "ftd2xx.h"
 
@@ -20,8 +20,8 @@ typedef struct
 {
 	int hour, minute;
 	float second;
-	float Lat;
-	float Long;
+	float Latitude;
+	float Longitude;
 	float Speed;
 
 } GPS_info;
@@ -36,7 +36,7 @@ struct ftdiDeviceDetails //structure storage for FTDI device details
 };
 
 void configGPS(FT_HANDLE GPS_Handle);
-void getGPSInfo(FT_HANDLE GPS_Handle, GPS_info &GPS_data);
+void getGPSInfo(FT_HANDLE GPS_Handle, GPS_info *GPS_data);
 FT_HANDLE OpenComPort(ftdiDeviceDetails *device, string descript);
 void getcurrenttime(char currenttime[]);
 
@@ -46,7 +46,7 @@ int main(int argc, char ** argv)
 	
 	ftdiDeviceDetails gpsDeviceDetails;
 	FT_HANDLE GPS_Handle = NULL;
-	unsigned long BytesRead, BytesSent;
+	//unsigned long BytesRead, BytesSent;
 
 	GPS_info GPS_data;
 	string gpsSaveFile;
@@ -57,8 +57,8 @@ int main(int argc, char ** argv)
 	GPS_data.hour = 0;
 	GPS_data.minute = 0;
 	GPS_data.second = 0.0;
-	GPS_data.Lat = 0.0;
-	GPS_data.Long = 0.0;
+	GPS_data.Latitude = 0.0;
+	GPS_data.Longitude = 0.0;
 
 
 
@@ -76,7 +76,7 @@ int main(int argc, char ** argv)
 		//SetupComm(lensDriver, 16 * 4 * 1024, 4 * 1024);
 		if (GPS_Handle == NULL)
 		{
-			exit(0);
+			return 1;
 		}
 		else
 		{
@@ -90,11 +90,13 @@ int main(int argc, char ** argv)
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
 	gpsSaveFile = "GPS_Log_" + (string)currenttime + ".txt";
 #else
-	gpsSaveFile = "/media/odroid/Videos/GPS_Log_" + (string)currenttime + ".txt";
+	gpsSaveFile = "/home/odroid/Videos/GPS_Log_" + (string)currenttime + ".txt";
 #endif
 	
-	gpsDataLog.open(gpsSaveFile, ios::out);
 
+
+	cout << "Log File Location: " << endl;
+	cout << gpsSaveFile << endl;
 
 
 	// clear FTDI buffer
@@ -102,23 +104,36 @@ int main(int argc, char ** argv)
 
 	//string temp = "$GPGGA,044500.000,3914.4270,N,08636.7004,W,1,8,1.02,228.2,M,-33.6,M,,*67";
 
-	//configGPS(GPS_Handle);
+	configGPS(GPS_Handle);
 
-	for (int idx = 0; idx < 20; idx++)
+	while(1)
 	{
-		//ReadFile(GPS_Handle, rx_data, 79, &dwRead, &osReader);
-		getGPSInfo(GPS_Handle, GPS_data);
-		//cout << rx_data;
+		gpsDataLog.open(gpsSaveFile.c_str(), ios::out | ios::app);
 
-		cout << "Time: " << setfill('0') << setw(2) << GPS_data.hour << ":" << setfill('0') << setw(2) << GPS_data.minute << ":" << fixed << setfill('0') << setw(4) << setprecision(1) << GPS_data.second << "\t";
-		cout << "Latitude: " << std::fixed << std::setprecision(6) << GPS_data.Lat << "\t";
-		cout << "Longitude: " << std::fixed << std::setprecision(6) << GPS_data.Long << endl;
+		for (int idx = 0; idx < 60; idx++)
+		{
+			//ReadFile(GPS_Handle, rx_data, 79, &dwRead, &osReader);
+			getGPSInfo(GPS_Handle, &GPS_data);
+			//cout << rx_data;
 
-		gpsDataLog << "Time: " << setfill('0') << setw(2) << GPS_data.hour << ":" << setfill('0') << setw(2) << GPS_data.minute << ":" << fixed << setfill('0') << setw(4) << setprecision(1) << GPS_data.second << ",";
-		gpsDataLog << "Latitude: " << std::fixed << std::setprecision(6) << GPS_data.Lat << ",";
-		gpsDataLog << "Longitude: " << std::fixed << std::setprecision(6) << GPS_data.Long << endl;
+			cout << "Time: " << setfill('0') << setw(2) << GPS_data.hour << ":" << setfill('0') << setw(2) << GPS_data.minute << ":" << fixed << setfill('0') << setw(4) << setprecision(1) << GPS_data.second << "\t";
+			cout << "Latitude: " << std::fixed << std::setprecision(6) << GPS_data.Latitude << "\t";
+			cout << "Longitude: " << std::fixed << std::setprecision(6) << GPS_data.Longitude << endl;
+
+			gpsDataLog << "Time: " << setfill('0') << setw(2) << GPS_data.hour << ":" << setfill('0') << setw(2) << GPS_data.minute << ":" << fixed << setfill('0') << setw(4) << setprecision(1) << GPS_data.second << ",";
+			gpsDataLog << "Latitude: " << std::fixed << std::setprecision(6) << GPS_data.Latitude << ",";
+			gpsDataLog << "Longitude: " << std::fixed << std::setprecision(6) << GPS_data.Longitude << endl;
+
+		}
+
+		gpsDataLog.close();
 
 	}
+
+
+
+
+
 
 	FT_Close(GPS_Handle);
 	GPS_Handle = NULL;
@@ -131,7 +146,7 @@ int main(int argc, char ** argv)
 
 void configGPS(FT_HANDLE GPS_Handle)
 {
-	unsigned long dwBytesWritten;
+	unsigned int dwBytesWritten;
 	ULONG ft_write_Status;
 
 	// message checksum is bitwise XOR between $ and *; PSRF103 = 0x25;
@@ -163,9 +178,9 @@ void configGPS(FT_HANDLE GPS_Handle)
 
 }
 
-void getGPSInfo(FT_HANDLE GPS_Handle, GPS_info &GPS_data)
+void getGPSInfo(FT_HANDLE GPS_Handle, GPS_info *GPS_data)
 {
-	unsigned long BytesRead;
+	unsigned int BytesRead;
 	char rx_data[96] = { 0 };
 	//OVERLAPPED osReader = { 0 };
 	//BOOL comm_result;
@@ -201,21 +216,21 @@ void getGPSInfo(FT_HANDLE GPS_Handle, GPS_info &GPS_data)
 		if ((vect.size() > 10) && (vect[0] == "$GPGGA"))
 		{
 			
-			GPS_data.Lat = stof(vect[2]);
+			GPS_data->Latitude = atof(vect[2].c_str());
 			if (vect[3] == "S")
 			{
-				GPS_data.Lat = -GPS_data.Lat;
+				GPS_data->Latitude = -GPS_data->Latitude;
 			}
 			
-			GPS_data.Long = stof(vect[4]);
+			GPS_data->Longitude = atof(vect[4].c_str());
 			if (vect[5] == "W")
 			{
-				GPS_data.Long = -GPS_data.Long;
+				GPS_data->Longitude = -GPS_data->Longitude;
 			}
 
-			GPS_data.hour = atoi(vect[1].substr(0, 2).c_str());	//atoi(vect[1][0]) * 10 + vect[1][1];
-			GPS_data.minute = atoi(vect[1].substr(2, 2).c_str());	//vect[1][2] * 10 + vect[1][3];
-			GPS_data.second = atof(vect[1].substr(4, 6).c_str());	//vect[1][4] * 10 + vect[1][5];
+			GPS_data->hour = atoi(vect[1].substr(0, 2).c_str());	//atoi(vect[1][0]) * 10 + vect[1][1];
+			GPS_data->minute = atoi(vect[1].substr(2, 2).c_str());	//vect[1][2] * 10 + vect[1][3];
+			GPS_data->second = atof(vect[1].substr(4, 6).c_str());	//vect[1][4] * 10 + vect[1][5];
 		}
 		else
 		{
@@ -234,7 +249,7 @@ FT_HANDLE OpenComPort(ftdiDeviceDetails *device, string descript)
 	FT_HANDLE ftHandleTemp;
 	FT_DEVICE_LIST_INFO_NODE devInfo[32];
 	DWORD numDevices = 0;
-	int dev_number, found, i;
+	int dev_number, found;
 	DWORD Flags;
 	DWORD ID;
 	DWORD Type;
