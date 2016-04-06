@@ -1,22 +1,31 @@
-#include <tchar.h>
-#include <windows.h>
-#include <string>
+//#include <tchar.h>
+//#include <windows.h>
+#include <string.h>
 #include <time.h>
 #include <fstream>
 #include <iostream>
 #include <ctime>
 #include <algorithm>
 #include <cstdlib> 
+#include <cstdio>
+#include <unistd.h>
 
 #include "ftd2xx.h"
-//#include "getopt.h"
 
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
+
+#else
+#include <pthread.h>
+#endif
+
+/*
 #define NUM_BYTES_IN_MSG 32128
 #define UINT8 unsigned char
 #define UINT16 unsigned short
 #define INT16 short
 #define INT32 int
 #define UINT32 unsigned int
+*/
 
 //#define DESCRIPTIONSIZE 9
 //#define SERIALNUMSIZE 8
@@ -52,7 +61,7 @@ void printHelp()
 	//cout << "Usage: Final_Project -f <Input File Name>" << endl;
 }
 
-
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
 DWORD WINAPI myThread(__in LPVOID lpParameter)
 {
 	char& key = *((char*)lpParameter);
@@ -61,13 +70,25 @@ DWORD WINAPI myThread(__in LPVOID lpParameter)
 	//}
 	return 0;
 }
-
-
-void main(int argc, char *argv[])
+#else
+void *myThread(void *Parameter)
 {
-	int numErrors;
+	char key = *((char*)Parameter);
+	//{
+	cin >> *((char*)Parameter);
+	//}
+	//return 0;
+	cout << "Closing Thread" << endl;
+	//pthread_exit(NULL);
+}
+#endif
+
+
+int main(int argc, char *argv[])
+{
+
 	FT_HANDLE lensDriver = NULL;
-	unsigned long BytesRead, BytesSent;	
+	unsigned int BytesRead, BytesSent;
 
 	ftdiDeviceDetails driverDeviceDetails, gpsDeviceDetails;
 
@@ -81,14 +102,18 @@ void main(int argc, char *argv[])
 	bool single = true;
 	char key = ' ';
 
-	// thread suff
+	// thread stuff
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
 	DWORD myThreadID;
 	HANDLE myHandle;
+#else
+	pthread_t myThreadID;
+#endif
 
 	if (argc < 3)
 	{
 		printHelp();
-		exit(0);
+		return 1;
 	}
 	else if (argc == 3)
 	{
@@ -116,6 +141,11 @@ void main(int argc, char *argv[])
 			if ((strcmp(argv[idx], "-d") == 0) && (idx < argc - 1))
 			{
 				delay = atof(argv[idx + 1]);
+				if(delay >= 1.0)
+				{
+					delay = 0.999;
+					cout << "Delay value too large setting delay to 999ms." << endl;
+				}
 				single = false;
 			}
 		}
@@ -123,9 +153,9 @@ void main(int argc, char *argv[])
 	}
 	else
 	{
-		cout << "Incorrect number of input arguements." << endl;
+		cout << "Incorrect number of input arguments." << endl;
 		printHelp();
-		exit(0);
+		return 1;
 	}
 
 	//readSize = 48170;
@@ -146,7 +176,7 @@ void main(int argc, char *argv[])
 		//SetupComm(lensDriver, 16 * 4 * 1024, 4 * 1024);
 		if (lensDriver == NULL)
 		{
-			exit(0);
+			return 1;
 		}
 		else
 		{
@@ -189,11 +219,18 @@ void main(int argc, char *argv[])
 	{
 
 		txPacket[3] = set[0];
+		ft_write_Status = FT_Write(lensDriver, txPacket, txPacket[2] + 3, &BytesSent);
+
 
 	}
 	else
 	{
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
 		myHandle = CreateThread(0, 0, myThread, &key, 0, &myThreadID);
+#else
+		pthread_create (&myThreadID, NULL, myThread, (void *)&key);
+#endif
+
 		cout << "Press q to quit..." << endl;
 		//for (idx = 0; idx < 100; idx++)
 		//while(key != 'q')
@@ -202,23 +239,31 @@ void main(int argc, char *argv[])
 			txPacket[3] = set[0];
 			ft_write_Status = FT_Write(lensDriver, txPacket, txPacket[2] + 3, &BytesSent);
 
-			Sleep(delay * 1000);
+			usleep(delay * 1000000);
 
 			txPacket[3] = set[1];
 			ft_write_Status = FT_Write(lensDriver, txPacket, txPacket[2] + 3, &BytesSent);
 
-			Sleep(delay * 1000);
+			usleep(delay * 1000000);
 			//cout << ".";
 
 		} while (key != 'q');
 
+
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
+		CloseHandle(myHandle);
+#else
+		pthread_exit (NULL);
+#endif
+		cout << "Closing Main" << endl;
 	}
 
 	FT_Close(lensDriver);
 	lensDriver = NULL;
-	CloseHandle(myHandle);
-	cout << "Press any key to continue..." << endl;
-	cin.ignore();
+
+	//cout << "Press any key to continue..." << endl;
+	//cin.ignore();
+	return 0;
 }
 
 
