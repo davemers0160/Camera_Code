@@ -24,6 +24,7 @@
 	#include <opencv2/core/core.hpp>           
 	#include <opencv2/highgui/highgui.hpp>     
 	#include <opencv2/imgproc/imgproc.hpp>  
+	#include "opencv2/stitching/stitcher.hpp"
 	using namespace cv;
 #endif
 
@@ -96,8 +97,9 @@ int main(int /*argc*/, char** /*argv*/)
 	unsigned int numCameras;
 	unsigned int offsetX, offsetY, width, height;
 	PixelFormat pixelFormat;
-	Property shutter, gain;
-
+	Property shutter, gain, sharpness, framerate;
+	int temp_int_property;
+	float temp_f_property;
 	
 	//Lens_Driver test_lens;
 	//unsigned char data[4] = { 1, 2, 3, 4 };
@@ -112,16 +114,18 @@ int main(int /*argc*/, char** /*argv*/)
 	HANDLE lensDriver = NULL;
 
 	string save_file;
+	string focus_save_file;
+	string defocus_save_file;
+	string file_extension = ".avi";
 	char currenttime[80];
-
-	//test_lens.driver_type = 0;
-	//test_lens.setVoltage(10.0);
-	//test_lens.Packet.ByteCount = 1;
 
 	getcurrenttime(currenttime);
 
-	save_file = "test_recording_" + (string)currenttime + ".mp4";
-    
+	save_file = "test_recording_raw_" + (string)currenttime + file_extension;
+	focus_save_file = "test_recording_focus_" + (string)currenttime + file_extension;
+	focus_save_file = "test_recording_defocus_" + (string)currenttime + file_extension; 
+	
+	
 	PrintBuildInfo();
 
 	configLensDriver(lensPort, lensDriver);
@@ -186,15 +190,33 @@ int main(int /*argc*/, char** /*argv*/)
 	pixelFormat = PIXEL_FORMAT_422YUV8;
 	configImagerFormat(&cam, offsetX, offsetY, width, height, pixelFormat);
 
-	configProperty(shutter, SHUTTER, true, true);
-	configProperty(gain, GAIN, false, false);
 
-	error = setProperty(&cam, gain, 12.0);
+	configProperty(&cam, framerate, FRAME_RATE, false, true, true);
+	error = setProperty(&cam, framerate, 62.0);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
 		return 1;
 	}
+
+
+	configProperty(&cam, shutter, SHUTTER, true, true, true);
+	temp_f_property = getABSProperty(&cam, shutter);
+	configProperty(&cam, shutter, SHUTTER, false, true, true);
+	error = setProperty(&cam, shutter, temp_f_property);
+
+
+	configProperty(&cam, gain, GAIN, true, true, true);
+	temp_f_property = getABSProperty(&cam, gain);
+	configProperty(&cam, gain, GAIN, false, false, true);
+	error = setProperty(&cam, gain, temp_f_property);
+
+	// auto tune the sharpness for the current capture
+	configProperty(&cam, sharpness, SHARPNESS, true, true, false);
+	temp_int_property = getProperty(&cam, sharpness);
+	configProperty(&cam, sharpness, SHARPNESS, false, false, false);
+	error = setProperty(&cam, sharpness, temp_int_property);
+	
 
 	// begin the video capture
 	videoCapture(&cam, lensDriver, save_file);
@@ -291,17 +313,19 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 	// timing variables
 	auto tick1 = chrono::high_resolution_clock::now();
 	auto tick2 = chrono::high_resolution_clock::now();
+	auto tick3 = chrono::high_resolution_clock::now();
+	auto tick4 = chrono::high_resolution_clock::now();
 	double duration=0;
 
 	unsigned int key = 0;
-	float fps = 55.0;
+	float fps = 60;
 	unsigned int idx = 0;
 	unsigned int image_rows, image_cols;
-	unsigned int numCaptures = 20;
+	unsigned int numCaptures = 300;
 
 	// Lend Driver Variables
 	//LensFocus LensDfD(38.295, 40.345);
-	LensFocus LensDfD((unsigned char)144, (unsigned char)140);
+	LensFocus LensDfD((unsigned char)132, (unsigned char)144);
 	LensTxPacket Focus(FAST_SET_VOLT, 1, &LensDfD.Focus[0]);
 	LensTxPacket DeFocus(FAST_SET_VOLT, 1, &LensDfD.Focus[1]);
 
@@ -309,28 +333,49 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 	FlyCapture2::Error error;
 	Image rawImage;
 	
+	//string focus_save_file;
+	//string defocus_save_file;
+	//string file_extension = ".avi";
+	//char currenttime[80];
+
+	//getcurrenttime(currenttime);
+
+	//focus_save_file = "test_recording_focus_" + (string)currenttime + file_extension;
+	//defocus_save_file = "test_recording_defocus_" + (string)currenttime + file_extension;
+
 
 #ifdef USE_OPENCV
 	// OpenCV variables	
 	//int codec = -1;
 	//int codec = CV_FOURCC('D', 'V', 'I', 'X');		// 3.1.0 mp4 won't save, mpg won't save, avi good
-	//int codec = CV_FOURCC('M', 'J', 'P', 'G');	// 3.1.0 avi won't play, mp4 won't save, mpg won't play
-	int codec = CV_FOURCC('H', '2', '6', '4');		// 3.1.0 mp4 very blurry, mpg won't play, avi good
+	int codec = CV_FOURCC('M', 'J', 'P', 'G');	// 3.1.0 avi won't play, mp4 won't save, mpg won't play
+	//int codec = CV_FOURCC('H', '2', '6', '4');		// 3.1.0 mp4 very blurry, mpg won't play, avi good
 	//int codec = CV_FOURCC('I', 'Y', 'U', 'V');	// completely uncompressed
 	//int codec = CV_FOURCC('I', '4', '2', '0');	// completely uncompressed
 	//int codec = CV_FOURCC('M', 'P', '4', '2');		// 3.1.0 very blocky under avi, mp4 won't save, mpg won't play
 
 	unsigned int rowBytes;
 	Size image_size;
+	Size image_size_2x;
 	Mat video_frame;
-	Mat video_frame2;
+	vector<Mat> images;
+	Mat Focus_Image;
+	Mat DeFocus_Image;
+	//Mat video_frame2;
+	Mat temp_frame;
+	Rect FocusRect;
+	Rect DeFocusRect;
 	VideoWriter outputVideo;
+	VideoWriter focusVideo;
+	VideoWriter defocusVideo;
 	char* Window1 = "Video Display";
 	int delay = 1;
 	Image convertedImageCV;
 	//namedWindow(Window1, WINDOW_NORMAL);   
 	unsigned char *image_data = NULL;
 	unsigned char *raw_data = NULL;
+	Stitcher stitcher = Stitcher::createDefault(false);
+
 #else
 	AVIRecorder videoFile;
 	MJPGOption option;
@@ -354,8 +399,6 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 		return -1;
 	}
 
-	
-
 	error = cam->RetrieveBuffer(&rawImage);
 	if (error != PGRERROR_OK)
 	{
@@ -374,36 +417,53 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 			return -1;
 		}
 		
+		CameraInfo temp_info;
+		cam->GetCameraInfo(&temp_info);
 
-		double raw_temp = rawImage.GetDataSize();
-		double raw_rows = rawImage.GetRows();
+		//double raw_temp = rawImage.GetDataSize();
+		//double raw_rows = rawImage.GetRows();
 		image_cols = convertedImageCV.GetCols();
 		image_rows = convertedImageCV.GetRows();
 		double temp = convertedImageCV.GetDataSize();
 		rowBytes = (unsigned int)(temp / (double)image_rows);
 		//rowBytes = (unsigned int)((double)convertedImageCV.GetDataSize() / (double)convertedImageCV.GetRows());
 		image_size = Size((int)image_cols, (int)image_rows);
-		
+		image_size_2x = Size((int)image_cols * 2, (int)image_rows);
+
+		FocusRect = Rect(0, 0, image_cols, image_rows);
+		DeFocusRect = Rect(image_cols, 0, image_cols, image_rows);
+
+		video_frame = Mat(image_size_2x, CV_8UC3);
+		Focus_Image = Mat(video_frame, FocusRect);
+		DeFocus_Image = Mat(video_frame, DeFocusRect);
+
+
 
 		// temp to see what the data looks like
-		/*
-		raw_data = rawImage.GetData();
+
+		//raw_data = rawImage.GetData();
 		//BayerTileFormat bayerTemp = rawImage.GetBayerTileFormat();
-		image_data = convertedImageCV.GetData();
-		Mat video_frame2 = Mat(image_size, CV_8UC3, raw_data, rowBytes);
-		Mat video_frame16bit = Mat(image_size, CV_16UC3, raw_data);
-		Mat video_frame8bit = video_frame16bit.clone();
+		//image_data = convertedImageCV.GetData();
+		//Mat video_frame2 = Mat(image_size, CV_8UC1, raw_data, rowBytes);
+		//Mat video_frame16bit = Mat(image_size, CV_16UC1, raw_data);
+		//Mat video_frame8bit = video_frame16bit.clone();
 
-		video_frame8bit.convertTo(video_frame8bit, CV_8UC2, 1/256);
+		//video_frame8bit.convertTo(video_frame8bit, CV_8UC3, 1/256);
 
-		video_frame = Mat(image_size, CV_8UC3, image_data, rowBytes);
-		//Mat rgb8BitMat(image_size, CV_8UC3);
+		//video_frame = Mat(image_size, CV_8UC3, image_data, rowBytes);
+		////Mat rgb8BitMat(image_size, CV_8UC3);
 
-		cv::cvtColor(video_frame16bit, video_frame2, CV_BayerGB2BGR);
-		*/
+		//cv::cvtColor(video_frame16bit, video_frame2, CV_BayerGB2BGR);
+
 		// end temp
 
-		bool status = outputVideo.open(save_file, codec, fps, image_size, true);
+		bool status = outputVideo.open(save_file, codec, fps, image_size_2x, true);
+
+		//status = focusVideo.open(focus_save_file, codec, fps, image_size, true);
+		//status = defocusVideo.open(defocus_save_file, codec, fps, image_size, true);
+
+
+
 #else
 		image_cols = rawImage.GetCols();
 		image_rows = rawImage.GetRows();
@@ -414,12 +474,24 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 
 	}
 
-	//sendLensPacket(Focus, lensDriver);
+	sendLensPacket(Focus, lensDriver);
 
-
+///////////////////////////////////////////////////////////////////////////////
+/// Start of the main loop that will record video							///
+///////////////////////////////////////////////////////////////////////////////
 	while (key < numCaptures)
 	{
 		tick1 = chrono::high_resolution_clock::now();
+
+		// send blurred voltage to lens driver
+		sendLensPacket(Focus, lensDriver);
+		//for (idx = 0; idx < 50000; idx++);
+		do
+		{
+			tick3 = chrono::high_resolution_clock::now();
+
+		} while (chrono::duration_cast<std::chrono::milliseconds>(tick3 - tick1).count() < 9);
+
 
 		// Retrieve an image
 		error = cam->RetrieveBuffer(&rawImage);
@@ -429,8 +501,6 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 			continue;
 		}
 
-		// send blurred voltage to lens driver
-		//sendLensPacket(DeFocus, lensDriver);
 
 #ifdef USE_OPENCV
 		// Convert the raw image	PIXEL_FORMAT_BGR for opencv
@@ -441,14 +511,24 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 			return -1;
 		}
 
+
 		// Convert data to opencv format
-		//image_data = rawImage.GetData();	// just to see what rawImage looks like
 		image_data = convertedImageCV.GetData();
-		video_frame = Mat(image_size, CV_8UC3, image_data, rowBytes);
+		//video_frame = Mat(image_size, CV_8UC3, image_data, rowBytes);
+		//temp_frame = Mat(image_size, CV_8UC3, image_data, rowBytes);
+		//temp_frame.copyTo(Focus_Image);
+		Mat(image_size, CV_8UC3, image_data, rowBytes).copyTo(Focus_Image);
+
+
+
+		//raw_data = rawImage.GetData();
+		//video_frame2 = Mat(image_size, CV_16UC1, raw_data);
+		//cvtColor(video_frame2, video_frame, COLOR_BayerGR2BGR); //CV_BayerGR2BGR
 
 		// display images
 		//imshow(Window1, video_frame);
-		outputVideo.write(video_frame);
+		//outputVideo.write(video_frame);
+		//focusVideo.write(video_frame);
 
 #else
 		// FlyCapture2 Append image to AVI file
@@ -460,6 +540,16 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 		}
 
 #endif
+		tick3 = chrono::high_resolution_clock::now();
+
+		sendLensPacket(DeFocus, lensDriver);
+
+		//for (idx = 0; idx < 50000; idx++);
+		do
+		{
+			tick4 = chrono::high_resolution_clock::now();
+
+		} while (chrono::duration_cast<std::chrono::milliseconds>(tick4 - tick3).count() < 9);
 
 		// Retrieve an image
 		error = cam->RetrieveBuffer(&rawImage);
@@ -469,7 +559,7 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 			continue;
 		}
 
-		//sendLensPacket(Focus, lensDriver);
+//		sendLensPacket(Focus, lensDriver);
 
 
 #ifdef USE_OPENCV
@@ -483,12 +573,18 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 
 		// Convert data to opencv format
 		image_data = convertedImageCV.GetData();
-		video_frame = Mat(image_size, CV_8UC3, image_data, rowBytes);
+		//video_frame = Mat(image_size, CV_8UC3, image_data, rowBytes);
+		//raw_data = rawImage.GetData();
+		//video_frame = Mat(image_size, CV_8UC3, raw_data, rowBytes);
+		//temp_frame = Mat(image_size, CV_8UC3, image_data, rowBytes);
+		//temp_frame.copyTo(DeFocus_Image);
+		Mat(image_size, CV_8UC3, image_data, rowBytes).copyTo(DeFocus_Image);
 
 		// display images
 		//imshow(Window1, video_frame);
+
+
 		outputVideo.write(video_frame);
-		//key = waitKey(delay);
 
 #else
 		// FlyCapture2 Append image to AVI file
@@ -512,7 +608,9 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 	//cout << "Average Frame Rate: " << fixed << setw(5) << setprecision(2) << (unsigned char)(1000/(duration/(numCaptures*2))) << endl;
 	cout << "Average Frame Rate: " << dec << (unsigned short)(1000 / (duration / (numCaptures * 2))) << endl;
 
-	// Finish writing video and close out file
+///////////////////////////////////////////////////////////////////////////////
+///				Finish writing video and close out file						///
+///////////////////////////////////////////////////////////////////////////////
 #ifdef USE_OPENCV
 	// OpenCV functions to complete Actions
 	outputVideo.release();

@@ -6,7 +6,7 @@
 #include <omp.h>
 #include "allocate.h"
 #include <Windows.h>
-//#include "random.h"
+#include "random.h"
 
 #include "time.h"
 #include <iostream>
@@ -16,6 +16,9 @@
 #include <opencv2/core/core.hpp>           
 #include <opencv2/highgui/highgui.hpp>     
 #include <opencv2/imgproc/imgproc.hpp>  
+
+//#pragma comment (lib, "opencv_world310d.lib")
+
 
 #define MAX_CLASSES 256.0
 #define MaxSigma 5.0
@@ -369,16 +372,16 @@ int main(int argc, char** argv)
 	Mat ImageFocus_Y = Mat(FocusSize, CV_64F, 1);
 	Mat ImageFocus_CB = Mat(FocusSize, CV_64F, 1);
 	Mat ImageFocus_CR = Mat(FocusSize, CV_64F, 1);
-	YCBCR_F[0].convertTo(ImageFocus_Y, CV_64F, 1.0);
-	YCBCR_F[1].convertTo(ImageFocus_CB, CV_64F, 1.0);
-	YCBCR_F[2].convertTo(ImageFocus_CR, CV_64F, 1.0);
+	YCBCR_F[0].convertTo(ImageFocus_Y, CV_64F, 1.0/255.0);
+	YCBCR_F[1].convertTo(ImageFocus_CB, CV_64F, 1.0/255.0);
+	YCBCR_F[2].convertTo(ImageFocus_CR, CV_64F, 1.0/255.0);
 
 	Mat ImageDefocus_Y = Mat(FocusSize, CV_64F, 1);
 	Mat ImageDefocus_CB = Mat(FocusSize, CV_64F, 1);
 	Mat ImageDefocus_CR = Mat(FocusSize, CV_64F, 1);
-	YCBCR_D[0].convertTo(ImageDefocus_Y, CV_64F, 1.0);
-	YCBCR_D[1].convertTo(ImageDefocus_CB, CV_64F, 1.0);
-	YCBCR_D[2].convertTo(ImageDefocus_CR, CV_64F, 1.0);
+	YCBCR_D[0].convertTo(ImageDefocus_Y, CV_64F, 1.0/255.0);
+	YCBCR_D[1].convertTo(ImageDefocus_CB, CV_64F, 1.0/255.0);
+	YCBCR_D[2].convertTo(ImageDefocus_CR, CV_64F, 1.0/255.0);
 
 	cout << "Complete!" << endl;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -459,13 +462,13 @@ int main(int argc, char** argv)
   int    classes     = MAX_CLASSES;
   int    ATLAS       = 0;	
 
- ///// Read in initial depth map resutl ////////////////////////////////////////////////////
+ ///// Read in initial depth map result ////////////////////////////////////////////////////
   //IplImage* preresult = cvCreateImage(cvGetSize(inf),IPL_DEPTH_64F,0);  
   //preresult = cvLoadImage( "preresult.png" , 0 );
 
 	// load a bunch of images that I don't know where they came from!!!!!!!!!!!!!!!!!!!!!!!
-	Mat preresult = imread("Input Images/preresult.png", CV_LOAD_IMAGE_GRAYSCALE);
-	preresult.convertTo(preresult, CV_64F);
+  Mat preresult = imread("Input Images/preresult.png", CV_LOAD_IMAGE_ANYDEPTH);//	CV_LOAD_IMAGE_GRAYSCALE);
+	preresult.convertTo(preresult, CV_64F,1.0/255.0);
 
 
  ///// Bring in edge information and texture information
@@ -556,7 +559,7 @@ int main(int argc, char** argv)
 
 //// calculate Data term (y-b)^2 ////////////////////////////////////////////////////////
 
-	for ( int dd = 1; dd <= MAX_CLASSES; dd++)
+	for ( int dd = 0; dd <= MAX_CLASSES; dd++)	//changed dd=1 to dd=0
 	{
 		diff_y[dd] = (double **)get_img(col,row,sizeof(double));
 		//diff_Cr[dd] = (double **)get_img(col,row,sizeof(double));
@@ -564,6 +567,10 @@ int main(int argc, char** argv)
 	}
 
 ////// In order to save memory, here replace  diff_Cr, diff_cb with xtCr, xtCb/////////
+// difference squared results - xtCr/xtCb are done in place
+// (yY-xtY)*(y-xtY)
+// (yCr-xtCr)*(yCr-xtCr)
+// (yCb-xtCb)*(yCb-xtCb)
 for (int k=1; k<=MAX_CLASSES; k++)
 {
 	for(int i=0;i<row;i++)
@@ -599,7 +606,7 @@ for (int k=1; k<=MAX_CLASSES; k++)
 
  //// EM brgin /////////////////////////////////////////////////////////////////////////
 
- double start= (double)cvGetTickCount();
+ double start = (double)cvGetTickCount();
 
 	for (int i=0; i<EMiteration; i++)
 	{
@@ -639,7 +646,7 @@ for (int k=1; k<=MAX_CLASSES; k++)
 	
 	//cvSaveImage("blurmaplc64.png",BlurMap);
 	imwrite("Output Images/blurmaplc64.png", FinalBlurMap);
- 
+
 	cout << "Complete!" << endl;
 
 	cout << "Press Enter to continue..." << endl;
