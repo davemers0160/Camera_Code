@@ -244,7 +244,7 @@ int main(int argc, char** argv)
 
 	//cvSaveImage("blurmap_color.tif",Blurmap);
 	imwrite("Output Images/blurmap_color.tif", Blurmap);
-
+	/*
 	// release unused Mat variables
 	Blurmap.~Mat();
 	for (idx = 0; idx < 3; idx++)
@@ -259,7 +259,7 @@ int main(int argc, char** argv)
 		GauBlurG[idx].~Mat();
 		GauBlurB[idx].~Mat();
 	}
-
+	*/
 #else
 	cout << "Skipping defous image generation" << endl;
 #endif
@@ -454,20 +454,20 @@ int main(int argc, char** argv)
 	cout << "Performing Step 6... ";
   
  ///// Initialize parameters for MAP subrutine  /////////////////////////////////////////////
-  int    ICM         = Optimmization_method;
-  int	 mapiter     = map_iteraton;
-  int    EMiteration = EM_iteration;
-  double beta        = weightingfactor_beta;		
-  double gamma       = 1.5;
-  int    classes     = MAX_CLASSES;
-  int    ATLAS       = 0;	
+	int		ICM         = Optimmization_method;
+	int		mapiter     = map_iteraton;
+	int		EMiteration = EM_iteration;
+	double	beta        = weightingfactor_beta;		
+	double	gamma       = 1.5;
+	int		classes     = MAX_CLASSES;
+	int		ATLAS       = 0;	
 
  ///// Read in initial depth map result ////////////////////////////////////////////////////
   //IplImage* preresult = cvCreateImage(cvGetSize(inf),IPL_DEPTH_64F,0);  
   //preresult = cvLoadImage( "preresult.png" , 0 );
 
 	// load a bunch of images that I don't know where they came from!!!!!!!!!!!!!!!!!!!!!!!
-  Mat preresult = imread("Input Images/preresult.png", CV_LOAD_IMAGE_ANYDEPTH);//	CV_LOAD_IMAGE_GRAYSCALE);
+	Mat preresult = imread("Input Images/preresult.png", CV_LOAD_IMAGE_ANYDEPTH);//	CV_LOAD_IMAGE_GRAYSCALE);
 	preresult.convertTo(preresult, CV_64F,1.0/255.0);
 
 
@@ -523,9 +523,16 @@ int main(int argc, char** argv)
 
  ////// y : true defocus image ///////////////////////////////////////////////////////////////
  ////// xt : 256 synthetic defocus images ////////////////////////////////////////////////////
-	double **yY[260], **xtY[260], **atlas[260];
-	double **yCr[260], **xtCr[260];
-	double **yCb[260], **xtCb[260];
+	//double **yY[260], **xtY[260], **atlas[260];
+	//double **yCr[260], **xtCr[260];
+	//double **yCb[260], **xtCb[260];
+
+	double **yY[1], **yCr[1], **yCb[1];
+	double **xtY[260], **xtCr[260], **xtCb[260];
+	double **atlas[260];
+
+
+
 
 	col = ImageFocus_Y.cols;
 	row = ImageFocus_Y.rows;
@@ -559,7 +566,7 @@ int main(int argc, char** argv)
 
 //// calculate Data term (y-b)^2 ////////////////////////////////////////////////////////
 
-	for ( int dd = 0; dd <= MAX_CLASSES; dd++)	//changed dd=1 to dd=0
+	for ( int dd = 1; dd <= MAX_CLASSES; dd++)	//changed dd=1 to dd=0
 	{
 		diff_y[dd] = (double **)get_img(col,row,sizeof(double));
 		//diff_Cr[dd] = (double **)get_img(col,row,sizeof(double));
@@ -577,9 +584,9 @@ for (int k=1; k<=MAX_CLASSES; k++)
 	{
 		for(int j=0;j<col;j++)
 		{
-			diff_y[k][i][j]=(double)(yY[1][i][j]-xtY[k][i][j])*(double)(yY[1][i][j]-xtY[k][i][j]);
-			xtCr[k][i][j]=(double)(yCr[1][i][j]-xtCr[k][i][j])*(double)(yCr[1][i][j]-xtCr[k][i][j]);
-			xtCb[k][i][j]=(double)(yCb[1][i][j]-xtCb[k][i][j])*(double)(yCb[1][i][j]-xtCb[k][i][j]);
+			diff_y[k][i][j]=(double)(yY[0][i][j]-xtY[k][i][j])*(double)(yY[0][i][j]-xtY[k][i][j]);
+			xtCr[k][i][j]=(double)(yCr[0][i][j]-xtCr[k][i][j])*(double)(yCr[0][i][j]-xtCr[k][i][j]);
+			xtCb[k][i][j]=(double)(yCb[0][i][j]-xtCb[k][i][j])*(double)(yCb[0][i][j]-xtCb[k][i][j]);
 		}
 	}
 }
@@ -598,9 +605,9 @@ for (int k=1; k<=MAX_CLASSES; k++)
 		}
 		else 
 		{
-			m_Y[l]  = m_Y[l-1]  + 255/(classes+1); 
+			m_Y[l]  = m_Y[l-1]  + 255.0/(classes+1.0); 
 		}
-		N_Y[l]  = 0;
+		N_Y[l]  = 0.0;
 		v_Y[l]  = 0.22;	
 	}
 

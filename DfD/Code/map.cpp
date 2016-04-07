@@ -409,13 +409,13 @@ void map3(double **y[], double **xt[], double **diff_y[], double **diff_Cr[], do
 			d[k] = 2.0*v[k];
 		}
 
-		//for (i=0; i<rows; i++)
-		//	for (j=0; j<cols; j++)
-		//		{	
-		//			diff_y[k][i][j] = diff_y[k][i][j]/d[k];
-		//			diff_Cr[k][i][j] = diff_Cr[k][i][j]/d[k];
-		//			diff_Cb[k][i][j] = diff_Cb[k][i][j]/d[k];
-		//			}
+		for (i=0; i<rows; i++)
+			for (j=0; j<cols; j++)
+				{	
+					diff_y[k][i][j] = diff_y[k][i][j]/d[k];
+					diff_Cr[k][i][j] = diff_Cr[k][i][j]/d[k];
+					diff_Cb[k][i][j] = diff_Cb[k][i][j]/d[k];
+					}
 
 	}	// end of for k loop
 
@@ -460,7 +460,7 @@ void map3(double **y[], double **xt[], double **diff_y[], double **diff_Cr[], do
 
 		//**************************************************************************//
 		// Calculating diff temm 
-			    mm=(double)y[1][i][j];
+			    mm=(double)y[0][i][j];
 				//mm = (double)y[l][i][j];	// changed the first index from 1 to l <- doesn't work
 
 /////////////////////////////////   read in texture and edge information for each pixel ////////////////////////////

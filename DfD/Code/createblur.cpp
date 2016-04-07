@@ -40,7 +40,7 @@ void createblur(Mat ImageInFocus, int classes, double **y[], double **xt[], doub
 		xt[dd] = (double **)get_img(col, row, sizeof(double));
 	}
 
-	y[1] = (double **)get_img(col, row, sizeof(double));
+	y[0] = (double **)get_img(col, row, sizeof(double));
 	atlas[0] = (double **)get_img(col, row, sizeof(double));
 
 	for (idx = 0; idx < row; idx++)
@@ -109,7 +109,7 @@ void createblur(Mat ImageInFocus, int classes, double **y[], double **xt[], doub
 		{
 			//s = cvGet2D(ImageOutOfFocus, i, j);
 			s = ImageOutOfFocus.at<double>(idx, jdx);
-			y[1][idx][jdx] = s.val[0];
+			y[0][idx][jdx] = s.val[0];
 		}
 	}
 			
