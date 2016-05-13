@@ -74,8 +74,9 @@ int main(int argc, char** argv)
 	unsigned int offsetX, offsetY, width, height;
 	PixelFormat pixelFormat;
 	Property shutter, gain, sharpness, framerate;
-	int temp_int_property;
-	float temp_f_property;
+	int temp_sharp;
+	float temp_shutter;
+	float temp_gain;
 	Image rawImage, convertedImageCV;
 	unsigned int rowBytes;
 
@@ -176,12 +177,6 @@ int main(int argc, char** argv)
 
 	// connect to the camera
 	cameraConnect(guid, &cam);
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		cin.ignore();
-		return 1;
-	}
 
 	// Get the camera configuration
 	error = cam.GetConfiguration(&cameraConfig);
@@ -212,24 +207,41 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
+	Sleep(50);
 
 	configProperty(&cam, shutter, SHUTTER, true, true, true);
-	temp_f_property = getABSProperty(&cam, shutter);
+	temp_shutter = 35.0;
+	//temp_shutter = getABSProperty(&cam, shutter);
+	//configProperty(&cam, shutter, SHUTTER, false, true, true);
+	error = setProperty(&cam, shutter, temp_shutter);
+	temp_shutter = getABSProperty(&cam, shutter);
 	configProperty(&cam, shutter, SHUTTER, false, true, true);
-	error = setProperty(&cam, shutter, temp_f_property);
+	error = setProperty(&cam, shutter, temp_shutter);
 
+	Sleep(50);
 
 	configProperty(&cam, gain, GAIN, true, true, true);
-	temp_f_property = getABSProperty(&cam, gain);
+	temp_gain = 20.0;
+	//configProperty(&cam, gain, GAIN, false, false, true);
+	error = setProperty(&cam, gain, temp_gain);
+	temp_gain = getABSProperty(&cam, gain);
 	configProperty(&cam, gain, GAIN, false, false, true);
-	error = setProperty(&cam, gain, temp_f_property);
+	error = setProperty(&cam, gain, temp_gain);
+	Sleep(50);
 
 	// auto tune the sharpness for the current capture
 	configProperty(&cam, sharpness, SHARPNESS, true, true, false);
-	temp_int_property = getProperty(&cam, sharpness);
+	temp_sharp = 1023;
+	//configProperty(&cam, sharpness, SHARPNESS, false, false, false);
+	error = setProperty(&cam, sharpness, temp_sharp);
+	temp_sharp = getProperty(&cam, sharpness);
 	configProperty(&cam, sharpness, SHARPNESS, false, false, false);
-	error = setProperty(&cam, sharpness, temp_int_property);
+	error = setProperty(&cam, sharpness, temp_sharp);
 
+	Sleep(50);
+	cout << "Shutter Speed (ms): " << temp_shutter << endl;
+	cout << "Gain (dB): " << temp_gain << endl;
+	cout << "Sharpness: " << temp_sharp << endl;
 
 	error = cam.StartCapture();
 	if (error != PGRERROR_OK)
@@ -420,7 +432,7 @@ int main(int argc, char** argv)
 					bestStep = Focus.Data[0];
 				}
 				
-				waitKey(400);
+				waitKey(200);
 
 			}	// end of for loop
 
@@ -448,11 +460,12 @@ int main(int argc, char** argv)
 
 	// disconnect from lens driver
 	CloseHandle(lensDriver);
+	destroyAllWindows();
 
 	cout << "Done! Press Enter to exit..." << endl;
 	cin.ignore();
 	
-	destroyAllWindows();
+	
 	return 0;
 
 
