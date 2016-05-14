@@ -10,6 +10,7 @@
 
 // windows Includes
 #include <windows.h> 
+#include <WinUser.h>
 
 // OPENCV Includes
 #define USE_OPENCV
@@ -86,7 +87,7 @@ int main(int argc, char** argv)
 	LensRxPacket LensRx;
 	LensDriverInfo LensInfo;
 	unsigned char status;
-	unsigned char stepStart = 125;
+	unsigned char stepStart = 120;
 	unsigned char stepStop = 160;
 	unsigned char data[1] {stepStart};
 	LensTxPacket Focus(FAST_SET_VOLT, 1, &data[0]);
@@ -126,9 +127,21 @@ int main(int argc, char** argv)
 	int idx, jdx;
 	unsigned char bestStep = stepStart;
 	double maxDFTValue;
+	double DFTSum;
+
 
 	//Mat black = Mat(img_size, CV_8UC1, Scalar(0));
 	//Mat white = Mat(img_size, CV_8UC1, Scalar(255));
+
+	// get the desktop size
+	RECT desktop;
+	// Get a handle to the desktop window
+	const HWND hDesktop = GetDesktopWindow();
+	// Get the size of screen to the variable desktop
+	GetWindowRect(hDesktop, &desktop);
+
+	cout << "Desktop size: " << desktop.right << " x " << desktop.bottom << endl;
+
 
 
 	PrintBuildInfo();
@@ -210,20 +223,22 @@ int main(int argc, char** argv)
 	Sleep(50);
 
 	configProperty(&cam, shutter, SHUTTER, true, true, true);
-	temp_shutter = 35.0;
+	temp_shutter = 40.0;
 	//temp_shutter = getABSProperty(&cam, shutter);
 	//configProperty(&cam, shutter, SHUTTER, false, true, true);
 	error = setProperty(&cam, shutter, temp_shutter);
+	Sleep(1000);
 	temp_shutter = getABSProperty(&cam, shutter);
 	configProperty(&cam, shutter, SHUTTER, false, true, true);
 	error = setProperty(&cam, shutter, temp_shutter);
 
-	Sleep(50);
+
 
 	configProperty(&cam, gain, GAIN, true, true, true);
-	temp_gain = 20.0;
+	temp_gain = 30.0;
 	//configProperty(&cam, gain, GAIN, false, false, true);
 	error = setProperty(&cam, gain, temp_gain);
+	Sleep(1000);
 	temp_gain = getABSProperty(&cam, gain);
 	configProperty(&cam, gain, GAIN, false, false, true);
 	error = setProperty(&cam, gain, temp_gain);
@@ -234,11 +249,11 @@ int main(int argc, char** argv)
 	temp_sharp = 1023;
 	//configProperty(&cam, sharpness, SHARPNESS, false, false, false);
 	error = setProperty(&cam, sharpness, temp_sharp);
+	Sleep(1000);
 	temp_sharp = getProperty(&cam, sharpness);
 	configProperty(&cam, sharpness, SHARPNESS, false, false, false);
 	error = setProperty(&cam, sharpness, temp_sharp);
 
-	Sleep(50);
 	cout << "Shutter Speed (ms): " << temp_shutter << endl;
 	cout << "Gain (dB): " << temp_gain << endl;
 	cout << "Sharpness: " << temp_sharp << endl;
@@ -249,39 +264,51 @@ int main(int argc, char** argv)
 		PrintError(error);
 		return -1;
 	}
+	error = cam.RetrieveBuffer(&rawImage);
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+		return -1;
+	}
 
+	error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+		return -1;
+	}
+
+	image_cols = convertedImageCV.GetCols();
+	image_rows = convertedImageCV.GetRows();
+	image_size = Size(image_cols, image_rows);
+
+	double temp = convertedImageCV.GetDataSize();
+	rowBytes = (unsigned int)(temp / (double)image_rows);
+
+	namedWindow(orig_img_window, WINDOW_NORMAL);
+	resizeWindow(orig_img_window, (int)(image_cols / 2), (int)image_rows / 2);
+	moveWindow(orig_img_window, (int)(desktop.right / 3)-50, 0);
+
+	namedWindow(roi_img_window, WINDOW_NORMAL);
+	resizeWindow(roi_img_window, (int)(image_cols / 2), (int)image_rows / 2);
+	moveWindow(roi_img_window, (int)((desktop.right / 3) + (image_cols / 2)-20), 0);
 
 	std::cout << "Press esc to exit! " << std::endl;
 
-
+	// start the loop to continueally take data
 	while (exit == false)
 	{
 		error = cam.RetrieveBuffer(&rawImage);
-		if (error != PGRERROR_OK)
-		{
-			PrintError(error);
-			return -1;
-		}
-
 		error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
 		if (error != PGRERROR_OK)
 		{
 			PrintError(error);
 			return -1;
-		}
-
-		image_cols = convertedImageCV.GetCols();
-		image_rows = convertedImageCV.GetRows();
-		image_size = Size(image_cols, image_rows);
-
-		double temp = convertedImageCV.GetDataSize();
-		rowBytes = (unsigned int)(temp / (double)image_rows);
+		}	
 
 		//image_data = convertedImageCV.GetData();
 		camImage = Mat(image_size, CV_8UC3, convertedImageCV.GetData(), rowBytes);
-
-		cvtColor(camImage, camImageGray, CV_BGR2GRAY);
-		
+		cvtColor(camImage, camImageGray, CV_BGR2GRAY);		
 
 		// set initial ROI to the full size image loaded in
 		corner1 = Point(camImageGray.cols, 0);
@@ -304,26 +331,40 @@ int main(int argc, char** argv)
 		//}
 		//
 
-		namedWindow(orig_img_window, WINDOW_NORMAL);
+
 		imshow(orig_img_window, camImage);
 		setMouseCallback(orig_img_window, mouseROI_Handler);
 
-		namedWindow(roi_img_window, WINDOW_NORMAL);
+
 		imshow(roi_img_window, ROI_img);
 
 		std::cout << "Press 'q' to accept the selected ROI. " << std::endl;
 		do
 		{
+			error = cam.RetrieveBuffer(&rawImage);
+			error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
+			if (error != PGRERROR_OK)
+			{
+				PrintError(error);
+				return -1;
+			}
+
+			//image_data = convertedImageCV.GetData();
+			camImage = Mat(image_size, CV_8UC3, convertedImageCV.GetData(), rowBytes);
+			cvtColor(camImage, camImageGray, CV_BGR2GRAY);
+			imshow(orig_img_window, camImage);
+
 			if (update == true)
 			{
 				ROI_img = Mat(camImageGray, ROI_Box);
 
-				destroyWindow(roi_img_window);
+				//destroyWindow(roi_img_window);
+				//namedWindow(roi_img_window, WINDOW_NORMAL);
 				imshow(roi_img_window, ROI_img);
 				update = false;
 			}
 
-			key = (char)waitKey(1);
+			key = (char)waitKey(50);
 			if (key == 0x1B)
 			{
 				exit = true;
@@ -337,7 +378,8 @@ int main(int argc, char** argv)
 			Mat planes[2];// = { Mat_<float>(paddedImage), Mat::zeros(paddedImage.size(), CV_32F) };
 			maxDFTValue = 0.0;
 
-			for (idx = 0; idx < 30; idx++)
+			// for loop to loop through variaous voltage levels for the lens
+			for (idx = 0; idx < 35; idx++)
 			{
 
 				Focus.Data[0] = idx + stepStart;
@@ -358,22 +400,9 @@ int main(int argc, char** argv)
 					return -1;
 				}
 
-				//image_cols = convertedImageCV.GetCols();
-				//image_rows = convertedImageCV.GetRows();
-				//image_size = Size(image_cols, image_rows);
-
-				//double temp = convertedImageCV.GetDataSize();
-				//rowBytes = (unsigned int)(temp / (double)image_rows);
-
 				//image_data = convertedImageCV.GetData();
 				camImage = Mat(image_size, CV_8UC3, convertedImageCV.GetData(), rowBytes);
 				cvtColor(camImage, camImageGray, CV_BGR2GRAY);
-
-
-
-
-				//waitKey(0);
-
 
 				Mat InputImage = Mat(camImageGray, ROI_Box);
 				Mat blurDFT;
@@ -420,15 +449,16 @@ int main(int argc, char** argv)
 				namedWindow(dft_window, WINDOW_NORMAL);
 				imshow(dft_window, magI);
 
-				Mat temp = magI.row((unsigned int)(magI.rows / 2));
+				//Mat temp = magI.row((unsigned int)(magI.rows / 2));
 
 				// ignore the first two terms and only add the positive freq components
-				sum = cv::sum(temp.colRange(2, (unsigned int)(temp.cols / 2) - 1))[0];
-				cout << "Voltage Step: " << (int)Focus.Data[0] << "\tDFT sum of image: " << sum << endl;
+				//sum = cv::sum(temp.colRange(2, (unsigned int)(temp.cols / 2) - 1))[0];
+				DFTSum = cv::sum(magI)[0];
+				cout << "Voltage Step: " << (int)Focus.Data[0] << "\tDFT sum of image: " << DFTSum << endl;
 				
-				if (sum > maxDFTValue)
+				if (DFTSum > maxDFTValue)
 				{
-					maxDFTValue = sum;
+					maxDFTValue = DFTSum;
 					bestStep = Focus.Data[0];
 				}
 				
