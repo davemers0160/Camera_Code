@@ -87,8 +87,8 @@ int main(int argc, char** argv)
 	LensRxPacket LensRx;
 	LensDriverInfo LensInfo;
 	unsigned char status;
-	unsigned char stepStart = 120;
-	unsigned char stepStop = 160;
+	unsigned char stepStart = 150;
+	unsigned char stepRange = 35;
 	unsigned char data[1] {stepStart};
 	LensTxPacket Focus(FAST_SET_VOLT, 1, &data[0]);
 
@@ -379,7 +379,7 @@ int main(int argc, char** argv)
 			maxDFTValue = 0.0;
 
 			// for loop to loop through variaous voltage levels for the lens
-			for (idx = 0; idx < 35; idx++)
+			for (idx = 0; idx < stepRange; idx++)
 			{
 
 				Focus.Data[0] = idx + stepStart;
