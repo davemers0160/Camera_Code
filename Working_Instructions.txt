@@ -1,38 +1,168 @@
+# This is for the intial configuration of an Odroid XU4 from scratch.
+# These instructions apply to the Odroid running Ubuntu 15.04.  The programs
+# and instructions will not work as expected for Ubuntu 15.10.  
 
-# This link tells how to setup the LINUX OS to run a script at startup
-# This is used to configure the FTDI drivers to stop using the ftdi-sio driver
-# in favor of allowing the ftd2xx drivers that are used by the code.
-http://www.upubuntu.com/2015/08/how-to-executerun-bash-script-at-system.html
+1. Put eMMC card in the connector on the bottom of the board.
 
+2. Connect a keyboard, mouse and monitor to the Odroid.
+
+3. Power on the Odroid and let it boot up.
+
+4. Connect to an Internet source, e.g WiFi, Ethernet.
+
+5. Run the Odroid UItility located on the desktop.
+
+6. Select Option 4; Resize the partition.
+	- Hit yes to continue
+	- Hit OK to reboot
+	- Select Exit and OK
+	- Reboot the Odroid
+   
+7. Login and reconnect to the internet
+
+8. Open a terminal window and clone the Camera repository that contains all of the code
+	- Make sure that you are in the Odroid folder
+	- Type the following to setup the odroid username for the repository
+		git config --global user.name 'odroid'
+		git config --global user.email 'odroid@odroid.com'
+		git config --global credential.helper 'cache --timeout=3600'   
+	- Type the following to clone the repository: 
+		git clone https://github.iu.edu/BicycleProject-IUPUI/Camera_Code.git BicycleCamera		
+	- Enter your username and password and let the magic happen
+
+9. The following instructions come from this link: http://forum.odroid.com/viewtopic.php?f=95&t=16149
+   This is an abridged version for the project
+	- Run the following commands in a terminal window
+		### REMOVE THE UNWANTED APPLICATIONS ###
+		sudo apt-get remove --purge libreoffice* plank simple-scan pidgin hexchat thunderbird brasero kodi rhythmbox xzoom gnome-orca seahorse tilda
+		sudo apt-get purge firefox
+		sudo rm -rf ~/.mozilla/firefox ~/.macromedia ~/.adobe /etc/firefox /usr/lib/firefox /usr/lib/firefox-addons
+
+
+		### INSTALL EXTRAS ###
+		sudo apt-get update
+		sudo apt-get install build-essential checkinstall cmake
+		sudo apt-get install emacs
+
+		### CONFIGURE DESKTOP ENVIRONMENT ###
+		Set background to solid color - Black
+
+		### INSTALL OPENCV DEPENDENCIES ###
+		sudo apt-get install pkg-config yasm libtiff5-dev libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libqt4-dev libgtk2.0-dev libavcodec-dev libavformat-dev libswscale-dev libtbb2 libtbb-dev ffmpeg
+		
+		### INSTALL THE FLYCAPTURE DEPENDENCIES ###
+		sudo apt-get install libraw1394-11 libgtkmm-2.4* libglademm-2.4* libusb-1*
+		
+		### CLEAN UP EVERYTHING ###
+		sudo apt-get clean
+		sudo apt-get autoremove
+		
+	- Restart the Odroid.
+
+		### GET OPENCV SOURCE ###
+		cd ~
+		wget https://github.com/Itseez/opencv/archive/2.4.12.1.zip
+		# or you can download from Box if it doesn't exist anymore
+		unzip 2.4.12.1.zip
+		rm 2.4.12.1.zip
+		cd opencv-2.4.12.1
+
+		### BUILD AND INSTALL OPENCV ###
+		mkdir build
+		cd build
+		cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=/usr/local -DWITH_OPENGL=ON -DWITH_V4L=ON -DWITH_TBB=ON -DBUILD_TBB=ON -DENABLE_VFPV3=ON -DENABLE_NEON=ON ..
+		make -j4
+		sudo make install
+
+	- Restart the Odroid.
+
+10. If needed install Eclipse-CDT <- only needed if we are debugging c++ code 
+    - sudo apt-get install eclipse-cdt
+	- Restart the Odroid
+	
+11. This link shows the required steps to configure the FlyCapture drivers for an ARM processor
+	http://www.ptgrey.com/KB/10357
+	- Download the latest FlyCapture drivers for the Odroid Located in the Box folder
+	- Unzip to the Odroid home folder
+	- In a terminal type the following:
+		sudo apt-get install libraw1394-11 libgtkmm-2.4* libglademm-2.4* libusb-1*
+	- Copy all libraries to system folders:
+		cd flycapture-<version>_arm/lib
+		sudo cp libflycapture* /usr/lib
+		cd flycapture-<version>_arm/
+	- Configure permissions to run Point Grey cameras:
+		sudo sh flycap2-conf
+		- Enter odroid for the username
+		- press y for each questions
+	- Follow the instructions of the script. This installs all the FlyCapture2 libraries, example code, sample applications, and documentation. Additionally, the script prompts you to configure udev so that devices can be used by a particular user. If you choose to configure devices, the script changes permissions on the nodes by overwriting the default Ubuntu permissions and giving the user full read and write access to the device nodes.
+	- Restart your board for the user permissions to take effect.
+
+12. Download and install the FTDI drivers that are required for the Lens Driver Board
+	- Go to Box and download libftdi2xx-arm-v7-hf-1.3.6.tgz
+	- unzip into the odroid home folder and rename the release folder to libftdi2xx-arm-v7-hf-1.3.6
+	- run the following commands in a terminal window
+		sudo -s
+		cd libftdi2xx-arm-v7-hf-1.3.6/build
+		cp libftd2xx.* /usr/local/lib
+		chmod 0755 /usr/local/lib/libftd2xx.so.1.3.6
+		ln -sf /usr/local/lib/libftd2xx.so.1.3.6 /usr/local/lib/libftd2xx.so
+		cd ../examples
+		make -B
+
+13.	Configure the OS to bypass the need to request a user login name
 # This link tells how to configure the OS to bypass the need to request
-# a user login name.  The solution was to do the following:
-# create a file /etc/lightdm/lightdm.conf and add the following content:
+# a user login name.  
+# http://askubuntu.com/questions/51086/how-do-i-enable-auto-login-in-lightdm
+# The solution was to do the following; create a file /etc/lightdm/lightdm.conf 
+# and add the following contents:
 # [SeatDefaults]
 # autologin-user=odroid
 # autologin-user-timeout=0
 # This might only work for lightdm which is the GUI interface for Ubuntu 15.04
-http://askubuntu.com/questions/51086/how-do-i-enable-auto-login-in-lightdm
+	- This file is located in the repository. In a terminal window do the following:
+		cd BicycleCamera
+		sudo cp lightdm.conf /etc/lightdm
+	- Restart the Odroid to test.  You should go directly to the desktop
 
-# Thi link shows how to delay the start of a script.
-http://www.upubuntu.com/2011/06/how-to-delay-execution-of-command-on.html
+14. Configure the FTDI Drivers
+# This link tells how to setup the LINUX OS to run a script at startup
+# This is used to configure the FTDI drivers to stop using the ftdi-sio driver
+# in favor of allowing the ftd2xx drivers that are used by the code.
+# http://www.upubuntu.com/2015/08/how-to-executerun-bash-script-at-system.html
+	- in an explorer window navigate to the /etc folder
+	- find the rc.local file and right click to open as administrator
+	- enter the odroid passwrod and type the following right before the exit 0 line
+		sh /home/odroid/BicycleCamera/ftdi_config.sh
+	- save and exit
+	- to check plug in the GPS, IMU or Lens Driver and restart the odroid.
+	- After restart open a terminal window and type lsmod,  ftdi_sio should not be listed
 
-# These links are good refs for preprocessor headings to determine which OS
-# is being compiled against.
-https://sourceforge.net/p/predef/wiki/OperatingSystems/
-
+15. Configure the startup script for the program
+# don't do this yet!!!!!!!!!!!!!!!!!!!!!!!!!
 # This is how to add the autostart capability in the GUI interface
 # 1. Create a .desktop file in /home/odroid/.config/autostart/
 # 2. Add the following:
 
 [Desktop Entry]
-Name=Chameleon Launch
-Comment=Autostart Entry for Chameleon Camera
+Name=Chameleon_Launch
+Comment=Autostart Entry for Chameleon Camera Code
 Type=Application
 Exec=/home/odroid/BicycleCamera/Camera_Startup.sh
-Terminal=false
+Terminal=true
 
 # Where "Camera_Startup.sh" is the script file that starts the program with
 # the required amount of delay.
+
+
+16. Tips and Tricks
+# This link shows how to delay the start of a script.
+# http://www.upubuntu.com/2011/06/how-to-delay-execution-of-command-on.html
+
+# These links are good refs for preprocessor headings to determine which OS
+# is being compiled against.
+# https://sourceforge.net/p/predef/wiki/OperatingSystems/
+
+
 
 
 
