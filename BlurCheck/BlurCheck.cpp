@@ -19,6 +19,8 @@
 #include <opencv2/core/core.hpp>           
 #include <opencv2/highgui/highgui.hpp>     
 #include <opencv2/imgproc/imgproc.hpp>  
+//#include <opencv2/imgcodecs.hpp>
+#include <opencv2/videoio.hpp>
 using namespace cv;
 #endif
 
@@ -58,7 +60,7 @@ int videoCapture(Camera *cam, HANDLE serialHandle, string save_file);
 void PrintBuildInfo();
 void PrintDriverInfo(LensDriverInfo *LensInfo);
 void mouseROI_Handler(int event, int x, int y, int flags, void* param);
-
+void getcurrenttime(char currenttime[]);
 
 
 
@@ -113,6 +115,15 @@ int main(int argc, char** argv)
 	update = false;
 	leftBtnDown = false;
 	leftBtnUp = false;
+	//int codec = CV_FOURCC('D', 'V', 'I', 'X');
+	//int codec = CV_FOURCC('M', 'J', 'P', 'G');
+	//int codec = CV_FOURCC('H', '2', '6', '4');
+	//int codec = CV_FOURCC('I', 'Y', 'U', 'V');
+	//int codec = CV_FOURCC('I', '4', '2', '0');
+	//int codec = CV_FOURCC('W', 'M', 'V', '2');
+	int codec = CV_FOURCC('P', 'I', 'M', '1');
+	//int codec = -1;
+	string file_extension = ".avi";
 
 	//Mat originalImage;
 	Mat camImage;
@@ -128,10 +139,10 @@ int main(int argc, char** argv)
 	unsigned char bestStep = stepStart;
 	double maxDFTValue;
 	double DFTSum;
-
-
-	//Mat black = Mat(img_size, CV_8UC1, Scalar(0));
-	//Mat white = Mat(img_size, CV_8UC1, Scalar(255));
+	string log_save_file;
+	string video_save_file;
+	
+	char currenttime[80];
 
 	// get the desktop size
 	RECT desktop;
@@ -324,17 +335,8 @@ int main(int argc, char** argv)
 
 		//sendLensPacket(Focus, lensDriver);
 
-
-		//if (GetAsyncKeyState(VK_ESCAPE))
-		//{
-		//	exit = true;
-		//}
-		//
-
-
 		imshow(orig_img_window, camImage);
 		setMouseCallback(orig_img_window, mouseROI_Handler);
-
 
 		imshow(roi_img_window, ROI_img);
 
@@ -377,6 +379,17 @@ int main(int argc, char** argv)
 			Mat blurred = Mat(Size(image_cols * 2, image_rows), CV_8UC1);
 			Mat planes[2];// = { Mat_<float>(paddedImage), Mat::zeros(paddedImage.size(), CV_32F) };
 			maxDFTValue = 0.0;
+			VideoWriter outputVideo;
+			Mat InputImage = Mat(camImageGray, ROI_Box);
+			c = getOptimalDFTSize(InputImage.cols);
+			Mat video_frame = Mat(Size(ROI_img.cols + c, ROI_img.rows), CV_8UC1);
+
+			// get the current time for the video file name and saving the output data
+			getcurrenttime(currenttime);
+			log_save_file = "blurcheck_log" + (string)currenttime + ".txt";
+			video_save_file = "blurcheck_" + (string)currenttime + file_extension;
+
+			outputVideo.open(video_save_file, codec, 2.0, Size(ROI_img.cols + c, ROI_img.rows),0);
 
 			// for loop to loop through variaous voltage levels for the lens
 			for (idx = 0; idx < stepRange; idx++)
@@ -404,12 +417,12 @@ int main(int argc, char** argv)
 				camImage = Mat(image_size, CV_8UC3, convertedImageCV.GetData(), rowBytes);
 				cvtColor(camImage, camImageGray, CV_BGR2GRAY);
 
-				Mat InputImage = Mat(camImageGray, ROI_Box);
+				InputImage = Mat(camImageGray, ROI_Box);
 				Mat blurDFT;
 				Mat paddedImage;
 
-				namedWindow(blur_window, WINDOW_NORMAL);
-				imshow(blur_window, InputImage);
+				//namedWindow(blur_window, WINDOW_NORMAL);
+				//imshow(blur_window, InputImage);
 
 				// start the DFT process on the infocus test image
 				//int c = getOptimalDFTSize(ROI_img.cols);		// get the optimal DFT size for rows
@@ -446,13 +459,13 @@ int main(int argc, char** argv)
 				magnitude(planes[0], planes[1], planes[0]);// planes[0] = magnitude
 				magI = planes[0];
 
+				InputImage(Rect(0, 0, InputImage.cols, InputImage.rows)).copyTo(video_frame(Rect(0, 0, InputImage.cols, InputImage.rows)));
+				Mat tempMagI = magI * 255;
+				tempMagI(Rect(0, 0, magI.cols, magI.rows)).copyTo(video_frame(Rect(InputImage.cols, 0, magI.cols, magI.rows)));
+				
 				namedWindow(dft_window, WINDOW_NORMAL);
-				imshow(dft_window, magI);
+				imshow(dft_window, video_frame);
 
-				//Mat temp = magI.row((unsigned int)(magI.rows / 2));
-
-				// ignore the first two terms and only add the positive freq components
-				//sum = cv::sum(temp.colRange(2, (unsigned int)(temp.cols / 2) - 1))[0];
 				DFTSum = cv::sum(magI)[0];
 				cout << "Voltage Step: " << (int)Focus.Data[0] << "\tDFT sum of image: " << DFTSum << endl;
 				
@@ -461,11 +474,12 @@ int main(int argc, char** argv)
 					maxDFTValue = DFTSum;
 					bestStep = Focus.Data[0];
 				}
-				
+
+				outputVideo.write(video_frame);
 				waitKey(200);
 
 			}	// end of for loop
-
+			outputVideo.release();
 			cout << endl << "Best Voltage Step Value: " << (int)bestStep << endl << endl;
 			Focus.Data[0] = bestStep;
 			sendLensPacket(Focus, lensDriver);
@@ -632,3 +646,17 @@ void PrintDriverInfo(LensDriverInfo *LensInfo)
 
 
 }	// end of PrintDriverInfo
+
+void getcurrenttime(char currenttime[])
+{
+	time_t rawtime;
+	struct tm * timeinfo;
+
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+
+	strftime(currenttime, 80, "%m%d%Y_%H%M%S", timeinfo);
+	string str(currenttime);
+
+}	// end of getcurrenttime
+

@@ -219,3 +219,6 @@ pip-log.txt
 # Movie Files
 *.avi
 *.mp4
+*.mpg
+*.wmv
+
