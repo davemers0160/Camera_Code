@@ -92,7 +92,7 @@ int main(int argc, char** argv)
 	LensDriverInfo LensInfo;
 	unsigned char status;
 	unsigned char stepStart = 150;
-	unsigned char stepRange = 35;
+	unsigned char stepRange = 36;
 	unsigned char data[1] {stepStart};
 	LensTxPacket Focus(FAST_SET_VOLT, 1, &data[0]);
 
@@ -141,7 +141,7 @@ int main(int argc, char** argv)
 	bool exit = false;
 	char key = 0;
 	int idx, jdx;
-	unsigned char bestStep = stepStart;
+	double bestStep = stepStart;
 	double maxDFTValue;
 	double DFTSum;
 	string log_save_file;
@@ -160,147 +160,144 @@ int main(int argc, char** argv)
 	cout << "Desktop size: " << desktop.right << " x " << desktop.bottom << endl;
 
 
+	//PrintBuildInfo();
+	//configLensDriver(lensPort, lensDriver);
+	//sendLensPacket(LensTx, lensDriver);
+	//status = readLensPacket(&LensRx, lensDriver, 9);
 
-	PrintBuildInfo();
-
-	configLensDriver(lensPort, lensDriver);
-
-	sendLensPacket(LensTx, lensDriver);
-	status = readLensPacket(&LensRx, lensDriver, 9);
-
-	if (status == false)
-	{
-		cout << "Error communicating with lens driver." << endl;
-		//cin.ignore();
-		return 1;
-	}
-	getLensDriverInfo(&LensInfo, LensRx);
-	PrintDriverInfo(&LensInfo);
-
-
-
+	//if (status == false)
+	//{
+	//	cout << "Error communicating with lens driver." << endl;
+	//	//cin.ignore();
+	//	return 1;
+	//}
+	//getLensDriverInfo(&LensInfo, LensRx);
+	//PrintDriverInfo(&LensInfo);
 
 	// read in image from file
-	//camImage = imread("4_bar_test.png", CV_LOAD_IMAGE_GRAYSCALE);
+	camImage = imread("diamond.png", CV_LOAD_IMAGE_GRAYSCALE);
+	image_cols = camImage.cols;
+	image_rows = camImage.rows;
+	image_size = Size(image_cols, image_rows);
 
 
-	sendLensPacket(Focus, lensDriver);
 
+	//sendLensPacket(Focus, lensDriver);
 
-	error = busMgr.GetNumOfCameras(&numCameras);
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		cin.ignore();
-		return 1;
-	}
+	//error = busMgr.GetNumOfCameras(&numCameras);
+	//if (error != PGRERROR_OK)
+	//{
+	//	PrintError(error);
+	//	cin.ignore();
+	//	return 1;
+	//}
 
-	cout << "Number of cameras detected: " << numCameras << endl;
+	//cout << "Number of cameras detected: " << numCameras << endl;
 
-	error = busMgr.GetCameraFromIndex(0, &guid);
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		cin.ignore();
-		return 1;
-	}
+	//error = busMgr.GetCameraFromIndex(0, &guid);
+	//if (error != PGRERROR_OK)
+	//{
+	//	PrintError(error);
+	//	cin.ignore();
+	//	return 1;
+	//}
 
-	// connect to the camera
-	cameraConnect(guid, &cam);
+	//// connect to the camera
+	//cameraConnect(guid, &cam);
 
-	// Get the camera configuration
-	error = cam.GetConfiguration(&cameraConfig);
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		cin.ignore();
-		return 1;
-	}
+	//// Get the camera configuration
+	//error = cam.GetConfiguration(&cameraConfig);
+	//if (error != PGRERROR_OK)
+	//{
+	//	PrintError(error);
+	//	cin.ignore();
+	//	return 1;
+	//}
 
 	// configure the image size and the pixel format for the video
 	// 1.216 MB/s
-	offsetX = 0;		
-	width = 1280;		
+	//offsetX = 0;		
+	//width = 1280;		
 
-	offsetY = 0;		
-	height = 1024;		
+	//offsetY = 0;		
+	//height = 1024;		
 
-	pixelFormat = PIXEL_FORMAT_422YUV8;
-	configImagerFormat(&cam, offsetX, offsetY, width, height, pixelFormat);
+	//pixelFormat = PIXEL_FORMAT_422YUV8;
+	//configImagerFormat(&cam, offsetX, offsetY, width, height, pixelFormat);
 
 
-	configProperty(&cam, framerate, FRAME_RATE, false, true, true);
-	error = setProperty(&cam, framerate, 30.0);
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		return 1;
-	}
+	//configProperty(&cam, framerate, FRAME_RATE, false, true, true);
+	//error = setProperty(&cam, framerate, 30.0);
+	//if (error != PGRERROR_OK)
+	//{
+	//	PrintError(error);
+	//	return 1;
+	//}
 
-	Sleep(50);
+	//Sleep(50);
 
-	configProperty(&cam, shutter, SHUTTER, true, true, true);
-	temp_shutter = 40.0;
+	//configProperty(&cam, shutter, SHUTTER, true, true, true);
+	//temp_shutter = 40.0;
+	////temp_shutter = getABSProperty(&cam, shutter);
+	////configProperty(&cam, shutter, SHUTTER, false, true, true);
+	//error = setProperty(&cam, shutter, temp_shutter);
+	//Sleep(1000);
 	//temp_shutter = getABSProperty(&cam, shutter);
 	//configProperty(&cam, shutter, SHUTTER, false, true, true);
-	error = setProperty(&cam, shutter, temp_shutter);
-	Sleep(1000);
-	temp_shutter = getABSProperty(&cam, shutter);
-	configProperty(&cam, shutter, SHUTTER, false, true, true);
-	error = setProperty(&cam, shutter, temp_shutter);
+	//error = setProperty(&cam, shutter, temp_shutter);
 
 
 
-	configProperty(&cam, gain, GAIN, true, true, true);
-	temp_gain = 30.0;
+	//configProperty(&cam, gain, GAIN, true, true, true);
+	//temp_gain = 30.0;
+	////configProperty(&cam, gain, GAIN, false, false, true);
+	//error = setProperty(&cam, gain, temp_gain);
+	//Sleep(1000);
+	//temp_gain = getABSProperty(&cam, gain);
 	//configProperty(&cam, gain, GAIN, false, false, true);
-	error = setProperty(&cam, gain, temp_gain);
-	Sleep(1000);
-	temp_gain = getABSProperty(&cam, gain);
-	configProperty(&cam, gain, GAIN, false, false, true);
-	error = setProperty(&cam, gain, temp_gain);
-	Sleep(50);
+	//error = setProperty(&cam, gain, temp_gain);
+	//Sleep(50);
 
-	// auto tune the sharpness for the current capture
-	configProperty(&cam, sharpness, SHARPNESS, true, true, false);
-	temp_sharp = 1023;
+	//// auto tune the sharpness for the current capture
+	//configProperty(&cam, sharpness, SHARPNESS, true, true, false);
+	//temp_sharp = 1023;
+	////configProperty(&cam, sharpness, SHARPNESS, false, false, false);
+	//error = setProperty(&cam, sharpness, temp_sharp);
+	//Sleep(1000);
+	//temp_sharp = getProperty(&cam, sharpness);
 	//configProperty(&cam, sharpness, SHARPNESS, false, false, false);
-	error = setProperty(&cam, sharpness, temp_sharp);
-	Sleep(1000);
-	temp_sharp = getProperty(&cam, sharpness);
-	configProperty(&cam, sharpness, SHARPNESS, false, false, false);
-	error = setProperty(&cam, sharpness, temp_sharp);
+	//error = setProperty(&cam, sharpness, temp_sharp);
 
-	cout << "Shutter Speed (ms): " << temp_shutter << endl;
-	cout << "Gain (dB): " << temp_gain << endl;
-	cout << "Sharpness: " << temp_sharp << endl;
+	//cout << "Shutter Speed (ms): " << temp_shutter << endl;
+	//cout << "Gain (dB): " << temp_gain << endl;
+	//cout << "Sharpness: " << temp_sharp << endl;
 
-	error = cam.StartCapture();
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		return -1;
-	}
-	error = cam.RetrieveBuffer(&rawImage);
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		return -1;
-	}
+	//error = cam.StartCapture();
+	//if (error != PGRERROR_OK)
+	//{
+	//	PrintError(error);
+	//	return -1;
+	//}
+	//error = cam.RetrieveBuffer(&rawImage);
+	//if (error != PGRERROR_OK)
+	//{
+	//	PrintError(error);
+	//	return -1;
+	//}
 
-	error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		return -1;
-	}
+	//error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
+	//if (error != PGRERROR_OK)
+	//{
+	//	PrintError(error);
+	//	return -1;
+	//}
 
-	image_cols = convertedImageCV.GetCols();
-	image_rows = convertedImageCV.GetRows();
-	image_size = Size(image_cols, image_rows);
+	//image_cols = convertedImageCV.GetCols();
+	//image_rows = convertedImageCV.GetRows();
+	//image_size = Size(image_cols, image_rows);
 
-	double temp = convertedImageCV.GetDataSize();
-	rowBytes = (unsigned int)(temp / (double)image_rows);
+	//double temp = convertedImageCV.GetDataSize();
+	//rowBytes = (unsigned int)(temp / (double)image_rows);
 
 	namedWindow(orig_img_window, WINDOW_NORMAL);
 	resizeWindow(orig_img_window, (int)(image_cols / 2), (int)image_rows / 2);
@@ -315,17 +312,19 @@ int main(int argc, char** argv)
 	// start the loop to continueally take data
 	while (exit == false)
 	{
-		error = cam.RetrieveBuffer(&rawImage);
-		error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
-		if (error != PGRERROR_OK)
-		{
-			PrintError(error);
-			return -1;
-		}	
+		//error = cam.RetrieveBuffer(&rawImage);
+		//error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
+		//if (error != PGRERROR_OK)
+		//{
+		//	PrintError(error);
+		//	return -1;
+		//}	
 
-		//image_data = convertedImageCV.GetData();
-		camImage = Mat(image_size, CV_8UC3, convertedImageCV.GetData(), rowBytes);
-		cvtColor(camImage, camImageGray, CV_BGR2GRAY);		
+		////image_data = convertedImageCV.GetData();
+		//camImage = Mat(image_size, CV_8UC3, convertedImageCV.GetData(), rowBytes);
+		//cvtColor(camImage, camImageGray, CV_BGR2GRAY);		
+
+		camImage.copyTo(camImageGray);
 
 		// set initial ROI to the full size image loaded in
 		corner1 = Point(camImageGray.cols, 0);
@@ -349,17 +348,17 @@ int main(int argc, char** argv)
 		std::cout << "Press 'q' to accept the selected ROI. " << std::endl;
 		do
 		{
-			error = cam.RetrieveBuffer(&rawImage);
-			error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
-			if (error != PGRERROR_OK)
-			{
-				PrintError(error);
-				return -1;
-			}
+			//error = cam.RetrieveBuffer(&rawImage);
+			//error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
+			//if (error != PGRERROR_OK)
+			//{
+			//	PrintError(error);
+			//	return -1;
+			//}
 
-			//image_data = convertedImageCV.GetData();
-			camImage = Mat(image_size, CV_8UC3, convertedImageCV.GetData(), rowBytes);
-			cvtColor(camImage, camImageGray, CV_BGR2GRAY);
+			////image_data = convertedImageCV.GetData();
+			//camImage = Mat(image_size, CV_8UC3, convertedImageCV.GetData(), rowBytes);
+			//cvtColor(camImage, camImageGray, CV_BGR2GRAY);
 			imshow(orig_img_window, camImage);
 
 			if (update == true)
@@ -400,35 +399,36 @@ int main(int argc, char** argv)
 
 			DataLogStream.open(log_save_file.c_str(), ios::out);
 			
-			DataLogStream << "Shutter Speed (ms):, " << temp_shutter << endl;
-			DataLogStream << "Gain (dB):, " << temp_gain << endl;
-			DataLogStream << "Sharpness:, " << temp_sharp << endl;
+			//DataLogStream << "Shutter Speed (ms):, " << temp_shutter << endl;
+			//DataLogStream << "Gain (dB):, " << temp_gain << endl;
+			//DataLogStream << "Sharpness:, " << temp_sharp << endl;
 
 			// for loop to loop through variaous voltage levels for the lens
 			for (idx = 0; idx < stepRange; idx++)
 			{
 
-				Focus.Data[0] = idx + stepStart;
-				sendLensPacket(Focus, lensDriver);
-				Sleep(100);
+				//Focus.Data[0] = idx + stepStart;
+				//sendLensPacket(Focus, lensDriver);
+				//Sleep(100);
 
 
 				// simulated blurs
-				//sigma = 5.0*idx / 30.0+0.001;
-				//GaussianBlur(originalImage, blurred, Size(0, 0), sigma, sigma, BORDER_REPLICATE);
+				sigma = abs(((-stepRange/2.0+idx)*10)/stepRange + 0.0001);
+
+				GaussianBlur(camImage, camImageGray, Size(0, 0), sigma, sigma, BORDER_REPLICATE);
 
 				// get the images from the camera
-				error = cam.RetrieveBuffer(&rawImage);
-				error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
-				if (error != PGRERROR_OK)
-				{
-					PrintError(error);
-					return -1;
-				}
+				//error = cam.RetrieveBuffer(&rawImage);
+				//error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
+				//if (error != PGRERROR_OK)
+				//{
+				//	PrintError(error);
+				//	return -1;
+				//}
 
-				//image_data = convertedImageCV.GetData();
-				camImage = Mat(image_size, CV_8UC3, convertedImageCV.GetData(), rowBytes);
-				cvtColor(camImage, camImageGray, CV_BGR2GRAY);
+				////image_data = convertedImageCV.GetData();
+				//camImage = Mat(image_size, CV_8UC3, convertedImageCV.GetData(), rowBytes);
+				//cvtColor(camImage, camImageGray, CV_BGR2GRAY);
 
 				InputImage = Mat(camImageGray, ROI_Box);
 				Mat blurDFT;
@@ -482,13 +482,15 @@ int main(int argc, char** argv)
 				imshow(dft_window, video_frame_color);
 
 				DFTSum = cv::sum(magI)[0];
-				std::cout << "Voltage Step: " << (int)Focus.Data[0] << "\tDFT sum of image: " << DFTSum << endl;
-				DataLogStream << (int)Focus.Data[0] << "," << DFTSum << endl;
+				//std::cout << "Voltage Step: " << (int)Focus.Data[0] << "\tDFT sum of image: " << DFTSum << endl;
+				std::cout << "Sigma: " << sigma << "\tDFT sum of image: " << DFTSum << endl;
+
+				DataLogStream << sigma << "," << DFTSum << endl;
 
 				if (DFTSum > maxDFTValue)
 				{
 					maxDFTValue = DFTSum;
-					bestStep = Focus.Data[0];
+					bestStep = sigma;
 				}
 
 				for (int jdx = 0; jdx < 5; jdx++)
@@ -500,14 +502,14 @@ int main(int argc, char** argv)
 
 			}	// end of for loop
 			outputVideo.release();
-			std::cout << endl << "Best Voltage Step Value: " << (int)bestStep << endl << endl;
-			DataLogStream << "Best Voltage Step Value:, " << (int)bestStep << endl;
+			std::cout << endl << "Best Sigma Value: " << bestStep << endl << endl;
+			DataLogStream << "Best Sigma Value:, " << bestStep << endl;
 			DataLogStream.close();
 
-			Focus.Data[0] = bestStep;
-			sendLensPacket(Focus, lensDriver);
+			//Focus.Data[0] = bestStep;
+			//sendLensPacket(Focus, lensDriver);
 			destroyWindow(dft_window);
-			destroyWindow(blur_window);
+			//destroyWindow(blur_window);
 
 		}	// end of if check for exit criteria
 
@@ -518,15 +520,15 @@ int main(int argc, char** argv)
 	
 
 	// Disconnect the camera
-	error = cam.Disconnect();
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		return 1;
-	}
+	//error = cam.Disconnect();
+	//if (error != PGRERROR_OK)
+	//{
+	//	PrintError(error);
+	//	return 1;
+	//}
 
 	// disconnect from lens driver
-	CloseHandle(lensDriver);
+	//CloseHandle(lensDriver);
 	destroyAllWindows();
 
 	std::cout << "Done! Press Enter to exit..." << endl;

@@ -15,13 +15,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="BlurCheck.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Config_Chameleon.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Lens_Driver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BlurCheck_perfect.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
