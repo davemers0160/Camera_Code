@@ -21,7 +21,7 @@
     <ClCompile Include="Lens_Driver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BlurCheck_perfect.cpp">
+    <ClCompile Include="BlurCheck.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

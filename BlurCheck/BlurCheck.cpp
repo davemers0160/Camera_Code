@@ -79,9 +79,9 @@ int main(int argc, char** argv)
 	unsigned int offsetX, offsetY, width, height;
 	PixelFormat pixelFormat;
 	Property shutter, gain, sharpness, framerate;
-	int temp_sharp;
-	float temp_shutter;
-	float temp_gain;
+	int temp_sharp, temp_sharp1;
+	float temp_shutter, temp_shutter1;
+	float temp_gain, temp_gain1;
 	Image rawImage, convertedImageCV;
 	unsigned int rowBytes;
 
@@ -91,8 +91,8 @@ int main(int argc, char** argv)
 	LensRxPacket LensRx;
 	LensDriverInfo LensInfo;
 	unsigned char status;
-	unsigned char stepStart = 150;
-	unsigned char stepRange = 35;
+	unsigned char stepStart = 125;
+	unsigned char stepRange = 31;
 	unsigned char data[1] {stepStart};
 	LensTxPacket Focus(FAST_SET_VOLT, 1, &data[0]);
 
@@ -228,6 +228,12 @@ int main(int argc, char** argv)
 	pixelFormat = PIXEL_FORMAT_422YUV8;
 	configImagerFormat(&cam, offsetX, offsetY, width, height, pixelFormat);
 
+	error = cam.StartCapture();
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+		return -1;
+	}
 
 	configProperty(&cam, framerate, FRAME_RATE, false, true, true);
 	error = setProperty(&cam, framerate, 30.0);
@@ -237,8 +243,8 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	Sleep(50);
-
+	Sleep(100);
+	/*
 	configProperty(&cam, shutter, SHUTTER, true, true, true);
 	temp_shutter = 40.0;
 	//temp_shutter = getABSProperty(&cam, shutter);
@@ -248,9 +254,7 @@ int main(int argc, char** argv)
 	temp_shutter = getABSProperty(&cam, shutter);
 	configProperty(&cam, shutter, SHUTTER, false, true, true);
 	error = setProperty(&cam, shutter, temp_shutter);
-
-
-
+	
 	configProperty(&cam, gain, GAIN, true, true, true);
 	temp_gain = 30.0;
 	//configProperty(&cam, gain, GAIN, false, false, true);
@@ -270,24 +274,64 @@ int main(int argc, char** argv)
 	temp_sharp = getProperty(&cam, sharpness);
 	configProperty(&cam, sharpness, SHARPNESS, false, false, false);
 	error = setProperty(&cam, sharpness, temp_sharp);
+	*/
+
+	// set the shutter speed to auto
+	configProperty(&cam, shutter, SHUTTER, true, true, true);
+	//temp_shutter = 40.0;
+	//temp_shutter = getABSProperty(&cam, shutter);
+	//configProperty(&cam, shutter, SHUTTER, false, true, true);
+	error = setProperty(&cam, shutter, 33.0);
+
+	// set the gain to auto
+	configProperty(&cam, gain, GAIN, true, true, true);
+	//temp_gain = 30.0;
+	//configProperty(&cam, gain, GAIN, false, false, true);
+	error = setProperty(&cam, gain, 10.0);
+
+	// set the sharpness to auto
+	configProperty(&cam, sharpness, SHARPNESS, true, true, false);
+	//temp_sharp = 1023;
+	//configProperty(&cam, sharpness, SHARPNESS, false, false, false);
+	error = setProperty(&cam, sharpness, 1200);
+
+	temp_shutter1 = getABSProperty(&cam, shutter);
+	temp_gain1 = getABSProperty(&cam, gain);
+	temp_sharp1 = getProperty(&cam, sharpness);
+
+	Sleep(100);
+
+	// get the auto values
+	temp_shutter = getABSProperty(&cam, shutter);
+	temp_gain = getABSProperty(&cam, gain);
+	temp_sharp = getProperty(&cam, sharpness);
+
+	// set the valuse to fixed
+	configProperty(&cam, shutter, SHUTTER, false, true, true);
+	error = setProperty(&cam, shutter, temp_shutter);
+	configProperty(&cam, gain, GAIN, false, false, true);
+	error = setProperty(&cam, gain, temp_gain);
+	configProperty(&cam, sharpness, SHARPNESS, false, false, false);
+	error = setProperty(&cam, sharpness, temp_sharp);
 
 	cout << "Shutter Speed (ms): " << temp_shutter << endl;
 	cout << "Gain (dB): " << temp_gain << endl;
 	cout << "Sharpness: " << temp_sharp << endl;
 
-	error = cam.StartCapture();
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		return -1;
-	}
+	//error = cam.StartCapture();
+	//if (error != PGRERROR_OK)
+	//{
+	//	PrintError(error);
+	//	return -1;
+	//}
+
 	error = cam.RetrieveBuffer(&rawImage);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
 		return -1;
 	}
-
+	
 	error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
 	if (error != PGRERROR_OK)
 	{

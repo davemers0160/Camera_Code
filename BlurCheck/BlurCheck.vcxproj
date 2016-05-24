@@ -150,7 +150,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="BlurCheck_perfect.cpp" />
+    <ClCompile Include="BlurCheck.cpp" />
     <ClCompile Include="Config_Chameleon.cpp" />
     <ClCompile Include="Lens_Driver.cpp" />
   </ItemGroup>
