@@ -156,9 +156,9 @@ void GridGraph_DArraySArray(int width,int height,int num_labels,double **logpost
 
 
 
-		printf("\nBefore optimization energy is %d",gc->compute_energy());
+		printf("\nBefore optimization energy is %d\n",gc->compute_energy());
 		gc->expansion();// run expansion for 2 iterations. For swap use gc->swap(num_iterations);
-		printf("\nAfter optimization energy is %d",gc->compute_energy());
+		printf("\nAfter optimization energy is %d\n",gc->compute_energy());
 
 		for ( int  i = 0; i < num_pixels; i++ )
 			{result[i] = gc->whatLabel(i);

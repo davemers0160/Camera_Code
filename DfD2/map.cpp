@@ -355,7 +355,7 @@ void map3(double **y[], double **xt[], double **diff_y[], double **diff_Cr[], do
 {
 //	gamma[0] = (unsigned char **)get_img(cols,rows,sizeof(unsigned char));
 	double logpostCr[MAX_CLASSES+1], logpostCb[MAX_CLASSES+1],logposty[MAX_CLASSES+1];
-	double **logpost1[MAX_CLASSES];
+	double **logpost1[MAX_CLASSES+1];
 	for ( int dd = 1; dd <= MAX_CLASSES; dd++)
 	{
 		logpost1[dd] = (double **)get_img(cols,rows,sizeof(double));
@@ -538,7 +538,7 @@ void map3(double **y[], double **xt[], double **diff_y[], double **diff_Cr[], do
 			//GeneralGraph_DArraySArray(cols,rows,MAX_CLASSES,logpost1,result);
 		   double end= (double)cvGetTickCount();//记下结束的时钟计数  
 			double  t1= (end-start)/((double)cvGetTickFrequency()*1000.);//计算运行时间，以毫秒为单位  
-		printf( "Run time without OpenMP = %g ms/n", t1 );
+		printf( "Run time without OpenMP = %g ms\r\n", t1 );
 	//**************************************************************************//
 		//	std::cout<<"Total cost for iteration #"<<l<<" is : "<<AveCost<<"\n";
 for ( int dd = 1; dd <= MAX_CLASSES; dd++)

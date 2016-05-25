@@ -17,6 +17,8 @@
 
 #include "time.h"
 #include <iostream>
+#include <thread>
+
 
 #define MAX_CLASSES 256.0
 #define MaxSigma 2.5
@@ -291,23 +293,35 @@ int main( int argc, char** argv )
 	//																				 //	
 	///////////////////////////////////////////////////////////////////////////////////
  
+	cout << "Starting Step 4..." << endl;
+
  //////// use highpass filter to generate edge map /////////////////////////////////////
-  cv:: Mat kernel(3,3,CV_32F,cv::Scalar(-0.8));    
-  kernel.at<float>(1,1) = 6.4;
+	cv:: Mat kernel(3,3,CV_32F,cv::Scalar(-0.8));    
+	kernel.at<float>(1,1) = 6.4;
+	//image_locations
+	
+	//cv::Mat scr = cv::imread("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/view5.tif", 0);   // read in focus image(grayscale)
 
-  cv::Mat scr = cv::imread("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/view5.tif",0);   // read in focus image(grayscale)
-  cv::Mat rst; 
+	cv::Mat scr = cv::imread(image_locations + "\\view5.tif", 0);   // read in focus image(grayscale)
+	cv::Mat rst; 
 
-  filter2D(scr,rst,scr.depth(),kernel);     
-  cv::imwrite("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/highpass.png",rst);
+	filter2D(scr,rst,scr.depth(),kernel);     
+	cv::imwrite(image_locations+"\\highpass.png", rst);
+	//cv::imwrite("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/highpass.png", rst);
 
-  scr = cv::imread("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/Crin.png",0);
-  filter2D(scr,rst,scr.depth(),kernel);  
-  cv::imwrite("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/highpassCr.png",rst);
+	scr = cv::imread(image_locations+"\\Crin.png", 0);
+	//scr = cv::imread("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/Crin.png", 0);
+	filter2D(scr, rst, scr.depth(), kernel);
+	//cv::imwrite("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/highpassCr.png",rst);
+	cv::imwrite(image_locations+"\\highpassCr.png", rst);
 
-  scr = cv::imread("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/Cbin.png",0);
-  filter2D(scr,rst,scr.depth(),kernel);  
-  cv::imwrite("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/highpassCb.png",rst);
+	scr = cv::imread(image_locations+"\\Cbin.png", 0);
+	//scr = cv::imread("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/Cbin.png", 0);
+	filter2D(scr, rst, scr.depth(), kernel);
+	cv::imwrite(image_locations+"\\highpassCb.png", rst);
+	//cv::imwrite("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/highpassCb.png", rst);
+
+	cout << "Completed Step 4." << endl;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     
@@ -335,29 +349,41 @@ int main( int argc, char** argv )
 	//																			     //
 	//																				 //	
 	///////////////////////////////////////////////////////////////////////////////////
+	cout << "Starting Step 6..." << endl;
 
  ///// Initialize parameters for MAP subrutine  /////////////////////////////////////////////
-  int    ICM         = Optimmization_method;
-  int	 mapiter     = map_iteraton;
-  int    EMiteration = EM_iteration;
-  double beta        = weightingfactor_beta;		
-  double gama        = 1.5;
-  int    classes     = MAX_CLASSES;
-  int    ATLAS       = 0;	
+	int    ICM         = Optimmization_method;
+	int	 mapiter     = map_iteraton;
+	int    EMiteration = EM_iteration;
+	double beta        = weightingfactor_beta;		
+	double gama        = 1.5;
+	int    classes     = MAX_CLASSES;
+	int    ATLAS       = 0;	
 
  ///// Read in initial depth map resutl ////////////////////////////////////////////////////
-  IplImage* preresult = cvCreateImage(cvGetSize(inf),IPL_DEPTH_64F,0);  
-  preresult = cvLoadImage( "/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/preresult.png" , 0 );
+	IplImage* preresult = cvCreateImage(cvGetSize(inf),IPL_DEPTH_64F,0);  
+	preresult = cvLoadImage( "\\preresult.png" , 0 );
+//  preresult = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/preresult.png", 0);
 
  ///// Bring in edge information and texture information
-  IplImage* texture     = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/texturelessregion.png",0);
-  IplImage* textureCb   = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/texturelessregionCb.png",0);
-  IplImage* textureCr   = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/texturelessregionCr.png",0);
-  IplImage* texture_tmp = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/texturelessregion.png",0);
-  IplImage* highpass    = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/highpass.png",0);
-  IplImage* highpassCr  = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/highpassCr.png",0);
-  IplImage* highpassCb  = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/highpassCb.png",0);
-	 
+	IplImage* texture = cvLoadImage((image_locations+"\\texturelessregion.png").c_str(), 0);
+	IplImage* textureCb = cvLoadImage((image_locations + "\\texturelessregionCb.png").c_str(), 0);
+	IplImage* textureCr = cvLoadImage((image_locations + "\\texturelessregionCr.png").c_str(), 0);
+	IplImage* texture_tmp = cvLoadImage((image_locations + "\\texturelessregion.png").c_str(), 0);
+	IplImage* highpass = cvLoadImage((image_locations + "\\highpass.png").c_str(), 0);
+	IplImage* highpassCr = cvLoadImage((image_locations + "\\highpassCr.png").c_str(), 0);
+	IplImage* highpassCb = cvLoadImage((image_locations + "\\highpassCb.png").c_str(), 0);
+
+  //IplImage* texture = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/texturelessregion.png", 0);
+  //IplImage* textureCb = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/texturelessregionCb.png", 0);
+  //IplImage* textureCr = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/texturelessregionCr.png", 0);
+  //IplImage* texture_tmp = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/texturelessregion.png", 0);
+  //IplImage* highpass = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/highpass.png", 0);
+  //IplImage* highpassCr = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/highpassCr.png", 0);
+  //IplImage* highpassCb = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/highpassCb.png", 0);
+
+  cout << "Completed Step 6." << endl;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -369,23 +395,27 @@ int main( int argc, char** argv )
 	//																			     //
 	//																				 //	
 	///////////////////////////////////////////////////////////////////////////////////
-  
-  IplImage* GauBlur[260];
+ 
+  cout << "Starting Step 7..." << endl;
+
+	IplImage* GauBlur[260];
  ////// Store blur index for each pixel each channel /////////////////////////////////////////	
-  unsigned char **xttempy[260];
-  unsigned char **xttempCr[260];
-  unsigned char **xttempCb[260];
+	unsigned char **xttempy[260];
+	unsigned char **xttempCr[260];
+	unsigned char **xttempCb[260];
 
  ////// y : true defocus image ///////////////////////////////////////////////////////////////
  ////// xt : 256 synthetic defocus images ////////////////////////////////////////////////////
-  double **yY[260], **xtY[260], **atlas[260];
-  double **yCr[260], **xtCr[260];
-  double **yCb[260], **xtCb[260];
-  double **diff_y[260], **diff_Cr[260], **diff_Cb[260];
+	double **yY[260], **xtY[260], **atlas[260];
+	double **yCr[260], **xtCr[260];
+	double **yCb[260], **xtCb[260];
+	double **diff_y[260], **diff_Cr[260], **diff_Cb[260];
 
-  createblur(col, row, ImageInFocusY, classes, yY, xtY, atlas, ATLAS, ImageOutOfFocusY, SyntheticDefocusY, GauBlur, xttempy, preresult);
-  createblur(col, row, ImageInFocusCr, classes, yCr, xtCr, atlas, ATLAS, ImageOutOfFocusCr, SyntheticDefocusCr, GauBlur, xttempCr,preresult);
-  createblur(col, row, ImageInFocusCb, classes, yCb, xtCb, atlas, ATLAS, ImageOutOfFocusCb, SyntheticDefocusCb, GauBlur, xttempCb,preresult);
+	createblur(col, row, ImageInFocusY, classes, yY, xtY, atlas, ATLAS, ImageOutOfFocusY, SyntheticDefocusY, GauBlur, xttempy, preresult);
+	createblur(col, row, ImageInFocusCr, classes, yCr, xtCr, atlas, ATLAS, ImageOutOfFocusCr, SyntheticDefocusCr, GauBlur, xttempCr,preresult);
+	createblur(col, row, ImageInFocusCb, classes, yCb, xtCb, atlas, ATLAS, ImageOutOfFocusCb, SyntheticDefocusCb, GauBlur, xttempCb,preresult);
+
+	cout << "Completed Step 7." << endl;
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -397,6 +427,8 @@ int main( int argc, char** argv )
 	//																			     //
 	//																				 //	
 	///////////////////////////////////////////////////////////////////////////////////
+
+  cout << "Starting Step 8..." << endl;
 
 //// calculate Data term (y-b)^2 ////////////////////////////////////////////////////////
 
@@ -448,7 +480,13 @@ int main( int argc, char** argv )
 
     /* Call MAP subtutine */	
 		//map3(yY, xtY, yCr, xtCr, yCb, xtCb, atlas, beta, gama, ATLAS, ICM, col, row, classes, mapiter, v_Y, yaccum, ysquaredaccum, Num,xttempy, xttempCr, xttempCb,texture,textureCb,textureCr,highpass,highpassCr,highpassCb);	  
-		map3(yY, xtY, diff_y, xtCr, xtCb, atlas, beta, gama, ATLAS, ICM, col, row, classes, mapiter, v_Y, yaccum, ysquaredaccum, Num,xttempy, xttempCr, xttempCb,texture,textureCb,textureCr,highpass,highpassCr,highpassCb);	  
+		cout << "Running MAP..." << endl;
+
+//		map3(yY, xtY, diff_y, xtCr, xtCb, atlas, beta, gama, ATLAS, ICM, col, row, classes, mapiter, v_Y, yaccum, ysquaredaccum, Num,xttempy, xttempCr, xttempCb,texture,textureCb,textureCr,highpass,highpassCr,highpassCb);	  
+		std::thread t(map3,yY, xtY, diff_y, xtCr, xtCb, atlas, beta, gama, ATLAS, ICM, col, row, classes, mapiter, v_Y, yaccum, ysquaredaccum, Num, xttempy, xttempCr, xttempCb, texture, textureCb, textureCr, highpass, highpassCr, highpassCb);
+		t.join();
+
+		cout << "MAP Complete." << endl;
 
 		for (int l=1; l<=classes; l++)  
 		{
@@ -468,6 +506,8 @@ int main( int argc, char** argv )
  double  t1= (end-start)/((double)cvGetTickFrequency()*1000.);
  //printf( "Run time without OpenMP = %g ms/n", t1 );
 
+ cout << "Creating Depth Map..." << endl;
+
  ///// Generate depth map and save it ////////////////////////////////////////////////
     IplImage* BlurMap = cvCreateImage(cvSize(col,row),8,1);
 
@@ -477,9 +517,13 @@ int main( int argc, char** argv )
 			cvSetReal2D(BlurMap,i,j, (double)xtY[0][i][j]);
 		}
 	
-	cvSaveImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/blurmaplc64.png",BlurMap);
+	cvSaveImage((image_locations + "\\blurmaplc64.png").c_str() , BlurMap);
+//	cvSaveImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/blurmaplc64.png",BlurMap);
 
- 
+	cout << "Completed Step 8." << endl;
+	cout << "End of Program." << endl;
+
+	cin.ignore();
     return 0; 
 
 }
