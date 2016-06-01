@@ -62,6 +62,8 @@ int main( int argc, char** argv )
 	string image_locations = "Image_Files";
 	string file_path;
 
+	int idx, jdx, kdx;
+
 	///////////////////////////////////////////////////////////////////////////////////
 	//																				 //
 	//      Step 1:																	 //
@@ -369,7 +371,7 @@ int main( int argc, char** argv )
 	IplImage* texture = cvLoadImage((image_locations+"\\texturelessregion.png").c_str(), 0);
 	IplImage* textureCb = cvLoadImage((image_locations + "\\texturelessregionCb.png").c_str(), 0);
 	IplImage* textureCr = cvLoadImage((image_locations + "\\texturelessregionCr.png").c_str(), 0);
-	IplImage* texture_tmp = cvLoadImage((image_locations + "\\texturelessregion.png").c_str(), 0);
+	//IplImage* texture_tmp = cvLoadImage((image_locations + "\\texturelessregion.png").c_str(), 0);
 	IplImage* highpass = cvLoadImage((image_locations + "\\highpass.png").c_str(), 0);
 	IplImage* highpassCr = cvLoadImage((image_locations + "\\highpassCr.png").c_str(), 0);
 	IplImage* highpassCb = cvLoadImage((image_locations + "\\highpassCb.png").c_str(), 0);
@@ -411,9 +413,16 @@ int main( int argc, char** argv )
 	double **yCb[260], **xtCb[260];
 	double **diff_y[260], **diff_Cr[260], **diff_Cb[260];
 
-	createblur(col, row, ImageInFocusY, classes, yY, xtY, atlas, ATLAS, ImageOutOfFocusY, SyntheticDefocusY, GauBlur, xttempy, preresult);
-	createblur(col, row, ImageInFocusCr, classes, yCr, xtCr, atlas, ATLAS, ImageOutOfFocusCr, SyntheticDefocusCr, GauBlur, xttempCr,preresult);
-	createblur(col, row, ImageInFocusCb, classes, yCb, xtCb, atlas, ATLAS, ImageOutOfFocusCb, SyntheticDefocusCb, GauBlur, xttempCb,preresult);
+	//createblur(col, row, ImageInFocusY, classes, yY, xtY, atlas, ATLAS, ImageOutOfFocusY, SyntheticDefocusY, GauBlur, xttempy, preresult);
+	//createblur(col, row, ImageInFocusCr, classes, yCr, xtCr, atlas, ATLAS, ImageOutOfFocusCr, SyntheticDefocusCr, GauBlur, xttempCr,preresult);
+	//createblur(col, row, ImageInFocusCb, classes, yCb, xtCb, atlas, ATLAS, ImageOutOfFocusCb, SyntheticDefocusCb, GauBlur, xttempCb,preresult);
+	std::thread t_Y(createblur, col, row, ImageInFocusY, classes, yY, xtY, atlas, ATLAS, ImageOutOfFocusY, SyntheticDefocusY, GauBlur, xttempy, preresult);
+	std::thread t_Cr(createblur, col, row, ImageInFocusCr, classes, yCr, xtCr, atlas, ATLAS, ImageOutOfFocusCr, SyntheticDefocusCr, GauBlur, xttempCr, preresult);
+	std::thread t_Cb(createblur, col, row, ImageInFocusCb, classes, yCb, xtCb, atlas, ATLAS, ImageOutOfFocusCb, SyntheticDefocusCb, GauBlur, xttempCb, preresult);
+
+	t_Y.join();
+	t_Cr.join();
+	t_Cb.join();
 
 	cout << "Completed Step 7." << endl;
 
@@ -428,11 +437,11 @@ int main( int argc, char** argv )
 	//																				 //	
 	///////////////////////////////////////////////////////////////////////////////////
 
-  cout << "Starting Step 8..." << endl;
+	cout << "Starting Step 8..." << endl;
 
 //// calculate Data term (y-b)^2 ////////////////////////////////////////////////////////
 
-	for ( int dd = 1; dd <= MAX_CLASSES; dd++)
+	for ( int dd = 0; dd <= MAX_CLASSES; dd++)
 	{
 		diff_y[dd] = (double **)get_img(col,row,sizeof(double));
 		//diff_Cr[dd] = (double **)get_img(col,row,sizeof(double));
@@ -440,41 +449,47 @@ int main( int argc, char** argv )
 	}
 
 ////// In order to save memory, here replace  diff_Cr, diff_cb with xtCr, xtCb/////////
-	for (int k=1; k<=MAX_CLASSES; k++)
-		for(int i=0;i<row;i++)
-			for(int j=0;j<col;j++)
-				{
-					diff_y[k][i][j]=(double)(yY[1][i][j]-xtY[k][i][j])*(double)(yY[1][i][j]-xtY[k][i][j]);
-					xtCr[k][i][j]=(double)(yCr[1][i][j]-xtCr[k][i][j])*(double)(yCr[1][i][j]-xtCr[k][i][j]);
-					xtCb[k][i][j]=(double)(yCb[1][i][j]-xtCb[k][i][j])*(double)(yCb[1][i][j]-xtCb[k][i][j]);
-				}
-
+	for (kdx = 0; kdx <= MAX_CLASSES; kdx++)
+	{
+		for (idx = 0; idx < row; idx++)
+		{
+			for (jdx = 0; jdx < col; jdx++)
+			{
+				//diff_y[k][i][j] = (double)(yY[1][i][j] - xtY[k][i][j])*(double)(yY[1][i][j] - xtY[k][i][j]);
+				//xtCr[k][i][j] = (double)(yCr[1][i][j] - xtCr[k][i][j])*(double)(yCr[1][i][j] - xtCr[k][i][j]);
+				//xtCb[k][i][j] = (double)(yCb[1][i][j] - xtCb[k][i][j])*(double)(yCb[1][i][j] - xtCb[k][i][j]);
+				diff_y[kdx][idx][jdx] = (double)(yY[0][idx][jdx] - xtY[kdx][idx][jdx])*(double)(yY[0][idx][jdx] - xtY[kdx][idx][jdx]);
+				xtCr[kdx][idx][jdx] = (double)(yCr[0][idx][jdx] - xtCr[kdx][idx][jdx])*(double)(yCr[0][idx][jdx] - xtCr[kdx][idx][jdx]);
+				xtCb[kdx][idx][jdx] = (double)(yCb[0][idx][jdx] - xtCb[kdx][idx][jdx])*(double)(yCb[0][idx][jdx] - xtCb[kdx][idx][jdx]);
+			}
+		}
+	}
  
 
  //// Parameters for EM calculation 256 classes ////////////////////////////////////////
-  double yaccum[257], ysquaredaccum[257], Num[257]; 
-  double m_Y[257], v_Y[257], N_Y[257];	
+	double yaccum[257], ysquaredaccum[257], Num[257]; 
+	double m_Y[257], v_Y[257], N_Y[257];	
   
  ////// Choose initial conditions for mean and variance ////////////////////////////////
-  for (int l=1; l<=classes; l++)
+	for (int l=0; l<=classes; l++)
 	{
-		if (l==1) 
-			{
-				m_Y[l] =0;
-			}
+		if (l==0) 
+		{
+			m_Y[l] =0;
+		}
 		else 
-			{
-				m_Y[l]  = m_Y[l-1]  + 255/(classes+1); 
-			}
+		{
+			m_Y[l]  = m_Y[l-1]  + 255/(classes+1); 
+		}
 		N_Y[l]  = 0;
 		v_Y[l]  = 0.5;
-     }
+	}
 
  //// EM brgin /////////////////////////////////////////////////////////////////////////
   
- double start= (double)cvGetTickCount();
+	double start= (double)cvGetTickCount();
 
-  for (int i=0; i<EMiteration; i++)
+	for (int i=0; i<EMiteration; i++)
 	{
 		cout<<"EM iteration "<<i<<endl;
 
@@ -488,35 +503,37 @@ int main( int argc, char** argv )
 
 		cout << "MAP Complete." << endl;
 
-		for (int l=1; l<=classes; l++)  
+		for (int l=0; l<=classes; l++)  
 		{
 			N_Y[l]=Num[l];
 			if (N_Y[l]!=0) 
 			{												// no variable mean
-			m_Y[l]= (yaccum[l])/(N_Y[l]);
-			v_Y[l]= (ysquaredaccum[l]-(2.0*(yaccum[l])*(m_Y[l]))+((m_Y[l])*(m_Y[l])*(N_Y[l])))/(N_Y[l]);
-			//cout<<v_Y[l]<<endl;
-			v_Y[l]=v_Y[l]/3000;
+				m_Y[l]= (yaccum[l])/(N_Y[l]);
+				v_Y[l]= (ysquaredaccum[l]-(2.0*(yaccum[l])*(m_Y[l]))+((m_Y[l])*(m_Y[l])*(N_Y[l])))/(N_Y[l]);
+				//cout<<v_Y[l]<<endl;
+				v_Y[l]=v_Y[l]/3000;
 			}
 		
 		}
 	}
 
- double end= (double)cvGetTickCount();
- double  t1= (end-start)/((double)cvGetTickFrequency()*1000.);
+	double end= (double)cvGetTickCount();
+	double  t1= (end-start)/((double)cvGetTickFrequency()*1000.);
  //printf( "Run time without OpenMP = %g ms/n", t1 );
 
- cout << "Creating Depth Map..." << endl;
+	cout << "Creating Depth Map..." << endl;
 
  ///// Generate depth map and save it ////////////////////////////////////////////////
     IplImage* BlurMap = cvCreateImage(cvSize(col,row),8,1);
 
-	for(int i=0;i<row;i++)
-		for(int j=0;j<col;j++)
+	for (int i = 0; i < row; i++)
+	{
+		for (int j = 0; j < col; j++)
 		{
-			cvSetReal2D(BlurMap,i,j, (double)xtY[0][i][j]);
+			cvSetReal2D(BlurMap, i, j, (double)xtY[0][i][j]);
 		}
-	
+	}
+
 	cvSaveImage((image_locations + "\\blurmaplc64.png").c_str() , BlurMap);
 //	cvSaveImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/blurmaplc64.png",BlurMap);
 

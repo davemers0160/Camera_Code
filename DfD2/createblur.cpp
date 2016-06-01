@@ -36,84 +36,106 @@ void createblur(int col, int row, IplImage* ImageInFocus, int classes,double **y
 	{
 		xt[dd] = (double **)get_img(col,row,sizeof(double));
 	}
-	y[1] = (double **)get_img(col,row,sizeof(double));
-    atlas[0] = (double **)get_img(col,row,sizeof(double));
-	for( i=0;i<row;i++)
-    	for( j=0;j<col;j++)
-	    {
-	    	atlas[0][i][j] = 0;
-	    }
-
+	
+	y[0] = (double **)get_img(col,row,sizeof(double));
+	//y[1] = (double **)get_img(col, row, sizeof(double));
+	atlas[0] = (double **)get_img(col, row, sizeof(double));
+	
+	for (i = 0; i < row; i++)
+	{
+		for (j = 0; j < col; j++)
+		{
+			atlas[0][i][j] = 0;
+		}
+	}
 
  ///// Loading the atlas for Gamma ////////////////////////////////////////////////////////////////////////////
 	if(ATLAS==1)
 	{
 	    IplImage* inputdepth = cvLoadImage("TrueBlurrMap000_remake.png",1);
 	    IplImage* graydepth = cvCreateImage(cvGetSize(inputdepth), 8, 1);
-	    for(i=0;i<row;i++)
-		    for(j=0;j<col;j++)
+		for (i = 0; i < row; i++)
 		{
-			a = cvGet2D(graydepth,i,j);
-			atlas[0][i][j] = a.val[0];
+			for (j = 0; j < col; j++)
+			{
+				a = cvGet2D(graydepth, i, j);
+				atlas[0][i][j] = a.val[0];
+			}
 		}
 	}
 
 
   /////  Initialize Markov Random Field ///////////////////////////////////////////////////////////////////////
-	for (i=0; i<row; i++)
-		for (j=0; j<col; j++)
+	for (i = 0; i < row; i++)
+	{
+		for (j = 0; j < col; j++)
 		{
-			x = rand()%1001;
-			flag = x/500;
-			xt[0][i][j] = classes/2;
-			for (kk=1; kk <= classes; kk++) 
-				if (((double)(kk)/(double)(classes) < flag) && (flag <= (double)(kk+1)/(double)(classes)))
+			x = rand() % 1001;
+			flag = x / 500;
+			xt[0][i][j] = classes / 2;
+			for (kk = 0; kk <= classes; kk++)
+				if (((double)(kk) / (double)(classes) < flag) && (flag <= (double)(kk + 1) / (double)(classes)))
 				{
 					xt[0][i][j] = kk;
 					break;
 				}
 		}
+	}
 
-    for(i=0;i<row;i++)
-    	for(j=0;j<col;j++)
-	    {
-	    	r = cvGet2D(ImageInFocus,i,j);
-	    	xt[1][i][j] = r.val[0];
-	    }
+	for (i = 0; i < row; i++)
+	{
+		for (j = 0; j < col; j++)
+		{
+			r = cvGet2D(ImageInFocus, i, j);
+			xt[1][i][j] = r.val[0];
+		}
+	}
 
  /////  Initialize input blur array ////////////////////////////////////////////////////////////////////////////
-	for(i=0;i<row;i++)
-		for(j=0;j<col;j++)
-		{
-			s = cvGet2D(ImageOutOfFocus,i,j);
-			y[1][i][j] = s.val[0];
-		}
-			
- /////// Create Multi-level blur image //////////////////////////////////////////////////////////////////////////
-	for( int l = 1 ;l < classes+1 ; l = ++l )
+	for (i = 0; i < row; i++)
 	{
-	  BlurStep =MaxSigma/(double(MAX_CLASSES));
-	  para = BlurStep * l;
-	  cvSmooth( ImageInFocus , SyntheticDefocus , CV_GAUSSIAN, 0, 0, para, para);
-      //kernel_size = cvRound(para*8 + 1)|1;
-      //SpaceVaryingfilter2D (ImageInFocus, kernel_size, para, 0.5*BlurStep, SyntheticDefocus);
-      GauBlur[l] = SyntheticDefocus;
+		for (j = 0; j < col; j++)
+		{
+			s = cvGet2D(ImageOutOfFocus, i, j);
+			y[0][i][j] = s.val[0];
+			//y[1][i][j] = s.val[0];
 
-	  for(i=0;i<row;i++)
-		  for(j=0;j<col;j++)
-		  {
-		   	  t = cvGet2D(GauBlur[l],i,j);
-			  xt[l+1][i][j] = t.val[0];
-		  }  
+		}
+	}
+
+ /////// Create Multi-level blur image //////////////////////////////////////////////////////////////////////////
+	for( int l = 0 ;l < classes+1 ; l = ++l )
+	{
+		BlurStep =MaxSigma/(double(MAX_CLASSES));
+		//para = BlurStep * l;
+		para = BlurStep * (l+1);
+
+		cvSmooth( ImageInFocus , SyntheticDefocus , CV_GAUSSIAN, 0, 0, para, para);
+		//kernel_size = cvRound(para*8 + 1)|1;
+		//SpaceVaryingfilter2D (ImageInFocus, kernel_size, para, 0.5*BlurStep, SyntheticDefocus);
+		GauBlur[l] = SyntheticDefocus;
+
+		for (i = 0; i < row; i++)
+		{
+			for (j = 0; j < col; j++)
+			{
+				t = cvGet2D(GauBlur[l], i, j);
+				xt[l + 1][i][j] = t.val[0];
+			}
+		}
 	}
     
 
 ///// Use initial depth map as starting point, here "groundtruth" is initial depth map //////////////////////////
 	xttemp[0] = (unsigned char **)get_img(col,row,sizeof(double));
-	for (i=0; i<row; i++)
-        for (j=0; j<col; j++)
-			{xttemp[0][i][j] = xt[0][i][j];}
-		  //{xttemp[0][i][j]=cvGetReal2D(groundtruth,i,j);xttemp[0][i][j] = unsigned(255.0-((256.0/MAX_CLASSES)*(xttemp[0][i][j]-1.0)));}
+	for (i = 0; i < row; i++)
+	{
+		for (j = 0; j < col; j++)
+		{
+			xttemp[0][i][j] = xt[0][i][j];
+		}
+	}
+	//{xttemp[0][i][j]=cvGetReal2D(groundtruth,i,j);xttemp[0][i][j] = unsigned(255.0-((256.0/MAX_CLASSES)*(xttemp[0][i][j]-1.0)));}
 
 
-}
+}	// end ofcreateblur

@@ -570,3 +570,77 @@ for (i=0; i<rows; i++)
 
 
 
+////////////////////////////////////////////////////////////////////////////////
+// in this version, set data and smoothness terms using arrays
+// grid neighborhood structure is assumed
+//
+void GridGraph_DArraySArray(int width, int height, int num_labels, double **logpost1[], int *result)
+{
+	int num_pixels = width * height;
+	//int *result = new int[num_pixels];   // stores result of optimization
+
+	// first set up the array for data costs
+	int *data = new int[num_pixels*num_labels];
+	/*
+	for ( int i = 0; i < num_pixels; i++ )
+	for (int l = 0; l < num_labels; l++ )
+	data[i] = 0;
+
+	if (i < 25 ){
+	if(  l == 1 ) data[i*num_labels+l] = 0;
+	else data[i*num_labels+l] = 10;
+	}
+	else {
+	if(  l == 4 ) data[i*num_labels+l] = 0;
+	else data[i*num_labels+l] = 10;
+	}
+	*/
+	int t = 0;
+	for (int i = 0; i < height; i++)
+		for (int j = 0; j < width; j++)
+			for (int k = 1; k < num_labels + 1; k++)
+			{
+				data[t] = logpost1[k][i][j];
+				t++;
+			}
+
+
+	// next set up the array for smooth costs
+	int *smooth = new int[num_labels*num_labels];
+	for (int l1 = 0; l1 < num_labels; l1++)
+		for (int l2 = 0; l2 < num_labels; l2++)
+			//smooth[l1+l2*num_labels] = (l1-l2)*(l1-l2) <= 4  ? (l1-l2)*(l1-l2):4;
+			smooth[l1 + l2*num_labels] = abs(l1 - l2);
+
+	try{
+		GCoptimizationGridGraph *gc = new GCoptimizationGridGraph(width, height, num_labels);
+
+
+		gc->setDataCost(data);
+
+
+		gc->setSmoothCost(smooth);
+
+
+
+		printf("\nBefore optimization energy is %d\n", gc->compute_energy());
+		gc->expansion();// run expansion for 2 iterations. For swap use gc->swap(num_iterations);
+		printf("\nAfter optimization energy is %d\n", gc->compute_energy());
+
+		for (int i = 0; i < num_pixels; i++)
+		{
+			result[i] = gc->whatLabel(i);
+			//cout<<result[i]<<endl;
+		}
+
+		delete gc;
+	}
+	catch (GCException e){
+		e.Report();
+	}
+
+	//delete [] result;
+	delete[] smooth;
+	delete[] data;
+
+}

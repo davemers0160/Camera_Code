@@ -347,7 +347,7 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 #ifdef USE_OPENCV
 	// OpenCV variables	
 	//int codec = -1;
-	//int codec = CV_FOURCC('D', 'V', 'I', 'X');		// 3.1.0 mp4 won't save, mpg won't save, avi good
+	//int codec = CV_FOURCC('D', 'I', 'V', 'X');		// 3.1.0 mp4 won't save, mpg won't save, avi good
 	int codec = CV_FOURCC('M', 'J', 'P', 'G');	// 3.1.0 avi won't play, mp4 won't save, mpg won't play
 	//int codec = CV_FOURCC('H', '2', '6', '4');		// 3.1.0 mp4 very blurry, mpg won't play, avi good
 	//int codec = CV_FOURCC('I', 'Y', 'U', 'V');	// completely uncompressed
