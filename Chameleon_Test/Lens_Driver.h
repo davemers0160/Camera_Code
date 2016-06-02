@@ -5,6 +5,7 @@
 
 
 #include <memory>
+#include <Windows.h>
 
 namespace Lens_Driver
 {

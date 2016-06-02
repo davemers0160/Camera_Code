@@ -52,7 +52,7 @@ struct ftdiDeviceDetails //structure storage for FTDI device details
 void getcurrenttime(char currenttime[]);
 bool configLensDriver(LPCWSTR port, HANDLE &serialHandle);
 //void cameraConnect(PGRGuid guid, Camera &cam);
-int videoCapture(Camera *cam, HANDLE serialHandle, string save_file);
+int videoCapture(Camera *cam, HANDLE serialHandle, string save_file, unsigned int numCaptures);
 
 
 void PrintBuildInfo()
@@ -97,9 +97,9 @@ int main(int /*argc*/, char** /*argv*/)
 	unsigned int numCameras;
 	unsigned int offsetX, offsetY, width, height;
 	PixelFormat pixelFormat;
-	Property shutter, gain, sharpness, framerate;
-	int temp_int_property;
-	float temp_f_property;
+	float shutter, gain;
+	int sharpness;
+	float framerate = 60.0;
 	
 	//Lens_Driver test_lens;
 	//unsigned char data[4] = { 1, 2, 3, 4 };
@@ -109,8 +109,11 @@ int main(int /*argc*/, char** /*argv*/)
 	unsigned char status;
 
 	// Serial Port specific variables
-	wstring port = L"\\\\.\\COM9";
-	LPCWSTR lensPort = port.c_str();	//L"\\\\.\\COM9"; //(LPCWSTR)port.c_str();	//"\\\\.\\COM7";
+	//wstring port = L"\\\\.\\COM9";
+	//LPCWSTR lensPort = port.c_str();	//L"\\\\.\\COM9"; //(LPCWSTR)port.c_str();	//"\\\\.\\COM7";
+	string port_num = "COM9";
+	wstring port = L"\\\\.\\" + wstring(port_num.begin(), port_num.end());
+	LPCWSTR lensPort = port.c_str();
 	HANDLE lensDriver = NULL;
 
 	string save_file;
@@ -125,7 +128,6 @@ int main(int /*argc*/, char** /*argv*/)
 	focus_save_file = "test_recording_focus_" + (string)currenttime + file_extension;
 	focus_save_file = "test_recording_defocus_" + (string)currenttime + file_extension; 
 	
-	
 	PrintBuildInfo();
 
 	configLensDriver(lensPort, lensDriver);
@@ -136,7 +138,6 @@ int main(int /*argc*/, char** /*argv*/)
 	if (status == false)
 	{
 		cout << "Error communicating with lens driver." << endl;
-		cin.ignore();
 		return 1;
 	}
 	getLensDriverInfo(&LensInfo, LensRx);
@@ -147,17 +148,20 @@ int main(int /*argc*/, char** /*argv*/)
     if (error != PGRERROR_OK)
     {
         PrintError( error );
-		cin.ignore();
 		return 1;
     }
 
+	if (numCameras == 0)
+	{
+		return 1;
+	}
     cout << "Number of cameras detected: " << numCameras << endl; 
+	
     
     error = busMgr.GetCameraFromIndex(0, &guid);
     if (error != PGRERROR_OK)
     {
         PrintError( error );
-		cin.ignore();
         return 1;
     }
 
@@ -166,7 +170,6 @@ int main(int /*argc*/, char** /*argv*/)
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
-		cin.ignore();
 		return 1;
 	}
 
@@ -175,7 +178,6 @@ int main(int /*argc*/, char** /*argv*/)
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
-		cin.ignore();
 		return 1;
 	}
 
@@ -191,35 +193,42 @@ int main(int /*argc*/, char** /*argv*/)
 	configImagerFormat(&cam, offsetX, offsetY, width, height, pixelFormat);
 
 
-	configProperty(&cam, framerate, FRAME_RATE, false, true, true);
-	error = setProperty(&cam, framerate, 62.0);
+	//configProperty(&cam, framerate, FRAME_RATE, false, true, true);
+	//error = setProperty(&cam, framerate, 62.0);
+	//if (error != PGRERROR_OK)
+	//{
+	//	PrintError(error);
+	//	return 1;
+	//}
+
+
+	//configProperty(&cam, shutter, SHUTTER, true, true, true);
+	//temp_f_property = getABSProperty(&cam, shutter);
+	//configProperty(&cam, shutter, SHUTTER, false, true, true);
+	//error = setProperty(&cam, shutter, temp_f_property);
+
+
+	//configProperty(&cam, gain, GAIN, true, true, true);
+	//temp_f_property = getABSProperty(&cam, gain);
+	//configProperty(&cam, gain, GAIN, false, false, true);
+	//error = setProperty(&cam, gain, temp_f_property);
+
+	//// auto tune the sharpness for the current capture
+	//configProperty(&cam, sharpness, SHARPNESS, true, true, false);
+	//temp_int_property = getProperty(&cam, sharpness);
+	//configProperty(&cam, sharpness, SHARPNESS, false, false, false);
+	//error = setProperty(&cam, sharpness, temp_int_property);
+	
+
+	error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, framerate);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
 		return 1;
 	}
 
-
-	configProperty(&cam, shutter, SHUTTER, true, true, true);
-	temp_f_property = getABSProperty(&cam, shutter);
-	configProperty(&cam, shutter, SHUTTER, false, true, true);
-	error = setProperty(&cam, shutter, temp_f_property);
-
-
-	configProperty(&cam, gain, GAIN, true, true, true);
-	temp_f_property = getABSProperty(&cam, gain);
-	configProperty(&cam, gain, GAIN, false, false, true);
-	error = setProperty(&cam, gain, temp_f_property);
-
-	// auto tune the sharpness for the current capture
-	configProperty(&cam, sharpness, SHARPNESS, true, true, false);
-	temp_int_property = getProperty(&cam, sharpness);
-	configProperty(&cam, sharpness, SHARPNESS, false, false, false);
-	error = setProperty(&cam, sharpness, temp_int_property);
-	
-
 	// begin the video capture
-	videoCapture(&cam, lensDriver, save_file);
+	videoCapture(&cam, lensDriver, save_file, 100);
 
 	// Disconnect the camera
 	error = cam.Disconnect();
@@ -307,7 +316,7 @@ bool configLensDriver(LPCWSTR commPort, HANDLE &serialHandle)
 
 
 
-
+/*
 int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 {
 	// timing variables
@@ -639,3 +648,5 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 	return 0;
 
 }	// end of videoCapture
+
+*/

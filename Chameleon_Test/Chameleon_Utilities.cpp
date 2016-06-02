@@ -156,3 +156,67 @@ FlyCapture2::Error setProperty(Camera *cam, Property &prop)
 
 	return error;
 }	// end of setProperty
+
+
+FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shutter, float *gain, float fps)
+{
+	FlyCapture2::Error error;
+
+	Property Shutter, Gain, Sharpness, Framerate;
+	
+	*sharpness = 1200;
+	*shutter = 33.0;
+	*gain = 20.0;
+
+	// set the frame rate for the camera
+	configProperty(cam, Framerate, FRAME_RATE, false, true, true);
+	error = setProperty(cam, Framerate, fps);
+	if (error != PGRERROR_OK)
+	{
+		return error;
+	}
+
+	// config Shutter to initial value and set to auto
+	configProperty(cam, Shutter, SHUTTER, true, true, true);
+	error = setProperty(cam, Shutter, *shutter);
+	if (error != PGRERROR_OK)
+	{
+		return error;
+	}
+
+	// config Gain to initial value and set to auto
+	configProperty(cam, Gain, GAIN, true, true, true);
+	error = setProperty(cam, Gain, *gain);
+	if (error != PGRERROR_OK)
+	{
+		return error;
+	}
+
+	// config Sharpness to initial value and set to auto
+	configProperty(cam, Sharpness, SHARPNESS, true, true, false);
+	error = setProperty(cam, Sharpness, *sharpness);
+	if (error != PGRERROR_OK)
+	{
+		return error;
+	}
+
+	// get the auto values
+	*shutter = getABSProperty(cam, Shutter);
+	*gain = getABSProperty(cam, Gain);
+	*sharpness = getProperty(cam, Sharpness);
+
+	// set the auto values to fixed
+	configProperty(cam, Shutter, SHUTTER, false, true, true);
+	error = setProperty(cam, Shutter, *shutter);
+	configProperty(cam, Gain, GAIN, false, false, true);
+	error = setProperty(cam, Gain, *gain);
+	configProperty(cam, Sharpness, SHARPNESS, false, false, false);
+	error = setProperty(cam, Sharpness, *sharpness);
+	if (error != PGRERROR_OK)
+	{
+		return error;
+	}
+
+	return error;
+
+}	// end ofconfigCameraPropeties

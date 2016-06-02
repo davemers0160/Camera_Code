@@ -91,6 +91,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>C:\opencv\build\include;C:\Program Files\Point Grey Research\FlyCapture2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <SDLCheck>false</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -157,6 +158,7 @@
     <ClCompile Include="Chameleon_Utilities.cpp" />
     <ClCompile Include="Lens_Driver.cpp" />
     <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="videoCapture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Chameleon_Utilities.h" />

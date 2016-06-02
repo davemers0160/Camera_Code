@@ -1,7 +1,7 @@
 
 
-#ifndef CHAMELEON_CONFIG_H
-#define CHAMELEON_CONFIG_H
+#ifndef CHAMELEON_UTILITIES_H
+#define CHAMELEON_UTILITIES_H
 
 using namespace FlyCapture2;
 
@@ -14,5 +14,6 @@ FlyCapture2::Error setProperty(Camera *cam, Property &prop, float value);
 FlyCapture2::Error setProperty(Camera *cam, Property &prop);
 int getProperty(Camera *cam, Property &prop);
 float getABSProperty(Camera *cam, Property &prop);
+FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shutter, float *gain, float fps);
 
 #endif
