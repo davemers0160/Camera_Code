@@ -31,7 +31,7 @@
 // Point Grey Includes
 #include "stdafx.h"
 #include "FlyCapture2.h"
-#include "Config_Chameleon.h"
+#include "Chameleon_Utilities.h"
 
 // Lens Driver Includes
 #include "Lens_Driver.h"

@@ -154,12 +154,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Camera_Main.cpp" />
-    <ClCompile Include="Config_Chameleon.cpp" />
+    <ClCompile Include="Chameleon_Utilities.cpp" />
     <ClCompile Include="Lens_Driver.cpp" />
     <ClCompile Include="stdafx.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Config_Chameleon.h" />
+    <ClInclude Include="Chameleon_Utilities.h" />
     <ClInclude Include="ftd2xx.h" />
     <ClInclude Include="Lens_Driver.h" />
     <ClInclude Include="resource.h" />

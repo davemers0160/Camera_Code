@@ -10,7 +10,7 @@ This file contains the configures the routines for the Chameleon 3 camera.
 //#include <iomanip>
 
 #include "FlyCapture2.h"
-#include "Config_Chameleon.h"
+#include "Chameleon_Utilities.h"
 
 using namespace FlyCapture2;
 using namespace std;
@@ -45,14 +45,12 @@ void cameraConnect(PGRGuid guid, Camera *cam)
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
-		//return error;
 	}
 
 	error = cam->GetCameraInfo(&camInfo);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
-		//return error;
 	}
 
 	PrintCameraInfo(&camInfo);
