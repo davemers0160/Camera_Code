@@ -68,7 +68,8 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int 
 	// OpenCV variables
 	double tick1, tick2;
 	double tickFreq = 1.0/getTickFrequency();
-	int codec = CV_FOURCC('M', 'J', 'P', 'G');
+	//int codec = CV_FOURCC('M', 'J', 'P', 'G');
+	int codec = CV_FOURCC('D', 'I', 'V', 'X');
 	unsigned int rowBytes;
 	Size image_size;
 	Mat video_frame;

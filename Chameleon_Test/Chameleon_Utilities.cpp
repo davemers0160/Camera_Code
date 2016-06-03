@@ -8,6 +8,7 @@ This file contains the configures the routines for the Chameleon 3 camera.
 //#include <sstream>
 //#include <string>
 //#include <iomanip>
+#include <Windows.h>
 
 #include "FlyCapture2.h"
 #include "Chameleon_Utilities.h"
@@ -200,6 +201,15 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 		return error;
 	}
 
+	
+	// get the auto values
+	*shutter = getABSProperty(cam, Shutter);
+	*gain = getABSProperty(cam, Gain);
+	*sharpness = getProperty(cam, Sharpness);
+	
+
+	Sleep(100);
+	
 	// get the auto values
 	*shutter = getABSProperty(cam, Shutter);
 	*gain = getABSProperty(cam, Gain);

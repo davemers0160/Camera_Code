@@ -227,6 +227,11 @@ int main(int /*argc*/, char** /*argv*/)
 		return 1;
 	}
 
+	cout << "Shutter Speed (ms): " << shutter << endl;
+	cout << "Gain (dB): " << gain << endl;
+	cout << "Sharpness: " << sharpness << endl << endl;
+
+
 	// begin the video capture
 	videoCapture(&cam, lensDriver, save_file, 100);
 
