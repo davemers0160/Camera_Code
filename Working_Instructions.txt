@@ -137,7 +137,15 @@
 	- to check plug in the GPS, IMU or Lens Driver and restart the odroid.
 	- After restart open a terminal window and type lsmod,  ftdi_sio should not be listed
 
-15. Configure the startup script for the program
+15. Add the wiringPi libraries and install to support GPIO manipulation on the Odroid
+# Run the following commands in a terminal window starting at the Odroid home folder
+	- git clone https://github.com/hardkernel/wiringPi wiringPi
+	- cd wiringPi
+	- ./build
+	- cd examples
+	- make blink	# this makes an example file to test to see if the GPIO control is working
+
+16. Configure the startup script for the program
 # don't do this yet!!!!!!!!!!!!!!!!!!!!!!!!!
 # This is how to add the autostart capability in the GUI interface
 # 1. Create a .desktop file in /home/odroid/.config/autostart/
@@ -153,14 +161,20 @@ Terminal=true
 # Where "Camera_Startup.sh" is the script file that starts the program with
 # the required amount of delay.
 
-
-16. Tips and Tricks
+General Tips and Tricks
 # This link shows how to delay the start of a script.
 # http://www.upubuntu.com/2011/06/how-to-delay-execution-of-command-on.html
 
 # These links are good refs for preprocessor headings to determine which OS
 # is being compiled against.
 # https://sourceforge.net/p/predef/wiki/OperatingSystems/
+
+# Basic useful commands for the terminal
+# lsmod -> command is used to see what modules are currently running
+# uname -r -> command to see what kernel version is running
+# lsb_release -r -> command to see what Ubuntu version is installed
+# cp -> copy a file from one location to another
+ 
 
 
 
