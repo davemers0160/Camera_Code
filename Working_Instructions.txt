@@ -145,6 +145,12 @@
 	- cd examples
 	- make blink	# this makes an example file to test to see if the GPIO control is working
 
+16. Configure Odroid to shutdown when power button is pressed or voltage is applied to PWRON Pin
+	- Go to System->Preferences->Power Management
+	- Select the "General" Tab
+	- For the "When the power button is pressed" option select Shutdown from the options
+	- Press Close
+
 16. Configure the startup script for the program
 # don't do this yet!!!!!!!!!!!!!!!!!!!!!!!!!
 # This is how to add the autostart capability in the GUI interface
