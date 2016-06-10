@@ -9,12 +9,7 @@ This file contains the configures the routines for the Chameleon 3 camera.
 //#include <sstream>
 //#include <string>
 //#include <iomanip>
-#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
-	#include <Windows.h>
-#else
-	#include <unistd.h>
-#endif
-
+#include <Windows.h>
 
 #include "FlyCapture2.h"
 #include "Chameleon_Utilities.h"
@@ -184,13 +179,11 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 		return error;
 	}
 
-	sleep_ms(200);
-
-//#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
-//	Sleep(200);
-//#else
-//	nanosleep((const struct timespec[]){ {0, 200000000L} }, NULL);
-//#endif
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
+	Sleep(100);
+#else
+	nanosleep((const struct timespec[]){ {0, 100000000L} }, NULL);
+#endif
 
 	// config Shutter to initial value and set to auto
 	configProperty(cam, Shutter, SHUTTER, true, true, true);
@@ -221,14 +214,12 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 	*shutter = getABSProperty(cam, Shutter);
 	*gain = getABSProperty(cam, Gain);
 	*sharpness = getProperty(cam, Sharpness);
-
-	sleep_ms(200);
-
-//#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
-//	Sleep(200);
-//#else
-//	nanosleep((const struct timespec[]){{0, 200000000L}}, NULL);
-//#endif
+	
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
+	Sleep(500);
+#else
+	nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
+#endif
 
 	// get the auto values
 	*shutter = getABSProperty(cam, Shutter);
@@ -250,29 +241,3 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 	return error;
 
 }	// end ofconfigCameraPropeties
-
-
-FlyCapture2::Error SetCameraPower(Camera *cam, bool on)
-{
-	FlyCapture2::Error error; 
-	const unsigned int powerReg = 0x610;
-	unsigned int powerRegVal = 0;
-
-	powerRegVal = (on == true) ? 0x80000000 : 0x0;
-
-	error = cam->WriteRegister(powerReg, powerRegVal);
-
-	return error;
-}
-
-// create a sleep function that can be used in both Windows and Linux
-void sleep_ms(int value)
-{
-
-#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
-	Sleep(value);
-#else
-	nanosleep((const struct timespec[]){ {0, value*1000000L} }, NULL);
-#endif
-
-}

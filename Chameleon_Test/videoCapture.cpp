@@ -5,7 +5,7 @@
 #include <string>
 //#include <vector>
 //#include <iomanip>
-//#include <ctime>
+#include <ctime>
 //#include <chrono>
 #include <stdio.h>
 
@@ -37,6 +37,7 @@ using namespace std;
 using namespace FlyCapture2;
 using namespace Lens_Driver;
 
+extern double tickFreq;
 
 int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int numCaptures)
 {
@@ -67,7 +68,7 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int 
 #ifdef USE_OPENCV
 	// OpenCV variables
 	double tick1, tick2;
-	double tickFreq = 1.0/getTickFrequency();
+	
 	//int codec = CV_FOURCC('M', 'J', 'P', 'G');
 	int codec = CV_FOURCC('D', 'I', 'V', 'X');
 	unsigned int rowBytes;
@@ -96,12 +97,12 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int 
 #endif
 
 	// Start capturing images
-	error = cam->StartCapture();
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		return -1;
-	}
+	//error = cam->StartCapture();
+	//if (error != PGRERROR_OK)
+	//{
+	//	PrintError(error);
+	//	return -1;
+	//}
 	
 	unsigned char *image_data = NULL;
 
@@ -267,12 +268,12 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int 
 	cout << "Finished Writing Video!" << endl;
 
 	// Stop capturing images
-	error = cam->StopCapture();
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		return -1;
-	}
+	//error = cam->StopCapture();
+	//if (error != PGRERROR_OK)
+	//{
+	//	PrintError(error);
+	//	return -1;
+	//}
 
 	return 0;
 

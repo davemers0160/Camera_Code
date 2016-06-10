@@ -42,8 +42,14 @@
 #include "types.h"
 #include "defs.h"
 #include "i2c.h"
+#include "Arduino.h"
 
-#define STATUS_LED 5 //stat LED is on PB5
+
+//#define STATUS_LED 5     /* stat LED is on PB5 */
+//#define ODROID_PWR  PORTB4   /* Pin to toggle power on and off for the Odroid */
+
+#define ON          1    /* Define Power On as 1 */
+#define OFF         0    /* Define Power Off as 0 */
 
 #define sbi(var, mask)   ((var) |= (uint8_t)(1 << mask))
 #define cbi(var, mask)   ((var) &= (uint8_t)~(1 << mask))
@@ -81,7 +87,8 @@ uint16_t z_accel(void);
 uint16_t x_gyro(void);
 uint16_t y_gyro(void);
 uint16_t z_gyro(void);
-uint16_t sqrtTest(int16_t InitialGuess, int16_t Number);
+uint16_t SQRT(int16_t InitialGuess, uint16_t Number);
+
 
 ///============EEPROM Protoypes============//////////////////
 void write_to_EEPROM(unsigned int Address, unsigned char Data);
@@ -101,19 +108,39 @@ const char help_[] PROGMEM = "[?]Help\n\r";
 uint16_t x_mag, y_mag, z_mag; //x, y, and z magnetometer values
 long baud;
 
+int HUB_PWR = 15;
+int ODROID_PWR = 16;
+int STATUS_LED = 17;
+
 
 /////===========MAIN=====================/////////////////////
 int main(void)
 {
-
-  int16_t x,y,z,i;
-  uint16_t sqr,srt;
+  int16_t i;
+  int16_t Ax0, Ay0, Az0, Ax, Ay, Az;
+  int16_t Vx, Vy, Vz;
+  int16_t Vx0 = 0, Vy0 = 0, Vz0 = 0;
+  uint16_t X2, Y2, Z2;  
+  uint16_t VX2, VY2, VZ2;
+  uint16_t sqr, sq_root;
+  uint16_t V_sqr;
+  uint16_t V;
+  
+  uint8_t odroid_status=0;
+  
   init();
   
   // set UART speed to 57600
   UART_Init(16);
   baud = 57600;
 
+
+  sbi(PORTB,5);
+  
+  Ax0 = 0;
+  Ay0 = 0;
+  Az0 = 0;
+  
   while(1)
   {	
 
@@ -122,32 +149,155 @@ int main(void)
     //else config_menu();
     
     // reset x, y, z variables
-    x = 0;
-    y = 0;
-    z = 0;
+    Ax = 0;
+    Ay = 0;
+    Az = 0;
     
     // collect 16 samples on each axis and sum together
     for(i=0;i<16;i++)
     {
-      x += x_accel();
-      y += y_accel();
-      z += z_accel();
+      Ax += x_accel();
+      Ay += y_accel();
+      Az += z_accel();
 
       delay_ms(62);      // delay designed to put average out on a 1 second interval
     }
     
-    // take the average
-    x=x>>4;
-    y=y>>4;
-    z=z>>4;
+    // take the average and one extra division by 2
+    Ax = Ax>>4;
+    Ay = Ay>>4;
+    Az = Az>>4;
+    
+    // The  Accelerations are now averaged
+    
+    // print out the accelerations
+    printf("%d,%d,%d,",Ax,Ay,Az);
+//    printf("%d,", Ax);
+//    printf("%d,", Ay);
+//    printf("%d,", Az);  
+//    printf("\r\n");
+    
+    
+    Vx = Vx0 - (Ax-Ax0);
+    Vy = Vy0 - (Ay-Ay0);
+    Vz = Vz0 - (Az-Az0);
+
+    printf("%d,%d,%d,",Vx,Vy,Vz);
+    
+    
+    Vx = Vx>>2;
+    Vy = Vy>>2;
+    Vz = Vz>>2;
+    
+    VX2 = (Vx*Vx);
+    VY2 = (Vy*Vy);
+    VZ2 = (Vz*Vz);  
+    
+    // debug
+//    printf("Vx = %4d\tVx0 = %4d\tVx^2 = %5u\r\n",Vx,Vx0,VX2);
+//    printf("Vy = %4d\tVy0 = %4d\tVy^2 = %5u\r\n",Vy,Vy0,VY2);
+//    printf("Vz = %4d\tVz0 = %4d\tVz^2 = %5u\r\n",Vz,Vz0,VZ2);
+    
+    // divide by 4 to reduce the size 
+//    Ax = Ax>>2;
+//    Ay = Ay>>2;
+//    Az = Az>>2;   
+    
+//    X2 = (Ax*Ax);
+//    Y2 = (Ay*Ay);
+//    Z2 = (Az*Az);
+    
+    V_sqr = (VX2 + VY2 + VZ2);
+    
+    V = 4*SQRT(Vx, V_sqr);
+    
+    // debug
+    //printf("V_sqr = %5u\tV = ",V_sqr);
+    
+    printf("%u\n\r",V);
+    //odroid_status++;
+    
+    //cbi(PORTB,5);
+    odroid_status ^= 0x01;
+    //sbi(PORTB,5);
+    
+    Vx0 = Vx;
+    Vy0 = Vy;
+    Vz0 = Vz;
+    
+    Ax0 = Ax;
+    Ay0 = Ay;
+    Az0 = Az;
     
     // print out th results of the 
-    printf("%d,",x);
-    printf("%d,",y);
-    printf("%d\n\r",z);
+
+//    printf("%u,",X2);
+//    printf("%u,",Y2);
+//    printf("%u,",Z2);    
+//    printf("%u,",sqr);
+    
+    //printf("%u\n\r",sq_root);
+    // test to toggle PB4 pin - ODROID_PWR
+    //digitalWrite(ODROID_PWR, !digitalRead(ODROID_PWR));
+
+    
   }
 
 }  // end of main
+
+/////////////////////////////////////////////////////////////////////////////////
+
+uint16_t SQRT(int16_t InitialGuess, uint16_t Number)
+{
+	uint16_t max_iterations = 20;
+
+	int16_t sqrt_err = 1000;
+	int16_t min_sqrt_err = 1;
+	int16_t Xo = InitialGuess;
+
+	int16_t iteration_count;
+
+	uint16_t result = 0;
+	if (Number == 0) // zero check
+	{
+		return result;
+	}	
+
+	if (Xo<0)
+	{
+		Xo = Xo*(-1);
+	}
+
+	iteration_count = 0;
+	// printf("Number = %4u\r\n", Number);
+	// printf("result = %4u ",result);
+	// printf("Xo = %4d ",Xo);	
+	// printf("sqrt_err = %4d ",sqrt_err);
+	// printf("\r\n");
+
+	while (iteration_count < max_iterations && ((sqrt_err > min_sqrt_err || sqrt_err < -min_sqrt_err)))
+	{
+
+		//result = (uint16_t)(Xo - (Xo * Xo - Number) / (2 * Xo));
+		result = (Xo + (Number / Xo))>>1;
+		//result = Xo - (Xo >> 1) + ((Number / Xo) >> 1);
+
+		//printf("inner: %4d ", ((int16_t)((Xo * Xo) - Number) / (2 * Xo)));
+		// printf("result = %4u ", result);
+		// printf("Xo = %4d ", Xo);
+		
+		sqrt_err = (int16_t)(result - Xo);
+		Xo = (int16_t)(result);
+		
+		// printf("sqrt_err = %4d ", sqrt_err);
+		// printf("\r\n");
+		iteration_count++;
+	}
+	return result;
+
+}   // end of SQRT
+
+////////////////////////////////////////////////////////////////////////////
 
 void accelerometer_init(void)
 {
@@ -360,7 +510,7 @@ uint16_t z_accel(void)
 void init (void)
 {
   //1 = output, 0 = input
-  DDRB = 0b01100000; //PORTB4, B5 output for stat LED
+  DDRB = 0b01111000; //PORTB4, B5 output for stat LED
   DDRC = 0b00010000; //PORTC4 (SDA), PORTC5 (SCL), PORTC all others are inputs
   DDRD = 0b00000010; //PORTD (TX output on PD1)
   PORTC = 0b00110000; //pullups on the I2C bus
@@ -369,6 +519,8 @@ void init (void)
 
   i2cInit();
   accelerometer_init();
+  
+  pinMode(STATUS_LED,OUTPUT);
 
   //check_baud();
 }

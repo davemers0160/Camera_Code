@@ -29,7 +29,7 @@ using namespace cv;
 // Point Grey Includes
 //#include "stdafx.h"
 #include "FlyCapture2.h"
-#include "Config_Chameleon.h"
+#include "Chameleon_Utilities.h"
 
 // Lens Driver Includes
 #include "Lens_Driver.h"
@@ -78,12 +78,15 @@ int main(int argc, char** argv)
 	unsigned int numCameras;
 	unsigned int offsetX, offsetY, width, height;
 	PixelFormat pixelFormat;
-	Property shutter, gain, sharpness, framerate;
+	//Property Shutter, Gain, Sharpness, Framerate;
 	int temp_sharp, temp_sharp1;
 	float temp_shutter, temp_shutter1;
 	float temp_gain, temp_gain1;
 	Image rawImage, convertedImageCV;
 	unsigned int rowBytes;
+	float shutter, gain;
+	int sharpness;
+	float framerate = 60.0;
 
 	//Lens_Driver test_lens;
 	//unsigned char data[4] = { 1, 2, 3, 4 };
@@ -117,7 +120,7 @@ int main(int argc, char** argv)
 	update = false;
 	leftBtnDown = false;
 	leftBtnUp = false;
-	//int codec = CV_FOURCC('D', 'V', 'I', 'X');
+	//int codec = CV_FOURCC('D', 'I', 'V', 'X');
 	//int codec = CV_FOURCC('M', 'J', 'P', 'G');
 	//int codec = CV_FOURCC('H', '2', '6', '4');
 	//int codec = CV_FOURCC('I', 'Y', 'U', 'V');
@@ -235,15 +238,15 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	configProperty(&cam, framerate, FRAME_RATE, false, true, true);
-	error = setProperty(&cam, framerate, 30.0);
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		return 1;
-	}
+	//configProperty(&cam, framerate, FRAME_RATE, false, true, true);
+	//error = setProperty(&cam, framerate, 30.0);
+	//if (error != PGRERROR_OK)
+	//{
+	//	PrintError(error);
+	//	return 1;
+	//}
 
-	Sleep(100);
+	//Sleep(100);
 	/*
 	configProperty(&cam, shutter, SHUTTER, true, true, true);
 	temp_shutter = 40.0;
@@ -276,43 +279,45 @@ int main(int argc, char** argv)
 	error = setProperty(&cam, sharpness, temp_sharp);
 	*/
 
-	// set the shutter speed to auto
-	configProperty(&cam, shutter, SHUTTER, true, true, true);
-	//temp_shutter = 40.0;
+	//// set the shutter speed to auto
+	//configProperty(&cam, shutter, SHUTTER, true, true, true);
+	//error = setProperty(&cam, shutter, 33.0);
+
+	//// set the gain to auto
+	//configProperty(&cam, gain, GAIN, true, true, true);
+	//error = setProperty(&cam, gain, 10.0);
+
+	//// set the sharpness to auto
+	//configProperty(&cam, sharpness, SHARPNESS, true, true, false);
+	//error = setProperty(&cam, sharpness, 1200);
+
+	//temp_shutter1 = getABSProperty(&cam, shutter);
+	//temp_gain1 = getABSProperty(&cam, gain);
+	//temp_sharp1 = getProperty(&cam, sharpness);
+
+	//Sleep(100);
+
+	//// get the auto values
 	//temp_shutter = getABSProperty(&cam, shutter);
+	//temp_gain = getABSProperty(&cam, gain);
+	//temp_sharp = getProperty(&cam, sharpness);
+
+	//// set the values to fixed
 	//configProperty(&cam, shutter, SHUTTER, false, true, true);
-	error = setProperty(&cam, shutter, 33.0);
-
-	// set the gain to auto
-	configProperty(&cam, gain, GAIN, true, true, true);
-	//temp_gain = 30.0;
+	//error = setProperty(&cam, shutter, temp_shutter);
 	//configProperty(&cam, gain, GAIN, false, false, true);
-	error = setProperty(&cam, gain, 10.0);
-
-	// set the sharpness to auto
-	configProperty(&cam, sharpness, SHARPNESS, true, true, false);
-	//temp_sharp = 1023;
+	//error = setProperty(&cam, gain, temp_gain);
 	//configProperty(&cam, sharpness, SHARPNESS, false, false, false);
-	error = setProperty(&cam, sharpness, 1200);
+	//error = setProperty(&cam, sharpness, temp_sharp);
 
-	temp_shutter1 = getABSProperty(&cam, shutter);
-	temp_gain1 = getABSProperty(&cam, gain);
-	temp_sharp1 = getProperty(&cam, sharpness);
 
-	Sleep(100);
+	error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, framerate);
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+		return 1;
+	}
 
-	// get the auto values
-	temp_shutter = getABSProperty(&cam, shutter);
-	temp_gain = getABSProperty(&cam, gain);
-	temp_sharp = getProperty(&cam, sharpness);
-
-	// set the valuse to fixed
-	configProperty(&cam, shutter, SHUTTER, false, true, true);
-	error = setProperty(&cam, shutter, temp_shutter);
-	configProperty(&cam, gain, GAIN, false, false, true);
-	error = setProperty(&cam, gain, temp_gain);
-	configProperty(&cam, sharpness, SHARPNESS, false, false, false);
-	error = setProperty(&cam, sharpness, temp_sharp);
 
 	cout << "Shutter Speed (ms): " << temp_shutter << endl;
 	cout << "Gain (dB): " << temp_gain << endl;

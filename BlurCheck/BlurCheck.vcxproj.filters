@@ -15,13 +15,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Config_Chameleon.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Lens_Driver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="BlurCheck.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Chameleon_Utilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -32,7 +32,7 @@
     <ClInclude Include="Lens_Driver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Config_Chameleon.h">
+    <ClInclude Include="Chameleon_Utilities.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -151,11 +151,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="BlurCheck.cpp" />
-    <ClCompile Include="Config_Chameleon.cpp" />
+    <ClCompile Include="Chameleon_Utilities.cpp" />
     <ClCompile Include="Lens_Driver.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Config_Chameleon.h" />
+    <ClInclude Include="Chameleon_Utilities.h" />
     <ClInclude Include="ftd2xx.h" />
     <ClInclude Include="Lens_Driver.h" />
   </ItemGroup>

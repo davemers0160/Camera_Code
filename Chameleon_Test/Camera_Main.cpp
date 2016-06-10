@@ -53,7 +53,10 @@ void getcurrenttime(char currenttime[]);
 bool configLensDriver(LPCWSTR port, HANDLE &serialHandle);
 //void cameraConnect(PGRGuid guid, Camera &cam);
 int videoCapture(Camera *cam, HANDLE serialHandle, string save_file, unsigned int numCaptures);
+uint16_t SQRT(int16_t InitialGuess, uint16_t Number);
 
+
+double tickFreq = 1.0 / getTickFrequency();
 
 void PrintBuildInfo()
 {
@@ -107,6 +110,8 @@ int main(int /*argc*/, char** /*argv*/)
 	LensRxPacket LensRx;
 	LensDriverInfo LensInfo;
 	unsigned char status;
+	unsigned char data[1] {135};
+	LensTxPacket Focus(FAST_SET_VOLT, 1, &data[0]);
 
 	// Serial Port specific variables
 	//wstring port = L"\\\\.\\COM9";
@@ -123,6 +128,63 @@ int main(int /*argc*/, char** /*argv*/)
 	char currenttime[80];
 
 	getcurrenttime(currenttime);
+
+
+
+	///////////////////////////////////////////////////////////
+	// test of sqrt
+
+	cout << "size of uint16_t: " << sizeof(uint16_t) << endl;
+	cout << "size of int16_t: " << sizeof(int16_t) << endl;
+
+	cout << "starting SQRT" << endl;
+	
+	int16_t X = 25;
+	int16_t Y = 14;
+	int16_t Z = 231;
+
+	uint16_t X2, Y2, Z2;
+	uint16_t sqr;
+	uint16_t sq_root;
+
+	if (X < -510)
+	{
+		X = -510;
+	}
+	X = X >> 2;
+
+	if (Y < -510)
+	{
+		Y = -510;
+	}
+	Y = Y >> 2;
+
+	if (Z < -510)
+	{
+		Z = -510;
+	}
+	Z = Z >> 2;
+
+	X2 = X*X;
+	Y2 = Y*Y;
+	Z2 = Z*Z;
+
+	cout << "X = " << X << "  \tX^2 = " << X2 << "  \t(X^2)>>2 = " << (X2 >> 2) << endl;
+	cout << "Y = " << Y << "  \tY^2 = " << Y2 << "  \t(Y^2)>>2 = " << (Y2 >> 2) << endl;
+	cout << "Z = " << Z << "  \tZ^2 = " << Z2 << "  \t(Z^2)>>2 = " << (Z2 >> 2) << endl;
+
+
+	//sqr = (X2 >> 2) + (Y2 >> 2) + (Z2 >> 2);
+	sqr = (X2 + Y2 + Z2);
+	cout << "SQR = " << sqr << endl;
+
+	sq_root = 4*SQRT(-1, 2);
+
+
+	cout << "SQRT = " << sq_root << endl;
+
+
+	///////////////////////////////////////////////////////////
 
 	save_file = "test_recording_raw_" + (string)currenttime + file_extension;
 	focus_save_file = "test_recording_focus_" + (string)currenttime + file_extension;
@@ -143,6 +205,9 @@ int main(int /*argc*/, char** /*argv*/)
 	getLensDriverInfo(&LensInfo, LensRx);
 	PrintDriverInfo(&LensInfo);
 	
+	// set lens to intial focus
+	sendLensPacket(Focus, lensDriver);
+
 
     error = busMgr.GetNumOfCameras(&numCameras);
     if (error != PGRERROR_OK)
@@ -218,7 +283,13 @@ int main(int /*argc*/, char** /*argv*/)
 	//temp_int_property = getProperty(&cam, sharpness);
 	//configProperty(&cam, sharpness, SHARPNESS, false, false, false);
 	//error = setProperty(&cam, sharpness, temp_int_property);
-	
+
+	error = cam.StartCapture();
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+		return -1;
+	}
 
 	error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, framerate);
 	if (error != PGRERROR_OK)
@@ -233,7 +304,15 @@ int main(int /*argc*/, char** /*argv*/)
 
 
 	// begin the video capture
-	videoCapture(&cam, lensDriver, save_file, 100);
+	//videoCapture(&cam, lensDriver, save_file, 100);
+
+
+	error = cam.StopCapture();
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+		return -1;
+	}
 
 	// Disconnect the camera
 	error = cam.Disconnect();
@@ -655,3 +734,60 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 }	// end of videoCapture
 
 */
+
+
+
+
+uint16_t SQRT(int16_t InitialGuess, uint16_t Number)
+{
+	uint16_t max_iterations = 20;
+
+	int16_t sqrt_err = 1000;
+	int16_t min_sqrt_err = 1;
+	int16_t Xo = InitialGuess;
+
+	int16_t iteration_count;
+
+	uint16_t result = 0;
+	if (Number == 0) // zero check
+	{
+		return result;
+	}	
+
+	if (Xo<0)
+	{
+		Xo = Xo*(-1);
+	}
+
+	iteration_count = 0;
+
+	 printf("Number = %4u\r\n", Number);
+	 printf("result = %4u ",result);
+	 printf("Xo = %4d ",Xo);	
+	 printf("sqrt_err = %4d ",sqrt_err);
+	 printf("\r\n");
+
+	while (iteration_count < max_iterations && ((sqrt_err > min_sqrt_err || sqrt_err < -min_sqrt_err)))
+	{
+
+		result = (Xo + (Number / Xo)) >> 1;
+		//result = Xo - (Xo >> 1) + ((Number / Xo) >> 1);
+
+		printf("inner: %4d ", ((int16_t)((Xo * Xo) - Number) / (2 * Xo)));
+		printf("result = %4u ", result);
+		printf("Xo = %4d ", Xo);
+
+		sqrt_err = (int16_t)(result - Xo);
+		Xo = (int16_t)(result);
+
+		printf("sqrt_err = %4d ", sqrt_err);
+		printf("\r\n");
+
+		iteration_count++;
+	}
+	return result;
+
+}   // end of SQRT
+
+
+
