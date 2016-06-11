@@ -6,7 +6,8 @@
 using namespace FlyCapture2;
 
 void cameraConnect(PGRGuid guid, Camera *cam);
-void configImagerFormat(Camera *cam, unsigned int offsetX, unsigned int offsetY, unsigned int width, unsigned int height, PixelFormat pixelFormat);
+FlyCapture2::Error configImagerFormat(Camera *cam, unsigned int offsetX, unsigned int offsetY, unsigned int width, unsigned int height, PixelFormat pixelFormat);
+FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shutter, float *gain, float *brightness, float *auto_exp, float fps);
 void PrintError(FlyCapture2::Error error);
 void PrintCameraInfo(CameraInfo* pCamInfo);
 void configProperty(Camera *cam, Property &prop, PropertyType type, bool AutoMode, bool OnOff, bool absControl);

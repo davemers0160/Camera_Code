@@ -9,6 +9,7 @@ This file contains the configures the routines for the Chameleon 3 camera.
 //#include <sstream>
 //#include <string>
 //#include <iomanip>
+
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
 	#include <Windows.h>
 #else
@@ -68,7 +69,7 @@ void cameraConnect(PGRGuid guid, Camera *cam)
 }	// end of cameraConnect
 
 
-void configImagerFormat(Camera *cam, unsigned int offsetX, unsigned int offsetY, unsigned int width, unsigned int height, PixelFormat pixelFormat)
+FlyCapture2::Error configImagerFormat(Camera *cam, unsigned int offsetX, unsigned int offsetY, unsigned int width, unsigned int height, PixelFormat pixelFormat)
 {
 	Format7ImageSettings CameraSettings;
 	Format7PacketInfo PacketInfo;
@@ -86,25 +87,26 @@ void configImagerFormat(Camera *cam, unsigned int offsetX, unsigned int offsetY,
 	error = cam->ValidateFormat7Settings(&CameraSettings, &validSettings, &PacketInfo);
     if (error != PGRERROR_OK)
     {
-        PrintError( error );
-        return;
+        //PrintError( error );
+        return error;
     }
 
 	if (!validSettings)
     {
         // Settings are not valid
 		cout << "Format7 settings are not valid" << endl; 
-        return;
+		return error;
     }
 
     // Set the settings to the camera
 	error = cam->SetFormat7Configuration(&CameraSettings, PacketInfo.recommendedBytesPerPacket);
     if (error != PGRERROR_OK)
     {
-        PrintError( error );
-        return;
+        //PrintError( error );
+		return error;
     }	
 	
+	return error;
 
 }	// end of configCam
 
@@ -166,15 +168,16 @@ FlyCapture2::Error setProperty(Camera *cam, Property &prop)
 }	// end of setProperty
 
 
-FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shutter, float *gain, float fps)
+FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shutter, float *gain, float *brightness, float *auto_exp, float fps)
 {
 	FlyCapture2::Error error;
 
-	Property Shutter, Gain, Sharpness, Framerate;
+	Property Shutter, Gain, Sharpness, Framerate, Brightness, Auto_Exposure;
 	
 	*sharpness = 1200;
 	*shutter = 33.0;
-	*gain = 10.00;
+	*gain = 10.0;
+	*auto_exp = 1.0;
 
 	// set the frame rate for the camera
 	configProperty(cam, Framerate, FRAME_RATE, false, true, true);
@@ -214,13 +217,30 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 	if (error != PGRERROR_OK)
 	{
 		return error;
+	}	
+
+	// configure the auto-exposure property
+	configProperty(cam, Auto_Exposure, AUTO_EXPOSURE, true, true, true);
+	error = setProperty(cam, Auto_Exposure, *auto_exp);
+	if (error != PGRERROR_OK)
+	{
+		return error;
 	}
 
-	
+	// configure the brightness property
+	//configProperty(cam, Brightness, BRIGHTNESS, true, true, true);
+	//error = setProperty(cam, Brightness, *brightness);
+	//if (error != PGRERROR_OK)
+	//{
+	//	return error;
+	//}
+
 	// get the auto values
 	*shutter = getABSProperty(cam, Shutter);
 	*gain = getABSProperty(cam, Gain);
 	*sharpness = getProperty(cam, Sharpness);
+	*auto_exp = getABSProperty(cam, Auto_Exposure);
+
 
 	sleep_ms(200);
 
@@ -234,18 +254,20 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 	*shutter = getABSProperty(cam, Shutter);
 	*gain = getABSProperty(cam, Gain);
 	*sharpness = getProperty(cam, Sharpness);
+	*brightness = getABSProperty(cam, Brightness);
+	*auto_exp = getABSProperty(cam, Auto_Exposure);
+	int temp = getProperty(cam, Brightness);
+
 
 	// set the auto values to fixed
-	configProperty(cam, Shutter, SHUTTER, false, true, true);
+	configProperty(cam, Shutter, SHUTTER, false, false, true);
 	error = setProperty(cam, Shutter, *shutter);
 	configProperty(cam, Gain, GAIN, false, false, true);
 	error = setProperty(cam, Gain, *gain);
 	configProperty(cam, Sharpness, SHARPNESS, false, false, false);
 	error = setProperty(cam, Sharpness, *sharpness);
-	if (error != PGRERROR_OK)
-	{
-		return error;
-	}
+	configProperty(cam, Auto_Exposure, AUTO_EXPOSURE, false, false, true);
+	error = setProperty(cam, Auto_Exposure, *auto_exp);
 
 	return error;
 

@@ -39,7 +39,7 @@ using namespace Lens_Driver;
 
 extern double tickFreq;
 
-int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int numCaptures)
+int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int numCaptures, float fps)
 {
 	// timing variables
 
@@ -50,9 +50,9 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int 
 
 
 	unsigned int key = 0;
-	float fps = 55.0;
+	//float fps = 55.0;
 	//unsigned int idx = 0;
-	unsigned int image_rows, image_cols;
+	unsigned int image_rows, image_cols, image_stride;
 	//unsigned int numCaptures = 200;
 
 	// Lend Driver Variables
@@ -126,6 +126,7 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int 
 		
 		image_cols = convertedImageCV.GetCols();
 		image_rows = convertedImageCV.GetRows();
+		image_stride = convertedImageCV.GetStride();
 		rowBytes = (unsigned int)((double)convertedImageCV.GetDataSize() / (double)convertedImageCV.GetRows());
 		image_size = Size((int)image_cols, (int)image_rows);
 		
@@ -169,6 +170,16 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int 
 			PrintError(error);
 			return -1;
 		}
+
+		unsigned int temp_rows = rawImage.GetRows();
+		unsigned int temp_cols = rawImage.GetCols();
+		unsigned int temp_stride = rawImage.GetStride();
+		unsigned int temp_data_size = rawImage.GetDataSize();
+		unsigned int image_data_size = convertedImageCV.GetDataSize();
+
+		unsigned char *temp_image_data = NULL;
+		temp_image_data = rawImage.GetData();
+		Mat temp_video = Mat(Size(temp_cols, temp_rows), CV_8UC3, temp_image_data, temp_stride);
 
 		// Convert data to opencv format
 		image_data = convertedImageCV.GetData();

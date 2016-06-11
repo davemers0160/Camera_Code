@@ -8,6 +8,7 @@
 #include <map>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <string>
 #include <vector>
 #include <iomanip>
@@ -52,7 +53,7 @@ struct ftdiDeviceDetails //structure storage for FTDI device details
 void getcurrenttime(char currenttime[]);
 bool configLensDriver(LPCWSTR port, HANDLE &serialHandle);
 //void cameraConnect(PGRGuid guid, Camera &cam);
-int videoCapture(Camera *cam, HANDLE serialHandle, string save_file, unsigned int numCaptures);
+int videoCapture(Camera *cam, HANDLE serialHandle, string save_file, unsigned int numCaptures, float fps);
 uint16_t SQRT(int16_t InitialGuess, uint16_t Number);
 
 
@@ -100,7 +101,7 @@ int main(int /*argc*/, char** /*argv*/)
 	unsigned int numCameras;
 	unsigned int offsetX, offsetY, width, height;
 	PixelFormat pixelFormat;
-	float shutter, gain;
+	float shutter, gain, brightness, auto_exp;
 	int sharpness;
 	float framerate = 60.0;
 	
@@ -121,19 +122,20 @@ int main(int /*argc*/, char** /*argv*/)
 	LPCWSTR lensPort = port.c_str();
 	HANDLE lensDriver = NULL;
 
-	string save_file;
+	// file operations
+	string save_path;
+	string video_save_file;
 	string focus_save_file;
 	string defocus_save_file;
+	string config_save_file;
+	ofstream configFile;
 	string file_extension = ".avi";
 	char currenttime[80];
-
-	getcurrenttime(currenttime);
-
 
 
 	///////////////////////////////////////////////////////////
 	// test of sqrt
-
+	/*
 	cout << "size of uint16_t: " << sizeof(uint16_t) << endl;
 	cout << "size of int16_t: " << sizeof(int16_t) << endl;
 
@@ -182,14 +184,13 @@ int main(int /*argc*/, char** /*argv*/)
 
 
 	cout << "SQRT = " << sq_root << endl;
-
+	*/
 
 	///////////////////////////////////////////////////////////
 
-	save_file = "test_recording_raw_" + (string)currenttime + file_extension;
-	focus_save_file = "test_recording_focus_" + (string)currenttime + file_extension;
-	focus_save_file = "test_recording_defocus_" + (string)currenttime + file_extension; 
-	
+
+
+
 	PrintBuildInfo();
 
 	configLensDriver(lensPort, lensDriver);
@@ -254,35 +255,14 @@ int main(int /*argc*/, char** /*argv*/)
 	offsetY = 228;		// 224;
 	height = 724;		// 768;
 
-	pixelFormat = PIXEL_FORMAT_422YUV8;
-	configImagerFormat(&cam, offsetX, offsetY, width, height, pixelFormat);
-
-
-	//configProperty(&cam, framerate, FRAME_RATE, false, true, true);
-	//error = setProperty(&cam, framerate, 62.0);
-	//if (error != PGRERROR_OK)
-	//{
-	//	PrintError(error);
-	//	return 1;
-	//}
-
-
-	//configProperty(&cam, shutter, SHUTTER, true, true, true);
-	//temp_f_property = getABSProperty(&cam, shutter);
-	//configProperty(&cam, shutter, SHUTTER, false, true, true);
-	//error = setProperty(&cam, shutter, temp_f_property);
-
-
-	//configProperty(&cam, gain, GAIN, true, true, true);
-	//temp_f_property = getABSProperty(&cam, gain);
-	//configProperty(&cam, gain, GAIN, false, false, true);
-	//error = setProperty(&cam, gain, temp_f_property);
-
-	//// auto tune the sharpness for the current capture
-	//configProperty(&cam, sharpness, SHARPNESS, true, true, false);
-	//temp_int_property = getProperty(&cam, sharpness);
-	//configProperty(&cam, sharpness, SHARPNESS, false, false, false);
-	//error = setProperty(&cam, sharpness, temp_int_property);
+	//pixelFormat = PIXEL_FORMAT_422YUV8;
+	pixelFormat = PIXEL_FORMAT_RGB8;
+	error = configImagerFormat(&cam, offsetX, offsetY, width, height, pixelFormat);
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+		return 1;
+	}
 
 	error = cam.StartCapture();
 	if (error != PGRERROR_OK)
@@ -291,7 +271,24 @@ int main(int /*argc*/, char** /*argv*/)
 		return -1;
 	}
 
-	error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, framerate);
+	///////////////////////////////////////////////////////////////////////////
+	getcurrenttime(currenttime);
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
+	save_path = "d:\\IUPUI\\Test_Data\\";
+#else
+	save_path = "/home/odroid/Videos/test_recording_" + (string)currenttime + ".avi";
+	//videoSaveFile = "/media/odroid/TOSHIBA EXT/Videos/test_recording_" + (string)currenttime + ".avi";
+#endif
+
+	video_save_file = save_path + (string)currenttime + "_test_recording_raw" + file_extension;
+	focus_save_file = save_path + (string)currenttime + "_test_recording_focus" + file_extension;
+	defocus_save_file = save_path + (string)currenttime + "_test_recording_defocus" + file_extension;
+	config_save_file = save_path + (string)currenttime + "_test_recording_config.txt";
+	configFile.open(config_save_file.c_str(), ios::out | ios::app);
+	///////////////////////////////////////////////////////////////////////////
+
+	//error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, framerate);
+	error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, &brightness, &auto_exp, framerate);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
@@ -300,11 +297,25 @@ int main(int /*argc*/, char** /*argv*/)
 
 	cout << "Shutter Speed (ms): " << shutter << endl;
 	cout << "Gain (dB): " << gain << endl;
-	cout << "Sharpness: " << sharpness << endl << endl;
+	cout << "Sharpness: " << sharpness << endl;
+	//cout << "Brightness: " << brightness << endl;
+	cout << "Auto Exposure: " << auto_exp << endl;
+	cout << endl;
+
+	// write camera configuration values to a file
+	configFile << "Shutter Speed (ms): " << shutter << endl;
+	configFile << "Gain (dB): " << gain << endl;
+	configFile << "Sharpness: " << sharpness << endl;
+	//configFile << "Brightness: " << brightness << endl;
+	configFile << "Auto Exposure: " << auto_exp << endl;
+	configFile << endl;
+	configFile.close();
+
+
 
 
 	// begin the video capture
-	//videoCapture(&cam, lensDriver, save_file, 100);
+	videoCapture(&cam, lensDriver, video_save_file, framerate*25, framerate);
 
 
 	error = cam.StopCapture();
@@ -344,7 +355,7 @@ void getcurrenttime(char currenttime[])
 	time(&rawtime);
 	timeinfo = localtime(&rawtime);
 
-	strftime(currenttime, 80, "%m%d%Y_%H%M%S", timeinfo);
+	strftime(currenttime, 80, "%Y%m%d_%H%M%S", timeinfo);
 	string str(currenttime);
 	//cout << currenttime << endl;
 	//cout << str << endl;
