@@ -54,6 +54,8 @@ void getcurrenttime(char currenttime[]);
 bool configLensDriver(LPCWSTR port, HANDLE &serialHandle);
 //void cameraConnect(PGRGuid guid, Camera &cam);
 int videoCapture(Camera *cam, HANDLE serialHandle, string save_file, unsigned int numCaptures, float fps);
+//int videoCapture(Camera *cam, HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps);
+
 uint16_t SQRT(int16_t InitialGuess, uint16_t Number);
 
 
@@ -132,65 +134,6 @@ int main(int /*argc*/, char** /*argv*/)
 	string file_extension = ".avi";
 	char currenttime[80];
 
-
-	///////////////////////////////////////////////////////////
-	// test of sqrt
-	/*
-	cout << "size of uint16_t: " << sizeof(uint16_t) << endl;
-	cout << "size of int16_t: " << sizeof(int16_t) << endl;
-
-	cout << "starting SQRT" << endl;
-	
-	int16_t X = 25;
-	int16_t Y = 14;
-	int16_t Z = 231;
-
-	uint16_t X2, Y2, Z2;
-	uint16_t sqr;
-	uint16_t sq_root;
-
-	if (X < -510)
-	{
-		X = -510;
-	}
-	X = X >> 2;
-
-	if (Y < -510)
-	{
-		Y = -510;
-	}
-	Y = Y >> 2;
-
-	if (Z < -510)
-	{
-		Z = -510;
-	}
-	Z = Z >> 2;
-
-	X2 = X*X;
-	Y2 = Y*Y;
-	Z2 = Z*Z;
-
-	cout << "X = " << X << "  \tX^2 = " << X2 << "  \t(X^2)>>2 = " << (X2 >> 2) << endl;
-	cout << "Y = " << Y << "  \tY^2 = " << Y2 << "  \t(Y^2)>>2 = " << (Y2 >> 2) << endl;
-	cout << "Z = " << Z << "  \tZ^2 = " << Z2 << "  \t(Z^2)>>2 = " << (Z2 >> 2) << endl;
-
-
-	//sqr = (X2 >> 2) + (Y2 >> 2) + (Z2 >> 2);
-	sqr = (X2 + Y2 + Z2);
-	cout << "SQR = " << sqr << endl;
-
-	sq_root = 4*SQRT(-1, 2);
-
-
-	cout << "SQRT = " << sq_root << endl;
-	*/
-
-	///////////////////////////////////////////////////////////
-
-
-
-
 	PrintBuildInfo();
 
 	configLensDriver(lensPort, lensDriver);
@@ -201,7 +144,7 @@ int main(int /*argc*/, char** /*argv*/)
 	if (status == false)
 	{
 		cout << "Error communicating with lens driver." << endl;
-		return 1;
+		return -1;
 	}
 	getLensDriverInfo(&LensInfo, LensRx);
 	PrintDriverInfo(&LensInfo);
@@ -214,12 +157,12 @@ int main(int /*argc*/, char** /*argv*/)
     if (error != PGRERROR_OK)
     {
         PrintError( error );
-		return 1;
+		return -1;
     }
 
 	if (numCameras == 0)
 	{
-		return 1;
+		return -1;
 	}
     cout << "Number of cameras detected: " << numCameras << endl; 
 	
@@ -228,7 +171,7 @@ int main(int /*argc*/, char** /*argv*/)
     if (error != PGRERROR_OK)
     {
         PrintError( error );
-        return 1;
+        return -1;
     }
 
 	// connect to the camera
@@ -236,7 +179,7 @@ int main(int /*argc*/, char** /*argv*/)
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
-		return 1;
+		return -1;
 	}
 
 	// Get the camera configuration
@@ -244,8 +187,26 @@ int main(int /*argc*/, char** /*argv*/)
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
-		return 1;
+		return -1;
 	}
+
+
+	cameraConfig.grabTimeout = 30;// (unsigned int)(1000 / framerate);
+	cameraConfig.highPerformanceRetrieveBuffer = true;
+	cameraConfig.asyncBusSpeed = BUSSPEED_ANY;
+
+
+	// Set the camera configuration
+	error = cam.SetConfiguration(&cameraConfig);
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+		return -1;
+	}
+
+
+
+	setSoftwareTrigger(&cam);
 
 	// configure the image size and the pixel format for the video
 	// 1.216 MB/s
@@ -256,12 +217,13 @@ int main(int /*argc*/, char** /*argv*/)
 	height = 724;		// 768;
 
 	//pixelFormat = PIXEL_FORMAT_422YUV8;
-	pixelFormat = PIXEL_FORMAT_RGB8;
+	//pixelFormat = PIXEL_FORMAT_444YUV8;
+	//pixelFormat = PIXEL_FORMAT_RGB8;
 	error = configImagerFormat(&cam, offsetX, offsetY, width, height, pixelFormat);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
-		return 1;
+		return -1;
 	}
 
 	error = cam.StartCapture();
@@ -315,7 +277,8 @@ int main(int /*argc*/, char** /*argv*/)
 
 
 	// begin the video capture
-	videoCapture(&cam, lensDriver, video_save_file, framerate*25, framerate);
+	videoCapture(&cam, lensDriver, video_save_file, framerate, framerate);
+//	videoCapture(&cam, lensDriver, focus_save_file, defocus_save_file, framerate, framerate);
 
 
 	error = cam.StopCapture();

@@ -39,7 +39,7 @@ using namespace Lens_Driver;
 
 extern double tickFreq;
 
-int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int numCaptures, float fps)
+int videoCapture(Camera *cam, HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps)
 {
 	// timing variables
 	//auto tick1 = chrono::high_resolution_clock::now();
@@ -47,7 +47,7 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int 
 	double duration=0;
 
 
-	unsigned int key = 0;
+	unsigned int count = 0;
 	unsigned int image_rows = 0;
 	unsigned int image_cols = 0;
 	unsigned int image_stride = 0;
@@ -75,13 +75,11 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int 
 	//int codec = CV_FOURCC('M', 'J', '2', 'C');
 	//int codec = -1;
 
-	//unsigned int rowBytes;
 	Size image_size;
 	Mat video_frame;
-	VideoWriter outputVideo;
+	VideoWriter focusVideo, defocusVideo;
+	Image convertedImageCV;	
 	//char* Window1 = "Video Display";
-	//int delay = 1;
-	Image convertedImageCV;
 	//namedWindow(Window1, WINDOW_NORMAL);   
 
 #else
@@ -99,14 +97,6 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int 
 		return -1;
 	}
 #endif
-
-	// Start capturing images
-	//error = cam->StartCapture();
-	//if (error != PGRERROR_OK)
-	//{
-	//	PrintError(error);
-	//	return -1;
-	//}
 	
 	unsigned char *image_data = NULL;
 
@@ -123,41 +113,42 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int 
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
-		key = 'q';
+		return -1;
 	}
 	else
 	{
 
 #ifdef USE_OPENCV
 		// OpenCV functions to save video
-		//error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
-		//if (error != PGRERROR_OK)
-		//{
-		//	PrintError(error);
-		//	return -1;
-		//}
+		error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
+		if (error != PGRERROR_OK)
+		{
+			PrintError(error);
+			return -1;
+		}
 		
-		//image_cols = convertedImageCV.GetCols();
-		//image_rows = convertedImageCV.GetRows();
-		//image_stride = convertedImageCV.GetStride();
-		//image_data_size = convertedImageCV.GetDataSize();
+		image_cols = convertedImageCV.GetCols();
+		image_rows = convertedImageCV.GetRows();
+		image_stride = convertedImageCV.GetStride();
+		image_data_size = convertedImageCV.GetDataSize();
 		
-		image_cols = rawImage.GetCols();
-		image_rows = rawImage.GetRows();
-		image_stride = rawImage.GetStride();
-		image_data_size = rawImage.GetDataSize();
+		//image_cols = rawImage.GetCols();
+		//image_rows = rawImage.GetRows();
+		//image_stride = rawImage.GetStride();
+		//image_data_size = rawImage.GetDataSize();
 
-		//rowBytes = (unsigned int)((double)convertedImageCV.GetDataSize() / (double)convertedImageCV.GetRows());
 		image_size = Size((int)image_cols, (int)image_rows);
 		
-		outputVideo.open(save_file, codec, fps, image_size, true);
+		focusVideo.open(focus_save_file, codec, fps, image_size, true);
+		defocusVideo.open(defocus_save_file, codec, fps, image_size, true);
+
 #else
 		image_cols = rawImage.GetCols();
 		image_rows = rawImage.GetRows();
 
 #endif
 
-		cout << "video size: " << image_cols << " x " << image_rows << "\timage stride: " << image_stride << endl;
+		cout << endl << "Video size: " << image_cols << " x " << image_rows << "\tImage stride: " << image_stride << endl;
 
 	}
 
@@ -165,7 +156,7 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int 
 
 
 	// start of the main capture loop
-	while (key < numCaptures)
+	while (count < numCaptures)
 	{
 #ifdef USE_OPENCV
 		tick1 = (double)getTickCount();
@@ -208,12 +199,12 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int 
 #ifdef USE_OPENCV
 		//double t5 = (double)getTickCount();
 		// Convert the raw image	PIXEL_FORMAT_BGR for opencv
-		//error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
-		//if (error != PGRERROR_OK)
-		//{
-		//	PrintError(error);
-		//	return -1;
-		//}
+		error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
+		if (error != PGRERROR_OK)
+		{
+			PrintError(error);
+			return -1;
+		}
 		//double t6 = (double)getTickCount();
 
 		//unsigned int temp_rows = rawImage.GetRows();
@@ -227,19 +218,21 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int 
 		//Mat temp_video = Mat(Size(temp_cols, temp_rows), CV_8UC3, temp_image_data, temp_stride);
 
 		// Convert data to opencv format
-		//image_data = convertedImageCV.GetData();
-		image_data = rawImage.GetData();
+		image_data = convertedImageCV.GetData();
+		//image_data = rawImage.GetData();
 
 		video_frame = Mat(image_size, CV_8UC3, image_data, image_stride);
 		//double t7 = (double)getTickCount();
-		// display images
-		//imshow(Window1, video_frame);
-		outputVideo.write(video_frame);
+
+
+
+		focusVideo.write(video_frame);
 		//double t8 = (double)getTickCount();
 
 		//cout << "t6-t5: " << ((t6 - t5) * 1000) * tickFreq << endl;
 		//cout << "t7-t6: " << ((t7 - t6) * 1000) * tickFreq << endl;
 		//cout << "t8-t7: " << ((t8 - t7) * 1000) * tickFreq << endl;
+
 #else
 		// FlyCapture2 Append image to AVI file
 		error = videoFile.AVIAppend(&rawImage);
@@ -281,22 +274,22 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int 
 
 #ifdef USE_OPENCV
 		// Convert the raw image	PIXEL_FORMAT_BGR for opencv
-		//error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
-		//if (error != PGRERROR_OK)
-		//{
-		//	PrintError(error);
-		//	return -1;
-		//}
+		error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
+		if (error != PGRERROR_OK)
+		{
+			PrintError(error);
+			return -1;
+		}
 
 		// Convert data to opencv format
-		//image_data = convertedImageCV.GetData();
-		image_data = rawImage.GetData();
+		image_data = convertedImageCV.GetData();
+		//image_data = rawImage.GetData();
 
 		video_frame = Mat(image_size, CV_8UC3, image_data, image_stride);
 
 		// display images
 		//imshow(Window1, video_frame);
-		outputVideo.write(video_frame);
+		defocusVideo.write(video_frame);
 
 #else
 		// FlyCapture2 Append image to AVI file
@@ -320,7 +313,7 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int 
 
 		//cout << (double)(t2 - t1)/ CLOCKS_PER_SEC  << "ms / CPS: " << CLOCKS_PER_SEC << endl;
 		//cout << (tick2 - tick1) * tickFreq << "ms" << endl;
-		key++;
+		count++;
 
 	}	// end of while loop
 
@@ -332,7 +325,9 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int 
 #ifdef USE_OPENCV
 	// OpenCV functions to complete Actions
 	cout << "Average Frame Rate (fps): " << dec << (unsigned short)(1/((duration * tickFreq)/ (numCaptures*2.0))) << endl;
-	outputVideo.release();
+	
+	focusVideo.release(); 
+	defocusVideo.release();
 	destroyAllWindows();
 
 #else

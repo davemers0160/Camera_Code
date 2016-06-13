@@ -10,10 +10,11 @@ This file contains the configures the routines for the Chameleon 3 camera.
 //#include <string>
 //#include <iomanip>
 
-#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
 	#include <Windows.h>
 #else
 	#include <unistd.h>
+	#include <time.h>
 #endif
 
 
@@ -29,11 +30,11 @@ void PrintError(FlyCapture2::Error error)
 	error.PrintErrorTrace();
 }
 
-void PrintCameraInfo(CameraInfo* pCamInfo)
+void PrintCameraInfo(CameraInfo *pCamInfo)
 {
 	cout << endl;
 	cout << "*** CAMERA INFORMATION ***" << endl;
-	cout << "Serial number -" << pCamInfo->serialNumber << endl;
+	cout << "Serial number - " << pCamInfo->serialNumber << endl;
 	cout << "Camera model - " << pCamInfo->modelName << endl;
 	cout << "Camera vendor - " << pCamInfo->vendorName << endl;
 	cout << "Sensor - " << pCamInfo->sensorInfo << endl;
@@ -274,24 +275,129 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 }	// end ofconfigCameraPropeties
 
 
-FlyCapture2::Error SetCameraPower(Camera *cam, bool on)
+FlyCapture2::Error Camera_PowerOff(Camera *cam)
 {
 	FlyCapture2::Error error; 
-	const unsigned int powerReg = 0x610;
-	unsigned int powerRegVal = 0;
+	//const unsigned int powerReg = 0x610;
+	//unsigned int powerRegVal = 0;
 
-	powerRegVal = (on == true) ? 0x80000000 : 0x0;
+	//powerRegVal = (on == true) ? 0x80000000 : 0x0;
 
-	error = cam->WriteRegister(powerReg, powerRegVal);
+	error = cam->WriteRegister(0x610, 0x00);
 
 	return error;
-}
+}	// end of Camera_PowerOff
+
+
+FlyCapture2::Error Camera_PowerOn(Camera *cam)
+{
+	FlyCapture2::Error error;
+
+
+	unsigned int regVal = 0;
+	unsigned int retries = 10;
+
+	error = cam->WriteRegister(0x610, 0x80000000);
+	if (error != PGRERROR_OK)
+	{
+		//PrintError(error);
+		return error;
+	}
+
+	// Wait for camera to complete power-up
+	do
+	{
+		sleep_ms(200);
+
+		error = cam->ReadRegister(0x610, &regVal);
+		if (error == PGRERROR_TIMEOUT)
+		{
+			// ignore timeout errors, camera may not be responding to
+			// register reads during power-up
+		}
+		else if (error != PGRERROR_OK)
+		{
+			//PrintError(error);
+			return error;
+		}
+
+		retries--;
+	} while ((regVal & 0x80000000) == 0 && retries > 0);
+
+	return error;
+}	// end of Camera_PowerOn
+
+FlyCapture2::Error setSoftwareTrigger(Camera *cam)
+{
+	FlyCapture2::Error error;
+	TriggerMode triggerMode;
+
+	// Get current trigger settings
+	error = cam->GetTriggerMode(&triggerMode);
+	if (error != PGRERROR_OK)
+	{
+		return error;
+	}
+
+	// Set camera to trigger mode 0
+	triggerMode.onOff = true;
+	triggerMode.mode = 0;
+	triggerMode.parameter = 0;
+	triggerMode.source = 7;
+
+
+	error = cam->SetTriggerMode(&triggerMode);
+	if (error != PGRERROR_OK)
+	{
+		return error;
+	}
+
+	return error;
+}	// SetSoftwareTrigger
+
+
+bool PollForTriggerReady(Camera *cam)
+{
+	const unsigned int k_softwareTrigger = 0x62C;
+	FlyCapture2::Error error;
+	unsigned int regVal = 0;
+
+	do
+	{
+		error = cam->ReadRegister(k_softwareTrigger, &regVal);
+		if (error != PGRERROR_OK)
+		{
+			PrintError(error);
+			return false;
+		}
+
+	} while ((regVal >> 31) != 0);
+
+	return true;
+}	// end of PollForTriggerReady
+
+bool FireSoftwareTrigger(Camera *cam)
+{
+	const unsigned int k_softwareTrigger = 0x62C;
+	const unsigned int k_fireVal = 0x80000000;
+	FlyCapture2::Error error;
+
+	error = cam->WriteRegister(k_softwareTrigger, k_fireVal);
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+		return false;
+	}
+
+	return true;
+}	// end of FireSoftwareTrigger
+
 
 // create a sleep function that can be used in both Windows and Linux
 void sleep_ms(int value)
 {
 
-#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
 	Sleep(value);
 #else
 	nanosleep((const struct timespec[]){ {0, value*1000000L} }, NULL);

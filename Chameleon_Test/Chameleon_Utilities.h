@@ -16,7 +16,11 @@ FlyCapture2::Error setProperty(Camera *cam, Property &prop);
 int getProperty(Camera *cam, Property &prop);
 float getABSProperty(Camera *cam, Property &prop);
 FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shutter, float *gain, float fps);
-FlyCapture2::Error SetCameraPower(Camera *cam, bool on);
+FlyCapture2::Error Camera_PowerOff(Camera *cam);
+FlyCapture2::Error Camera_PowerOn(Camera *cam);
+FlyCapture2::Error setSoftwareTrigger(Camera *cam);
+bool PollForTriggerReady(Camera *cam);
+bool FireSoftwareTrigger(Camera *cam);
 void sleep_ms(int value);
 
 #endif
