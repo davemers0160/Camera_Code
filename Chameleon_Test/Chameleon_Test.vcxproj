@@ -156,9 +156,10 @@
   <ItemGroup>
     <ClCompile Include="Camera_Main.cpp" />
     <ClCompile Include="Chameleon_Utilities.cpp" />
+    <ClCompile Include="imageCapture.cpp" />
     <ClCompile Include="Lens_Driver.cpp" />
     <ClCompile Include="stdafx.cpp" />
-    <ClCompile Include="videoCapture.cpp" />
+    <ClCompile Include="videoCapture_2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Chameleon_Utilities.h" />

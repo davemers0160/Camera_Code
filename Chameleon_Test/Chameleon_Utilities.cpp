@@ -404,3 +404,25 @@ void sleep_ms(int value)
 #endif
 
 }
+
+void mkDir(string directory_path, string new_folder)
+{
+
+	string temp_path = directory_path + "\\" + new_folder;
+
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
+
+	wstring full_path = wstring(temp_path.begin(), temp_path.end());
+	bool status = CreateDirectory(full_path.c_str(), NULL);
+
+#else
+
+	mode_t mode = 0766;
+	int status = mkdir(temp_path.c_str(), mode);
+
+#endif
+
+	//return (int)status;
+
+}	// end of makeDir
+

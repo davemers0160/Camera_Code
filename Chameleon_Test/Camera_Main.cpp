@@ -18,6 +18,9 @@
 // windows Includes
 #include <windows.h> 
 
+
+//#define IMG_CAP
+
 // OPENCV Includes
 #define USE_OPENCV
 
@@ -53,8 +56,11 @@ struct ftdiDeviceDetails //structure storage for FTDI device details
 void getcurrenttime(char currenttime[]);
 bool configLensDriver(LPCWSTR port, HANDLE &serialHandle);
 //void cameraConnect(PGRGuid guid, Camera &cam);
-int videoCapture(Camera *cam, HANDLE serialHandle, string save_file, unsigned int numCaptures, float fps);
-//int videoCapture(Camera *cam, HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps);
+//int videoCapture(Camera *cam, HANDLE serialHandle, string save_file, unsigned int numCaptures, float fps);
+int videoCapture(Camera *cam, HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps);
+
+int imageCapture(Camera *cam, HANDLE lensDriver, string file_base, unsigned int numCaptures, float fps);
+
 
 uint16_t SQRT(int16_t InitialGuess, uint16_t Number);
 
@@ -126,12 +132,15 @@ int main(int /*argc*/, char** /*argv*/)
 
 	// file operations
 	string save_path;
+	string file_base;
+	string recording_name = "test_recording";
+	string image_save_file;
 	string video_save_file;
 	string focus_save_file;
 	string defocus_save_file;
-	string config_save_file;
-	ofstream configFile;
+	string config_save_file;	
 	string file_extension = ".avi";
+	ofstream configFile;
 	char currenttime[80];
 
 	PrintBuildInfo();
@@ -217,7 +226,7 @@ int main(int /*argc*/, char** /*argv*/)
 	height = 724;		// 768;
 
 	//pixelFormat = PIXEL_FORMAT_422YUV8;
-	//pixelFormat = PIXEL_FORMAT_444YUV8;
+	pixelFormat = PIXEL_FORMAT_444YUV8;
 	//pixelFormat = PIXEL_FORMAT_RGB8;
 	error = configImagerFormat(&cam, offsetX, offsetY, width, height, pixelFormat);
 	if (error != PGRERROR_OK)
@@ -242,11 +251,12 @@ int main(int /*argc*/, char** /*argv*/)
 	//videoSaveFile = "/media/odroid/TOSHIBA EXT/Videos/test_recording_" + (string)currenttime + ".avi";
 #endif
 
-	video_save_file = save_path + (string)currenttime + "_test_recording_raw" + file_extension;
-	focus_save_file = save_path + (string)currenttime + "_test_recording_focus" + file_extension;
-	defocus_save_file = save_path + (string)currenttime + "_test_recording_defocus" + file_extension;
-	config_save_file = save_path + (string)currenttime + "_test_recording_config.txt";
-	configFile.open(config_save_file.c_str(), ios::out | ios::app);
+	file_base = (string)currenttime + "_" + recording_name + "_raw";
+	video_save_file = (string)currenttime + "_" + recording_name + "_raw" + file_extension;
+	focus_save_file = (string)currenttime + "_" + recording_name + "_focus" + file_extension;
+	defocus_save_file = (string)currenttime + "_" + recording_name + "_defocus" + file_extension;
+	config_save_file = (string)currenttime + "_" + recording_name + "_config.txt";
+	configFile.open((save_path+config_save_file).c_str(), ios::out | ios::app);
 	///////////////////////////////////////////////////////////////////////////
 
 	//error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, framerate);
@@ -273,14 +283,20 @@ int main(int /*argc*/, char** /*argv*/)
 	configFile << endl;
 	configFile.close();
 
+	// begin the capture process
+#ifdef IMG_CAP
+	string dir_name = (string)currenttime + "_" + recording_name + "_raw";
+	mkDir(save_path, dir_name);
+	imageCapture(&cam, lensDriver, (save_path + dir_name + "\\" + file_base), framerate, framerate);
+
+#else
+	// videoCapture(&cam, lensDriver, video_save_file, framerate, framerate);
+	videoCapture(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, framerate, framerate);
+
+#endif
 
 
-
-	// begin the video capture
-	videoCapture(&cam, lensDriver, video_save_file, framerate, framerate);
-//	videoCapture(&cam, lensDriver, focus_save_file, defocus_save_file, framerate, framerate);
-
-
+	// stop the capture process
 	error = cam.StopCapture();
 	if (error != PGRERROR_OK)
 	{

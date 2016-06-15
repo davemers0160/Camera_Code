@@ -27,7 +27,10 @@
     <ClCompile Include="Chameleon_Utilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="videoCapture.cpp">
+    <ClCompile Include="imageCapture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="videoCapture_2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

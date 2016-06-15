@@ -4,6 +4,7 @@
 #define CHAMELEON_UTILITIES_H
 
 using namespace FlyCapture2;
+using namespace std;
 
 void cameraConnect(PGRGuid guid, Camera *cam);
 FlyCapture2::Error configImagerFormat(Camera *cam, unsigned int offsetX, unsigned int offsetY, unsigned int width, unsigned int height, PixelFormat pixelFormat);
@@ -22,5 +23,7 @@ FlyCapture2::Error setSoftwareTrigger(Camera *cam);
 bool PollForTriggerReady(Camera *cam);
 bool FireSoftwareTrigger(Camera *cam);
 void sleep_ms(int value);
+void mkDir(string directory_path, string new_folder);
+
 
 #endif
