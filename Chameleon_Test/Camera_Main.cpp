@@ -18,7 +18,6 @@
 // windows Includes
 #include <windows.h> 
 
-
 //#define IMG_CAP
 
 // OPENCV Includes
@@ -200,10 +199,9 @@ int main(int /*argc*/, char** /*argv*/)
 	}
 
 
-	cameraConfig.grabTimeout = 30;// (unsigned int)(1000 / framerate);
-	cameraConfig.highPerformanceRetrieveBuffer = true;
+	cameraConfig.grabTimeout = 40;// (unsigned int)(1000 / framerate);
+	//cameraConfig.highPerformanceRetrieveBuffer = true;
 	cameraConfig.asyncBusSpeed = BUSSPEED_ANY;
-
 
 	// Set the camera configuration
 	error = cam.SetConfiguration(&cameraConfig);
@@ -214,9 +212,6 @@ int main(int /*argc*/, char** /*argv*/)
 	}
 
 
-
-	setSoftwareTrigger(&cam);
-
 	// configure the image size and the pixel format for the video
 	// 1.216 MB/s
 	offsetX = 80;		// 40
@@ -226,8 +221,8 @@ int main(int /*argc*/, char** /*argv*/)
 	height = 724;		// 768;
 
 	//pixelFormat = PIXEL_FORMAT_422YUV8;
-	pixelFormat = PIXEL_FORMAT_444YUV8;
-	//pixelFormat = PIXEL_FORMAT_RGB8;
+	//pixelFormat = PIXEL_FORMAT_444YUV8;
+	pixelFormat = PIXEL_FORMAT_RGB8;
 	error = configImagerFormat(&cam, offsetX, offsetY, width, height, pixelFormat);
 	if (error != PGRERROR_OK)
 	{
@@ -283,6 +278,8 @@ int main(int /*argc*/, char** /*argv*/)
 	configFile << endl;
 	configFile.close();
 
+	setSoftwareTrigger(&cam, true);
+
 	// begin the capture process
 #ifdef IMG_CAP
 	string dir_name = (string)currenttime + "_" + recording_name + "_raw";
@@ -303,6 +300,8 @@ int main(int /*argc*/, char** /*argv*/)
 		PrintError(error);
 		return -1;
 	}
+
+	setSoftwareTrigger(&cam, false);
 
 	// Disconnect the camera
 	error = cam.Disconnect();

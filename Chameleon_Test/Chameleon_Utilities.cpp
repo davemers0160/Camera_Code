@@ -327,7 +327,7 @@ FlyCapture2::Error Camera_PowerOn(Camera *cam)
 	return error;
 }	// end of Camera_PowerOn
 
-FlyCapture2::Error setSoftwareTrigger(Camera *cam)
+FlyCapture2::Error setSoftwareTrigger(Camera *cam, bool onOff)
 {
 	FlyCapture2::Error error;
 	TriggerMode triggerMode;
@@ -340,7 +340,7 @@ FlyCapture2::Error setSoftwareTrigger(Camera *cam)
 	}
 
 	// Set camera to trigger mode 0
-	triggerMode.onOff = true;
+	triggerMode.onOff = onOff;
 	triggerMode.mode = 0;
 	triggerMode.parameter = 0;
 	triggerMode.source = 7;
