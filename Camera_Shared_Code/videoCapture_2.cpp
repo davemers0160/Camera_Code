@@ -23,8 +23,12 @@
 #endif
 
 // Point Grey Includes
-//#include "stdafx.h"
-#include "FlyCapture2.h"
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
+	#include "FlyCapture2.h"
+#else
+	#include "../Chameleon_Test_Linux/include/FlyCapture2.h"
+#endif
+
 #include "Chameleon_Utilities.h"
 
 // Lens Driver Includes
@@ -37,7 +41,7 @@ using namespace std;
 using namespace FlyCapture2;
 using namespace Lens_Driver;
 
-extern double tickFreq;
+volatile extern double tickFreq;
 
 
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
@@ -57,7 +61,7 @@ extern double tickFreq;
 	unsigned int image_cols = 0;
 	unsigned int image_stride = 0;
 	unsigned int image_data_size = 0;
-	boolean status;
+	BOOL status;
 
 	// Lens Driver Variables
 	LensFocus LensDfD((unsigned char)137, (unsigned char)142);

@@ -24,8 +24,12 @@
 #endif
 
 // Point Grey Includes
-//#include "stdafx.h"
-#include "FlyCapture2.h"
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
+	#include "FlyCapture2.h"
+#else
+	#include "../Chameleon_Test_Linux/include/FlyCapture2.h"
+#endif
+
 #include "Chameleon_Utilities.h"
 
 // Lens Driver Includes
@@ -38,7 +42,8 @@ using namespace std;
 using namespace FlyCapture2;
 using namespace Lens_Driver;
 
-extern double tickFreq;
+volatile extern double tickFreq;
+
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
 	int imageCapture(Camera *cam, HANDLE lensDriver, string file_base, unsigned int numCaptures, float fps)
 #else
@@ -54,7 +59,8 @@ extern double tickFreq;
 	unsigned int image_cols = 0;
 	unsigned int image_stride = 0;
 	unsigned int image_data_size = 0;
-	boolean status;
+	char count_string[10];
+	BOOL status;
 
 	// Lens Driver Variables
 	LensFocus LensDfD((unsigned char)137, (unsigned char)142);
@@ -154,6 +160,8 @@ extern double tickFreq;
 		tick1 = clock();
 #endif
 		
+		sprintf( count_string, "%03d", count );
+
 //////////////////////////// START FOCUS CAPTURE //////////////////////////////
 		//double t1 = (double)getTickCount();
 		// poll the camera to see if it is ready for a software trigger
@@ -189,7 +197,9 @@ extern double tickFreq;
 		//save_file_name.clear();
 		//save_file_name.str("");
 		//save_file_name << file_base << "_focus_" << setfill('0') << setw(5) << count << ".png";
-		save_file_name = file_base + "_focus_" + to_string(count)	+ ".png";
+
+
+		save_file_name = file_base + "_focus_" + (string)count_string	+ ".png";
 
 #ifdef USE_OPENCV
 		//double t5 = (double)getTickCount();
@@ -269,7 +279,7 @@ extern double tickFreq;
 		//save_file_name.str("");
 
 		//save_file_name << file_base << "_defocus_" << setfill('0') << setw(5) << count << ".png";
-		save_file_name = file_base + "_focus_" + to_string(count) + ".png";
+		save_file_name = file_base + "_focus_" + (string)count_string + ".png";
 
 #ifdef USE_OPENCV
 		// Convert the raw image	PIXEL_FORMAT_BGR for opencv

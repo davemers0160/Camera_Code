@@ -4,25 +4,13 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../Camera_Main.cpp \
-../Config_Chameleon.cpp \
-../Lens_Driver.cpp \
-../Varioptic_Class.cpp \
-../stdafx.cpp 
+../Camera_Main_Linux.cpp 
 
 OBJS += \
-./Camera_Main.o \
-./Config_Chameleon.o \
-./Lens_Driver.o \
-./Varioptic_Class.o \
-./stdafx.o 
+./Camera_Main_Linux.o 
 
 CPP_DEPS += \
-./Camera_Main.d \
-./Config_Chameleon.d \
-./Lens_Driver.d \
-./Varioptic_Class.d \
-./stdafx.d 
+./Camera_Main_Linux.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

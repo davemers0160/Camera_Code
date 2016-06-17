@@ -12,13 +12,16 @@ This file contains the configures the routines for the Chameleon 3 camera.
 
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
 	#include <Windows.h>
+	#include "FlyCapture2.h"
 #else
 	#include <unistd.h>
 	#include <time.h>
+	//#include <linux/types.h>
+	#include <sys/stat.h>
+	#include "../Chameleon_Test_Linux/include/FlyCapture2.h"
 #endif
 
 
-#include "FlyCapture2.h"
 #include "Chameleon_Utilities.h"
 
 using namespace FlyCapture2;
@@ -417,7 +420,11 @@ void sleep_ms(int value)
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
 	Sleep(value);
 #else
-	nanosleep((const struct timespec[]){ {0, value*1000000L} }, NULL);
+	const timespec delay[]= {0, value*1000000L} ;
+	//delay->tv_sec = 0;
+	//delay->tv_nsec = value*1000000L;
+	nanosleep(delay, NULL);
+	//nanosleep((const struct timespec[]){ {0, value*1000000L} }, NULL);
 #endif
 
 }
