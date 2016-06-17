@@ -1,7 +1,7 @@
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <math.h>
-#include <windows.h> 
 
 #include "Lens_Driver.h"
 
@@ -29,6 +29,22 @@
 //Lens_Driver::~Lens_Driver()
 //{
 //}
+
+
+void Lens_Driver::PrintDriverInfo(LensDriverInfo *LensInfo)
+{
+	std::cout << "*** LENS DRIVER INFO ***" << std::endl;
+	std::cout << "Serial Number: " << (unsigned int)LensInfo->SerialNumber << std::endl;
+	std::cout << "Firmware Version: " << (unsigned int)LensInfo->FirmwareVersion[0] << "." << std::setfill('0') << std::setw(2) << (unsigned int)LensInfo->FirmwareVersion[1] << std::endl;
+	if (LensInfo->DriverType == 0)
+	{
+		std::cout << "Driver Type: Microchip HV892" << std::endl;
+	}
+	std::cout << std::endl;
+
+
+}	// end of PrintDriverInfo
+
 
 /* Function: genChecksum(unsigned char Packet[], unsigned char length)
 *
@@ -147,6 +163,7 @@ double Lens_Driver::LensFocus::getVoltage(unsigned char amp)
 
 	return volts;
 }
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
 
 unsigned char Lens_Driver::sendLensPacket(LensTxPacket Packet, HANDLE lensDriver)
 {
@@ -161,7 +178,7 @@ unsigned char Lens_Driver::sendLensPacket(LensTxPacket Packet, HANDLE lensDriver
 	WriteFile(lensDriver, data, Packet.ByteCount + 3, &dwBytesWritten, NULL);
 
 	return (unsigned char)dwBytesWritten;
-}	// end of sendLensPacket
+}	// end of sendLensPacket - Windows
 
 bool Lens_Driver::readLensPacket(LensRxPacket *Packet, HANDLE lensDriver, unsigned char count)
 {
@@ -193,7 +210,72 @@ bool Lens_Driver::readLensPacket(LensRxPacket *Packet, HANDLE lensDriver, unsign
 	}
 	return status;
 
-}
+}	// end of readLensPacket - Windows
+
+#else
+unsigned char Lens_Driver::sendLensPacket(LensTxPacket Packet, FT_HANDLE lensDriver)
+{
+	unsigned int dwBytesWritten;
+	unsigned char data[MAX_PACKET_LENGTH];
+	FT_STATUS ftStatus;
+
+	data[0] = Packet.Start;
+	data[1] = Packet.Command;
+	data[2] = Packet.ByteCount;
+	std::copy(Packet.Data, Packet.Data + Packet.ByteCount, &data[3]);
+
+	//WriteFile(lensDriver, data, Packet.ByteCount + 3, &dwBytesWritten, NULL);
+	ftStatus = FT_Write(lensDriver, data, Packet.ByteCount + 3, &dwBytesWritten);
+	if (ftStatus != FT_OK)
+	{
+		dwBytesWritten = 0;
+	}
+	return (unsigned char)dwBytesWritten;
+
+}	// end of sendLensPacket - Linux
+
+bool Lens_Driver::readLensPacket(LensRxPacket *Packet, FT_HANDLE lensDriver, unsigned int count)
+{
+	bool status = false;
+	unsigned int dwRead = 0;
+	unsigned char rx_data[MAX_PACKET_LENGTH] = { 0 };
+	unsigned char idx;
+	FT_STATUS ftStatus;
+	//OVERLAPPED osReader = { 0 };
+
+	//ReadFile(lensDriver, rx_data, count, (LPDWORD)&dwRead, &osReader);
+
+	ftStatus = FT_Read(lensDriver, rx_data, count, &dwRead);
+
+	if (dwRead > 0)
+	{
+		Packet->Command = rx_data[0];
+		Packet->ByteCount = rx_data[1];
+		for (idx = 0; idx < Packet->ByteCount - 2; idx++)
+		{
+			Packet->Data[idx] = rx_data[idx + 2];
+		}
+		Packet->Checksum = (rx_data[idx + 2] << 8) | rx_data[idx + 3];
+
+		status = checkChecksum(*Packet);
+		if (status == false)
+		{
+			std::cout << "checksum in data packet does not match." << std::endl;
+		}
+
+	}
+	else
+	{
+		std::cout << "No data received from Lens Driver." << std::endl;
+		status = false;
+	}
+	return status;
+
+}	// end of readLensPacket - Linux
+
+#endif
+
+
 
 void Lens_Driver::getLensDriverInfo(LensDriverInfo *LensInfo, LensRxPacket Packet)
 {
@@ -204,3 +286,4 @@ void Lens_Driver::getLensDriverInfo(LensDriverInfo *LensInfo, LensRxPacket Packe
 	LensInfo->Amplitude = Packet.Data[4];
 
 }
+

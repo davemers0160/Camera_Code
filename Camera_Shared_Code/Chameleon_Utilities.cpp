@@ -6,7 +6,7 @@ This file contains the configures the routines for the Chameleon 3 camera.
 */
 #include <iostream>
 #include <ctime>
-//#include <sstream>
+#include <sstream>
 //#include <string>
 //#include <iomanip>
 
@@ -24,6 +24,18 @@ This file contains the configures the routines for the Chameleon 3 camera.
 using namespace FlyCapture2;
 using namespace std;
 
+void getcurrenttime(char currenttime[])
+{
+	time_t rawtime;
+	struct tm * timeinfo;
+
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+
+	strftime(currenttime, 80, "%Y%m%d_%H%M%S", timeinfo);
+	string str(currenttime);
+
+}	// end of getcurrenttime
 
 void PrintError(FlyCapture2::Error error)
 {
@@ -43,7 +55,21 @@ void PrintCameraInfo(CameraInfo *pCamInfo)
 	cout << "Firmware version - " << pCamInfo->firmwareVersion << endl;
 	cout << "Firmware build time - " << pCamInfo->firmwareBuildTime << endl << endl;
 
-}
+}	// end of PrintCameraInfo
+
+void PrintBuildInfo(void)
+{
+	FC2Version fc2Version;
+	Utilities::GetLibraryVersion(&fc2Version);
+
+	ostringstream version;
+	version << "FlyCapture2 library version: " << fc2Version.major << "." << fc2Version.minor << "." << fc2Version.type << "." << fc2Version.build;
+	cout << version.str() << endl;
+
+	ostringstream timeStamp;
+	timeStamp << "Application build date: " << __DATE__ << " " << __TIME__;
+	cout << timeStamp.str() << endl << endl;
+}	// end of PrintBuildInfo
 
 void cameraConnect(PGRGuid guid, Camera *cam)
 {
@@ -176,9 +202,10 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 	Property Shutter, Gain, Sharpness, Framerate, Brightness, Auto_Exposure;
 	
 	*sharpness = 1200;
-	*shutter = 33.0;
+	*shutter = 16.0;
 	*gain = 10.0;
 	*auto_exp = 1.0;
+	*brightness = 2.0;
 
 	// set the frame rate for the camera
 	configProperty(cam, Framerate, FRAME_RATE, false, true, true);
@@ -188,13 +215,7 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 		return error;
 	}
 
-	sleep_ms(200);
-
-//#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
-//	Sleep(200);
-//#else
-//	nanosleep((const struct timespec[]){ {0, 200000000L} }, NULL);
-//#endif
+	sleep_ms(500);
 
 	// config Shutter to initial value and set to auto
 	configProperty(cam, Shutter, SHUTTER, true, true, true);
@@ -214,7 +235,7 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 
 	// config Sharpness to initial value and set to auto
 	configProperty(cam, Sharpness, SHARPNESS, true, true, false);
-	error = setProperty(cam, Sharpness, *sharpness);
+	error = setProperty(cam, Sharpness, (float)*sharpness);
 	if (error != PGRERROR_OK)
 	{
 		return error;
@@ -229,35 +250,31 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 	}
 
 	// configure the brightness property
-	//configProperty(cam, Brightness, BRIGHTNESS, true, true, true);
-	//error = setProperty(cam, Brightness, *brightness);
-	//if (error != PGRERROR_OK)
-	//{
-	//	return error;
-	//}
+	configProperty(cam, Brightness, BRIGHTNESS, true, true, true);
+	error = setProperty(cam, Brightness, *brightness);
+	if (error != PGRERROR_OK)
+	{
+		return error;
+	}
+
+	sleep_ms(500);
 
 	// get the auto values
 	*shutter = getABSProperty(cam, Shutter);
 	*gain = getABSProperty(cam, Gain);
 	*sharpness = getProperty(cam, Sharpness);
 	*auto_exp = getABSProperty(cam, Auto_Exposure);
-
-
-	sleep_ms(200);
-
-//#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
-//	Sleep(200);
-//#else
-//	nanosleep((const struct timespec[]){{0, 200000000L}}, NULL);
-//#endif
-
-	// get the auto values
-	*shutter = getABSProperty(cam, Shutter);
-	*gain = getABSProperty(cam, Gain);
-	*sharpness = getProperty(cam, Sharpness);
 	*brightness = getABSProperty(cam, Brightness);
-	*auto_exp = getABSProperty(cam, Auto_Exposure);
-	int temp = getProperty(cam, Brightness);
+
+	//sleep_ms(500);
+
+	// get the auto values
+	//*shutter = getABSProperty(cam, Shutter);
+	//*gain = getABSProperty(cam, Gain);
+	//*sharpness = getProperty(cam, Sharpness);
+	//*brightness = getABSProperty(cam, Brightness);
+	//*auto_exp = getABSProperty(cam, Auto_Exposure);
+	//int temp = getProperty(cam, Brightness);
 
 
 	// set the auto values to fixed
@@ -266,7 +283,7 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 	configProperty(cam, Gain, GAIN, false, false, true);
 	error = setProperty(cam, Gain, *gain);
 	configProperty(cam, Sharpness, SHARPNESS, false, false, false);
-	error = setProperty(cam, Sharpness, *sharpness);
+	error = setProperty(cam, Sharpness, (float)*sharpness);
 	configProperty(cam, Auto_Exposure, AUTO_EXPOSURE, false, false, true);
 	error = setProperty(cam, Auto_Exposure, *auto_exp);
 
@@ -413,7 +430,7 @@ void mkDir(string directory_path, string new_folder)
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
 
 	wstring full_path = wstring(temp_path.begin(), temp_path.end());
-	bool status = CreateDirectory(full_path.c_str(), NULL);
+	boolean status = CreateDirectoryW(full_path.c_str(), NULL);
 
 #else
 

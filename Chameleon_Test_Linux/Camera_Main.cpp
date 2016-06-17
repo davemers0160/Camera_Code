@@ -260,21 +260,18 @@ int main(int /*argc*/, char** /*argv*/)
 
 
 // support functions
-void getcurrenttime(char currenttime[])
-{
-	time_t rawtime;
-	struct tm * timeinfo;
+// void getcurrenttime(char currenttime[])
+// {
+	// time_t rawtime;
+	// struct tm * timeinfo;
 	
-	time(&rawtime);
-	timeinfo = localtime(&rawtime);
+	// time(&rawtime);
+	// timeinfo = localtime(&rawtime);
 
-	strftime(currenttime, 80, "%m%d%Y_%H%M%S", timeinfo);
-	string str(currenttime);
-	//cout << currenttime << endl;
-	//cout << str << endl;
+	// strftime(currenttime, 80, "%m%d%Y_%H%M%S", timeinfo);
+	// string str(currenttime);
+// }
 
-	//return 0;
-}
 /*
 bool configLensDriver(LPCWSTR commPort, HANDLE &serialHandle)
 {

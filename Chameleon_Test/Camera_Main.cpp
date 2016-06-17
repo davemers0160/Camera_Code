@@ -32,12 +32,12 @@
 #endif
 
 // Point Grey Includes
-#include "stdafx.h"
 #include "FlyCapture2.h"
-#include "Chameleon_Utilities.h"
+#include "../Camera_Shared_Code/stdafx.h"
+#include "../Camera_Shared_Code/Chameleon_Utilities.h"
 
 // Lens Driver Includes
-#include "Lens_Driver.h"
+#include "../Camera_Shared_Code/Lens_Driver.h"
 
 using namespace std;
 using namespace FlyCapture2;
@@ -54,46 +54,42 @@ struct ftdiDeviceDetails //structure storage for FTDI device details
 
 void getcurrenttime(char currenttime[]);
 bool configLensDriver(LPCWSTR port, HANDLE &serialHandle);
-//void cameraConnect(PGRGuid guid, Camera &cam);
+
+// Camera Video/Image Capture routines
 //int videoCapture(Camera *cam, HANDLE serialHandle, string save_file, unsigned int numCaptures, float fps);
 int videoCapture(Camera *cam, HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps);
-
 int imageCapture(Camera *cam, HANDLE lensDriver, string file_base, unsigned int numCaptures, float fps);
-
-
-uint16_t SQRT(int16_t InitialGuess, uint16_t Number);
-
 
 double tickFreq = 1.0 / getTickFrequency();
 
-void PrintBuildInfo()
-{
-    FC2Version fc2Version;
-    Utilities::GetLibraryVersion( &fc2Version );
-    
-	ostringstream version;
-	version << "FlyCapture2 library version: " << fc2Version.major << "." << fc2Version.minor << "." << fc2Version.type << "." << fc2Version.build;
-	cout << version.str() << endl;  
-    
-	ostringstream timeStamp;
-    timeStamp <<"Application build date: " << __DATE__ << " " << __TIME__;
-	cout << timeStamp.str() << endl << endl;  
-}
+//void PrintBuildInfo()
+//{
+//    FC2Version fc2Version;
+//    Utilities::GetLibraryVersion( &fc2Version );
+//    
+//	ostringstream version;
+//	version << "FlyCapture2 library version: " << fc2Version.major << "." << fc2Version.minor << "." << fc2Version.type << "." << fc2Version.build;
+//	cout << version.str() << endl;  
+//    
+//	ostringstream timeStamp;
+//    timeStamp <<"Application build date: " << __DATE__ << " " << __TIME__;
+//	cout << timeStamp.str() << endl << endl;  
+//}
 
 
-void PrintDriverInfo(LensDriverInfo *LensInfo)
-{
-	cout << "*** LENS DRIVER INFO ***" << endl;
-	cout << "Serial Number: " << (unsigned int)LensInfo->SerialNumber << endl;
-	cout << "Firmware Version: " << (unsigned int)LensInfo->FirmwareVersion[0] << "." << setfill('0') << setw(2) << (unsigned int)LensInfo->FirmwareVersion[1] << endl;
-	if (LensInfo->DriverType == 0)
-	{
-		cout << "Driver Type: Microchip HV892" << endl;
-	}
-	cout << endl;
-	
-
-}	// end of PrintDriverInfo
+//void PrintDriverInfo(LensDriverInfo *LensInfo)
+//{
+//	cout << "*** LENS DRIVER INFO ***" << endl;
+//	cout << "Serial Number: " << (unsigned int)LensInfo->SerialNumber << endl;
+//	cout << "Firmware Version: " << (unsigned int)LensInfo->FirmwareVersion[0] << "." << setfill('0') << setw(2) << (unsigned int)LensInfo->FirmwareVersion[1] << endl;
+//	if (LensInfo->DriverType == 0)
+//	{
+//		cout << "Driver Type: Microchip HV892" << endl;
+//	}
+//	cout << endl;
+//	
+//
+//}	// end of PrintDriverInfo
 
 
 int main(int /*argc*/, char** /*argv*/)
@@ -113,7 +109,6 @@ int main(int /*argc*/, char** /*argv*/)
 	float framerate = 60.0;
 	
 	//Lens_Driver test_lens;
-	//unsigned char data[4] = { 1, 2, 3, 4 };
 	LensTxPacket LensTx(CON,0);
 	LensRxPacket LensRx;
 	LensDriverInfo LensInfo;
@@ -157,8 +152,7 @@ int main(int /*argc*/, char** /*argv*/)
 	getLensDriverInfo(&LensInfo, LensRx);
 	PrintDriverInfo(&LensInfo);
 	
-	// set lens to intial focus
-	sendLensPacket(Focus, lensDriver);
+
 
 
     error = busMgr.GetNumOfCameras(&numCameras);
@@ -211,6 +205,8 @@ int main(int /*argc*/, char** /*argv*/)
 		return -1;
 	}
 
+	// set lens to intial focus
+	sendLensPacket(Focus, lensDriver);
 
 	// configure the image size and the pixel format for the video
 	// 1.216 MB/s
@@ -239,11 +235,11 @@ int main(int /*argc*/, char** /*argv*/)
 
 	///////////////////////////////////////////////////////////////////////////
 	getcurrenttime(currenttime);
-#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32)
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
 	save_path = "d:\\IUPUI\\Test_Data\\";
 #else
 	save_path = "/home/odroid/Videos/test_recording_" + (string)currenttime + ".avi";
-	//videoSaveFile = "/media/odroid/TOSHIBA EXT/Videos/test_recording_" + (string)currenttime + ".avi";
+	//save_path = "/media/odroid/TOSHIBA EXT/Videos/test_recording_" + (string)currenttime + ".avi";
 #endif
 
 	file_base = (string)currenttime + "_" + recording_name + "_raw";
@@ -265,7 +261,7 @@ int main(int /*argc*/, char** /*argv*/)
 	cout << "Shutter Speed (ms): " << shutter << endl;
 	cout << "Gain (dB): " << gain << endl;
 	cout << "Sharpness: " << sharpness << endl;
-	//cout << "Brightness: " << brightness << endl;
+	cout << "Brightness: " << brightness << endl;
 	cout << "Auto Exposure: " << auto_exp << endl;
 	cout << endl;
 
@@ -273,7 +269,7 @@ int main(int /*argc*/, char** /*argv*/)
 	configFile << "Shutter Speed (ms): " << shutter << endl;
 	configFile << "Gain (dB): " << gain << endl;
 	configFile << "Sharpness: " << sharpness << endl;
-	//configFile << "Brightness: " << brightness << endl;
+	configFile << "Brightness: " << brightness << endl;
 	configFile << "Auto Exposure: " << auto_exp << endl;
 	configFile << endl;
 	configFile.close();
@@ -288,7 +284,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 #else
 	// videoCapture(&cam, lensDriver, video_save_file, framerate, framerate);
-	videoCapture(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, framerate, framerate);
+	videoCapture(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, (unsigned int)framerate, framerate);
 
 #endif
 
@@ -325,21 +321,18 @@ int main(int /*argc*/, char** /*argv*/)
 
 
 // support functions
-void getcurrenttime(char currenttime[])
-{
-	time_t rawtime;
-	struct tm * timeinfo;
-	
-	time(&rawtime);
-	timeinfo = localtime(&rawtime);
-
-	strftime(currenttime, 80, "%Y%m%d_%H%M%S", timeinfo);
-	string str(currenttime);
-	//cout << currenttime << endl;
-	//cout << str << endl;
-
-	//return 0;
-}
+//void getcurrenttime(char currenttime[])
+//{
+//	time_t rawtime;
+//	struct tm * timeinfo;
+//	
+//	time(&rawtime);
+//	timeinfo = localtime(&rawtime);
+//
+//	strftime(currenttime, 80, "%Y%m%d_%H%M%S", timeinfo);
+//	string str(currenttime);
+//
+//}	// end of getcurrenttime
 
 bool configLensDriver(LPCWSTR commPort, HANDLE &serialHandle)
 {
@@ -723,60 +716,5 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file)
 }	// end of videoCapture
 
 */
-
-
-
-
-uint16_t SQRT(int16_t InitialGuess, uint16_t Number)
-{
-	uint16_t max_iterations = 20;
-
-	int16_t sqrt_err = 1000;
-	int16_t min_sqrt_err = 1;
-	int16_t Xo = InitialGuess;
-
-	int16_t iteration_count;
-
-	uint16_t result = 0;
-	if (Number == 0) // zero check
-	{
-		return result;
-	}	
-
-	if (Xo<0)
-	{
-		Xo = Xo*(-1);
-	}
-
-	iteration_count = 0;
-
-	 printf("Number = %4u\r\n", Number);
-	 printf("result = %4u ",result);
-	 printf("Xo = %4d ",Xo);	
-	 printf("sqrt_err = %4d ",sqrt_err);
-	 printf("\r\n");
-
-	while (iteration_count < max_iterations && ((sqrt_err > min_sqrt_err || sqrt_err < -min_sqrt_err)))
-	{
-
-		result = (Xo + (Number / Xo)) >> 1;
-		//result = Xo - (Xo >> 1) + ((Number / Xo) >> 1);
-
-		printf("inner: %4d ", ((int16_t)((Xo * Xo) - Number) / (2 * Xo)));
-		printf("result = %4u ", result);
-		printf("Xo = %4d ", Xo);
-
-		sqrt_err = (int16_t)(result - Xo);
-		Xo = (int16_t)(result);
-
-		printf("sqrt_err = %4d ", sqrt_err);
-		printf("\r\n");
-
-		iteration_count++;
-	}
-	return result;
-
-}   // end of SQRT
-
 
 

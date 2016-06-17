@@ -1,11 +1,10 @@
 // C++ Includes
 //#include <map>
 #include <iostream>
-#include <iomanip>
 #include <sstream>
-#include <fstream>
 #include <string>
 //#include <vector>
+//#include <iomanip>
 #include <ctime>
 //#include <chrono>
 #include <stdio.h>
@@ -40,12 +39,19 @@ using namespace Lens_Driver;
 
 extern double tickFreq;
 
-int imageCapture(Camera *cam, HANDLE lensDriver, string file_base, unsigned int numCaptures, float fps)
+
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
+	int videoCapture(Camera *cam, HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps)
+#else
+	int videoCapture(Camera *cam, FT_HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps)
+#endif
 {
 	// timing variables
+	//auto tick1 = chrono::high_resolution_clock::now();
+	//auto tick2 = chrono::high_resolution_clock::now();
 	double duration=0;
 
-	// image variables
+
 	unsigned int count = 0;
 	unsigned int image_rows = 0;
 	unsigned int image_cols = 0;
@@ -61,16 +67,12 @@ int imageCapture(Camera *cam, HANDLE lensDriver, string file_base, unsigned int 
 	// Camera variables
 	Error error;
 	Image rawImage;
-	PixelFormat pixFormat;
-
-	// file operation variables
-	string save_file_name;
 
 #ifdef USE_OPENCV
 	// OpenCV variables
 	double tick1, tick2;
 	
-	//int codec = CV_FOURCC('M', 'J', 'P', 'G');
+	int codec = CV_FOURCC('M', 'J', 'P', 'G');
 	//int codec = CV_FOURCC('D', 'I', 'V', 'X');
 	//int codec = CV_FOURCC('H', '2', '6', '4');
 	//int codec = CV_FOURCC('X', '2', '6', '4');
@@ -79,15 +81,26 @@ int imageCapture(Camera *cam, HANDLE lensDriver, string file_base, unsigned int 
 	//int codec = -1;
 
 	Size image_size;
-	Mat imageFrame;
-	//VideoWriter focusVideo, defocusVideo;
+	Mat video_frame;
+	VideoWriter focusVideo, defocusVideo;
 	Image convertedImageCV;	
 	//char* Window1 = "Video Display";
 	//namedWindow(Window1, WINDOW_NORMAL);   
 
 #else
 	clock_t tick1, tick2;
+	AVIRecorder videoFile;
+	MJPGOption option;
+	option.frameRate = fps;
+	option.quality = 100;
 	
+	// Point Grey FlyCapture2 AVI saving 
+	error = videoFile.AVIOpen(save_file.c_str(), &option);
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+		return -1;
+	}
 #endif
 	
 	unsigned char *image_data = NULL;
@@ -110,30 +123,34 @@ int imageCapture(Camera *cam, HANDLE lensDriver, string file_base, unsigned int 
 	else
 	{
 
+#ifdef USE_OPENCV
+		// OpenCV functions to save video
+		error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
+		if (error != PGRERROR_OK)
+		{
+			PrintError(error);
+			return -1;
+		}
+		
+		image_cols = convertedImageCV.GetCols();
+		image_rows = convertedImageCV.GetRows();
+		image_stride = convertedImageCV.GetStride();
+		image_data_size = convertedImageCV.GetDataSize();
+		
 		//image_cols = rawImage.GetCols();
 		//image_rows = rawImage.GetRows();
 		//image_stride = rawImage.GetStride();
 		//image_data_size = rawImage.GetDataSize();
-		BayerTileFormat btFormat;
 
-		rawImage.GetDimensions(&image_rows, &image_cols, &image_stride, &pixFormat, &btFormat);
-
-#ifdef USE_OPENCV
-		// OpenCV functions to save video
-		//error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
-		//if (error != PGRERROR_OK)
-		//{
-		//	PrintError(error);
-		//	return -1;
-		//}
-		//
-		//image_cols = convertedImageCV.GetCols();
-		//image_rows = convertedImageCV.GetRows();
-		//image_stride = convertedImageCV.GetStride();
-		//image_data_size = convertedImageCV.GetDataSize();
-		
 		image_size = Size((int)image_cols, (int)image_rows);
 		
+		focusVideo.open(focus_save_file, codec, fps, image_size, true);
+		defocusVideo.open(defocus_save_file, codec, fps, image_size, true);
+
+#else
+		image_cols = rawImage.GetCols();
+		image_rows = rawImage.GetRows();
+
 #endif
 
 		cout << endl << "Video size: " << image_cols << " x " << image_rows << "\tImage stride: " << image_stride << endl;
@@ -141,6 +158,7 @@ int imageCapture(Camera *cam, HANDLE lensDriver, string file_base, unsigned int 
 	}
 
 	sendLensPacket(Focus, lensDriver);
+
 
 	// start of the main capture loop
 	while (count < numCaptures)
@@ -151,7 +169,6 @@ int imageCapture(Camera *cam, HANDLE lensDriver, string file_base, unsigned int 
 		tick1 = clock();
 #endif
 		
-//////////////////////////// START FOCUS CAPTURE //////////////////////////////
 		//double t1 = (double)getTickCount();
 		// poll the camera to see if it is ready for a software trigger
 		PollForTriggerReady(cam);
@@ -183,36 +200,38 @@ int imageCapture(Camera *cam, HANDLE lensDriver, string file_base, unsigned int 
 
 		// send blurred voltage to lens driver
 		sendLensPacket(DeFocus, lensDriver);
-		//save_file_name.clear();
-		//save_file_name.str("");
-		//save_file_name << file_base << "_focus_" << setfill('0') << setw(5) << count << ".png";
-		save_file_name = file_base + "_focus_" + to_string(count)	+ ".png";
 
 #ifdef USE_OPENCV
 		//double t5 = (double)getTickCount();
 		// Convert the raw image	PIXEL_FORMAT_BGR for opencv
-		//error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
-		//if (error != PGRERROR_OK)
-		//{
-		//	PrintError(error);
-		//	return -1;
-		//}
+		error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
+		if (error != PGRERROR_OK)
+		{
+			PrintError(error);
+			return -1;
+		}
 		//double t6 = (double)getTickCount();
 
+		//unsigned int temp_rows = rawImage.GetRows();
+		//unsigned int temp_cols = rawImage.GetCols();
+		//unsigned int temp_stride = rawImage.GetStride();
+		//unsigned int temp_data_size = rawImage.GetDataSize();
+		//unsigned int image_data_size = convertedImageCV.GetDataSize();
 
 		//unsigned char *temp_image_data = NULL;
 		//temp_image_data = rawImage.GetData();
 		//Mat temp_video = Mat(Size(temp_cols, temp_rows), CV_8UC3, temp_image_data, temp_stride);
 
 		// Convert data to opencv format
-		//image_data = convertedImageCV.GetData();
-		image_data = rawImage.GetData();
+		image_data = convertedImageCV.GetData();
+		//image_data = rawImage.GetData();
 
-		imageFrame = Mat(image_size, CV_8UC3, image_data, image_stride);
+		video_frame = Mat(image_size, CV_8UC3, image_data, image_stride);
 		//double t7 = (double)getTickCount();
 
-		imwrite(save_file_name, imageFrame);
-		//focusVideo.write(video_frame);
+
+
+		focusVideo.write(video_frame);
 		//double t8 = (double)getTickCount();
 
 		//cout << "t6-t5: " << ((t6 - t5) * 1000) * tickFreq << endl;
@@ -221,17 +240,14 @@ int imageCapture(Camera *cam, HANDLE lensDriver, string file_base, unsigned int 
 
 #else
 		// FlyCapture2 Append image to AVI file
-		error = rawImage.Save(save_file_name.str().c_str());
+		error = videoFile.AVIAppend(&rawImage);
 		if (error != PGRERROR_OK)
 		{
-			PrintError( error );
+			PrintError(error);
 			continue;
 		}
 
 #endif
-
-/////////////////////////// START DEFOCUS CAPTURE /////////////////////////////
-
 		//t1 = (double)getTickCount();
 		// poll the camera to see if it is ready for a software trigger
 		PollForTriggerReady(cam);
@@ -258,35 +274,34 @@ int imageCapture(Camera *cam, HANDLE lensDriver, string file_base, unsigned int 
 		//cout << "t3-t2: " << ((t3 - t2) * 1000) * tickFreq << endl;
 		//cout << "t4-t1: " << ((t4 - t1) * 1000) * tickFreq << endl;
 
-		// send the focus command to the lens driver ahead of the next image read 
-		// to allow for settling and to make sure that the lens is at the right voltage 
 		sendLensPacket(Focus, lensDriver);
 
-		//save_file_name.clear();
-		//save_file_name.str("");
-
-		//save_file_name << file_base << "_defocus_" << setfill('0') << setw(5) << count << ".png";
-		save_file_name = file_base + "_focus_" + to_string(count) + ".png";
 
 #ifdef USE_OPENCV
 		// Convert the raw image	PIXEL_FORMAT_BGR for opencv
-		//error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
-		//if (error != PGRERROR_OK)
-		//{
-		//	PrintError(error);
-		//	return -1;
-		//}
+		error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
+		if (error != PGRERROR_OK)
+		{
+			PrintError(error);
+			return -1;
+		}
 
 		// Convert data to opencv format
-		imageFrame = Mat(image_size, CV_8UC3, image_data, image_stride);
-		imwrite(save_file_name, imageFrame);
+		image_data = convertedImageCV.GetData();
+		//image_data = rawImage.GetData();
+
+		video_frame = Mat(image_size, CV_8UC3, image_data, image_stride);
+
+		// display images
+		//imshow(Window1, video_frame);
+		defocusVideo.write(video_frame);
 
 #else
 		// FlyCapture2 Append image to AVI file
-		error = rawImage.Save(save_file_name.str().c_str());
+		error = videoFile.AVIAppend(&rawImage);
 		if (error != PGRERROR_OK)
 		{
-			PrintError( error );
+			PrintError(error);
 			continue;
 		}
 
@@ -316,22 +331,35 @@ int imageCapture(Camera *cam, HANDLE lensDriver, string file_base, unsigned int 
 	// OpenCV functions to complete Actions
 	cout << "Average Frame Rate (fps): " << dec << (unsigned short)(1/((duration * tickFreq)/ (numCaptures*2.0))) << endl;
 	
-	//focusVideo.release(); 
-	//defocusVideo.release();
+	focusVideo.release(); 
+	defocusVideo.release();
 	destroyAllWindows();
 
 #else
 	// FlyCapture2 functions to complete actions
 	cout << "Average Frame Rate (fps): " << dec << (unsigned short)(1.0/(duration/(numCaptures*2.0))) << endl;
-
+	error = videoFile.AVIClose();
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+		return -1;
+	}
 #endif
 	sendLensPacket(Focus, lensDriver);
 
-	cout << "Finished Writing Images!" << endl;
+	cout << "Finished Writing Video!" << endl;
+
+	// Stop capturing images
+	//error = cam->StopCapture();
+	//if (error != PGRERROR_OK)
+	//{
+	//	PrintError(error);
+	//	return -1;
+	//}
 
 	return 0;
 
-}	// end of imageCapture
+}	// end of videoCapture
 
 
 

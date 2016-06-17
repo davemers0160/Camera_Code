@@ -6,11 +6,13 @@
 using namespace FlyCapture2;
 using namespace std;
 
+void getcurrenttime(char currenttime[]);
+void PrintError(FlyCapture2::Error error);
+void PrintBuildInfo(void);
+void PrintCameraInfo(CameraInfo* pCamInfo);
 void cameraConnect(PGRGuid guid, Camera *cam);
 FlyCapture2::Error configImagerFormat(Camera *cam, unsigned int offsetX, unsigned int offsetY, unsigned int width, unsigned int height, PixelFormat pixelFormat);
 FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shutter, float *gain, float *brightness, float *auto_exp, float fps);
-void PrintError(FlyCapture2::Error error);
-void PrintCameraInfo(CameraInfo* pCamInfo);
 void configProperty(Camera *cam, Property &prop, PropertyType type, bool AutoMode, bool OnOff, bool absControl);
 FlyCapture2::Error setProperty(Camera *cam, Property &prop, float value);
 FlyCapture2::Error setProperty(Camera *cam, Property &prop);

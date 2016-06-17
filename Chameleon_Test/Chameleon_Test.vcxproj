@@ -154,19 +154,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Camera_Shared_Code\Chameleon_Utilities.cpp" />
+    <ClCompile Include="..\Camera_Shared_Code\imageCapture.cpp" />
+    <ClCompile Include="..\Camera_Shared_Code\Lens_Driver.cpp" />
+    <ClCompile Include="..\Camera_Shared_Code\stdafx.cpp" />
+    <ClCompile Include="..\Camera_Shared_Code\videoCapture_2.cpp" />
     <ClCompile Include="Camera_Main.cpp" />
-    <ClCompile Include="Chameleon_Utilities.cpp" />
-    <ClCompile Include="imageCapture.cpp" />
-    <ClCompile Include="Lens_Driver.cpp" />
-    <ClCompile Include="stdafx.cpp" />
-    <ClCompile Include="videoCapture_2.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Chameleon_Utilities.h" />
+    <ClInclude Include="..\Camera_Shared_Code\Chameleon_Utilities.h" />
+    <ClInclude Include="..\Camera_Shared_Code\Lens_Driver.h" />
+    <ClInclude Include="..\Camera_Shared_Code\stdafx.h" />
     <ClInclude Include="ftd2xx.h" />
-    <ClInclude Include="Lens_Driver.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

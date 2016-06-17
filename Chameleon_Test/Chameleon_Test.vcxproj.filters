@@ -15,22 +15,22 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="stdafx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Lens_Driver.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Camera_Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Chameleon_Utilities.cpp">
+    <ClCompile Include="..\Camera_Shared_Code\Chameleon_Utilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="imageCapture.cpp">
+    <ClCompile Include="..\Camera_Shared_Code\imageCapture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="videoCapture_2.cpp">
+    <ClCompile Include="..\Camera_Shared_Code\Lens_Driver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Camera_Shared_Code\videoCapture_2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Camera_Shared_Code\stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -38,16 +38,16 @@
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="stdafx.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Lens_Driver.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ftd2xx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Chameleon_Utilities.h">
+    <ClInclude Include="..\Camera_Shared_Code\Chameleon_Utilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Camera_Shared_Code\Lens_Driver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Camera_Shared_Code\stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

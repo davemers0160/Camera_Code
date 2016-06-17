@@ -5,7 +5,13 @@
 
 
 #include <memory>
-#include <Windows.h>
+#include <string.h>
+
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
+	#include <Windows.h>
+#else
+	#include "ftd2xx.h"
+#endif
 
 namespace Lens_Driver
 {
@@ -166,9 +172,17 @@ namespace Lens_Driver
 	bool checkChecksum(LensRxPacket Packet);
 
 	//unsigned char genChecksum(Packet_Struct Packet);
+
+	void getLensDriverInfo(LensDriverInfo *LensInfo, LensRxPacket Packet);
+	void PrintDriverInfo(LensDriverInfo *LensInfo);
+
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
 	unsigned char sendLensPacket(LensTxPacket Packet, HANDLE lensDriver);
 	bool readLensPacket(LensRxPacket *Packet, HANDLE lensDriver, unsigned char count);
-	void getLensDriverInfo(LensDriverInfo *LensInfo, LensRxPacket Packet);
+#else
+	unsigned char sendLensPacket(LensTxPacket Packet, FT_HANDLE lensDriver);
+	bool readLensPacket(LensRxPacket *Packet, FT_HANDLE lensDriver, unsigned int count);
+#endif
 
 };
 
