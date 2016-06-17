@@ -4,35 +4,35 @@
  Aaron Weiss
  aaron at sparkfun dot com
  
- 	9DOF-Razor-IMU-AHRS compatible
- 	
- 	ATMega328@3.3V w/ external 8MHz resonator
- 	High fuse 0xDA
+  9DOF-Razor-IMU-AHRS compatible
+  
+  ATMega328@3.3V w/ external 8MHz resonator
+  High fuse 0xDA
  Low fuse 0xFF
- 	EXT fust 0xF8
- 	
- 	Default Baud: 57600bps
- 	
- 	Revision Notes:
- 	Hardware v22
- 	Firmware: 
- 	v18 took self test off of menu, explain how to use it in help menu
- 	v19 added baud rate selection, default to 57600bps, various bug fixes
- 	v19i fixed baud menu return bugs
- 	v20 using ITG3200 gyro
- 	v21 added auto self test upon startup (see notes)
- 	v22 corrected HMC output, x and y registers are different in the HMC5883
- 	
- 	ADXL345: Accelerometer
- 	HMC5883: Magnetometer
- 	ITG3200: Pitch, Roll, and Yaw Gyro
- 	
- 	Notes: 
- 	
- 	-To get out of autorun, hit ctrl-z
- 	-max baud rate @8MHz is 57600bps
- 	-self-test startup: LED blinks 5 times then OFF = GOOD, LED ON = BAD
- 	
+  EXT fust 0xF8
+  
+  Default Baud: 57600bps
+  
+  Revision Notes:
+  Hardware v22
+  Firmware: 
+  v18 took self test off of menu, explain how to use it in help menu
+  v19 added baud rate selection, default to 57600bps, various bug fixes
+  v19i fixed baud menu return bugs
+  v20 using ITG3200 gyro
+  v21 added auto self test upon startup (see notes)
+  v22 corrected HMC output, x and y registers are different in the HMC5883
+  
+  ADXL345: Accelerometer
+  HMC5883: Magnetometer
+  ITG3200: Pitch, Roll, and Yaw Gyro
+  
+  Notes: 
+  
+  -To get out of autorun, hit ctrl-z
+  -max baud rate @8MHz is 57600bps
+  -self-test startup: LED blinks 5 times then OFF = GOOD, LED ON = BAD
+  
  */
 
 #include <stdlib.h>
@@ -48,14 +48,20 @@
 //#define STATUS_LED 5     /* stat LED is on PB5 */
 //#define ODROID_PWR  PORTB4   /* Pin to toggle power on and off for the Odroid */
 
+
 #define ON          1    /* Define Power On as 1 */
 #define OFF         0    /* Define Power Off as 0 */
 
 #define sbi(var, mask)   ((var) |= (uint8_t)(1 << mask))
 #define cbi(var, mask)   ((var) &= (uint8_t)~(1 << mask))
 
-#define ITG3200_R 0xD1	// ADD pin is pulled low
+#define ITG3200_R 0xD1  // ADD pin is pulled low
 #define ITG3200_W 0xD0 
+#define POWEROFF  0
+#define POWERON   1
+#define RECORDING 2
+#define STANDBY   3
+//#define static int uart_putchar(char c, FILE *stream)
 
 ///============Initialize Prototypes=====//////////////////
 void init(void);
@@ -116,184 +122,342 @@ int STATUS_LED = 17;
 /////===========MAIN=====================/////////////////////
 int main(void)
 {
-  int16_t i;
-  int16_t Ax0, Ay0, Az0, Ax, Ay, Az;
-  int16_t Vx, Vy, Vz;
-  int16_t Vx0 = 0, Vy0 = 0, Vz0 = 0;
-  uint16_t X2, Y2, Z2;  
-  uint16_t VX2, VY2, VZ2;
-  uint16_t sqr, sq_root;
-  uint16_t V_sqr;
-  uint16_t V;
+	int16_t i;
+	int16_t Ax0, Ay0, Az0, Ax, Ay, Az;
+	int16_t Vx, Vy, Vz;
+	int16_t Vx0 = 0, Vy0 = 0, Vz0 = 0;
+	uint16_t X2, Y2, Z2;  
+	uint16_t VX2, VY2, VZ2;
+	uint16_t sqr, sq_root;
+	uint16_t V_sqr;
+	uint16_t V;
+        uint16_t COUNT, STBY_COUNT, states;
+
+	uint8_t odroid_status=0;
+
+	init();
+
+	// set UART speed to 57600
+	UART_Init(16);
+	baud = 57600;
+
+
+	cbi(PORTB,5);
+	COUNT=30;
+        STBY_COUNT = 0;
+	Ax0 = 0;
+	Ay0 = 0;
+	Az0 = 0;
+	states=POWEROFF;
+
+	while(1)
+	{ 
+		//for (i=0;i<16;i++)
+		//{//check to see if autorun is set, if it is don't print the menu
+		//if(read_from_EEPROM(1) == 48) config_read();
+		//else config_menu();
+
+		// reset x, y, z variables
+		Ax = 0;
+		Ay = 0;
+		Az = 0;
+
+		// collect 16 samples on each axis and sum together
+		for(i=0;i<16;i++)
+		{
+		Ax += x_accel();
+		Ay += y_accel();
+		Az += z_accel();
+
+		delay_ms(300);      // delay designed to put average out on a 1 second interval
+		}
+
+		// take the average and one extra division by 2
+		Ax = Ax>>4;
+		Ay = Ay>>4;
+		Az = Az>>4;
+
+		// The  Accelerations are now averaged
+
+		// print out the accelerations
+		//printf("%d,%d,%d,",Ax,Ay,Az);
+
+
+
+		Vx = Vx0 - (Ax-Ax0);
+		Vy = Vy0 - (Ay-Ay0);
+		Vz = Vz0 - (Az-Az0);
+                
+                // print out the velocty components
+		//printf("%d,%d,%d,",Vx,Vy,Vz);
+
+
+		Vx = Vx>>2;
+		Vy = Vy>>2;
+		Vz = Vz>>2;
+
+		VX2 = (Vx*Vx);
+		VY2 = (Vy*Vy);
+		VZ2 = (Vz*Vz);  
+
+		// debug
+		//    printf("Vx = %4d\tVx0 = %4d\tVx^2 = %5u\r",Vx,Vx0,VX2);
+		//    printf("Vy = %4d\tVy0 = %4d\tVy^2 = %5u\r",Vy,Vy0,VY2);
+		//    printf("Vz = %4d\tVz0 = %4d\tVz^2 = %5u\r",Vz,Vz0,VZ2);
+
+		// divide by 4 to reduce the size 
+		//    Ax = Ax>>2;
+		//    Ay = Ay>>2;
+		//    Az = Az>>2;   
+
+		//    X2 = (Ax*Ax);
+		//    Y2 = (Ay*Ay);
+		//    Z2 = (Az*Az);
+
+		V_sqr = (VX2 + VY2 + VZ2);
+
+		V = 4*SQRT(Vx, V_sqr);
+
+		// debug
+		//printf("V_sqr = %5u\tV = ",V_sqr);
+
+                // print out the final velocity
+		//printf("V = %u\r",V);
+
+		Vx0 = Vx;
+		Vy0 = Vy;
+		Vz0 = Vz;
+
+		Ax0 = Ax;
+		Ay0 = Ay;
+		Az0 = Az;
+
+		// print out the results of the 
+
+		//    printf("%u,",X2);
+		//    printf("%u,",Y2);
+		//    printf("%u,",Z2);    
+		//    printf("%u,",sqr);
+
+		//printf("%u\n\r",sq_root);
+		// test to toggle PB4 pin - ODROID_PWR
+		//digitalWrite(ODROID_PWR, !digitalRead(ODROID_PWR));
+
+
+
+		switch (states)
+		{
+
+			//break;
+			case POWEROFF:
+                                printf("V = %03u\tPOWEROFF count = %d\r",V,COUNT);
+                                cbi(PORTB,5);
+
+				if (V>15)
+				{
+					if (COUNT==0)
+					{
+						COUNT=0;
+					}  
+					else
+					{
+						COUNT = COUNT-1;
+					}
+				}    
+				else if (V<=15)
+				{
+					if (COUNT<30)
+					{
+						COUNT = COUNT+1;
+					}
+				}
+
+				if (COUNT<1)
+				{
+					printf("Exiting POWEROFF mode\r");
+					states = POWERON;
+				}
+				break;                     
+			case POWERON:
+                                printf("V = %03u\tPOWERON count = %d\r",V,COUNT);
+				// if (V<15)
+				//      if (COUNT=0)
+				//      {
+				//           COUNT=0;
+				//         }
+				// else 
+				//       {
+				//       COUNT = COUNT+1;      
+				//     }
+				//if (COUNT>12 && COUNT< 300)
+				//{
+				//cbi(PORTB,5);
+				// printf("standby mode");
+				//}
+				//else if (COUNT<12) 
+				//{
+				//sbi(PORTB,5);
+				//printf("ON mode");
+				//}
+				//else if (COUNT>300)
+				//{
+				sbi(PORTB,6);
+				delay_ms(500);
+				cbi(PORTB,6);
+				delay_ms(1000);
+				printf("Exiting POWERON mode\r");
+				states = RECORDING;
+				//printf("OFF mode");
+				//}
+				break;
+			case RECORDING :
+                                printf("V = %03u\tRECORDING count = %d\r",V,COUNT);
+                                sbi(PORTB,5);
+                                if (V>15)
+				{
+					if (COUNT==0)
+					{
+						COUNT=0;
+					}  
+					else
+					{
+						COUNT = COUNT-1;
+					}
+				}    
+				else if (V<=15)
+				{
+					if (COUNT<30)
+					{
+						COUNT = COUNT+1;
+					}
+				}
+
+				if (COUNT>25)
+				{
+					printf("Exiting RECORDING mode\r"); 
+					states = STANDBY;
+                                        STBY_COUNT = COUNT;
+				}
+				break;
+			case STANDBY:
+                                printf("V = %03u\tSTANDBY count = %02d",V,COUNT);
+                                printf("\tSTANDBY stby_count = %003d\r",STBY_COUNT);
+                                cbi(PORTB,5);
+				if (V>15)
+				{
+					if (COUNT==0)
+					{
+						COUNT=0;
+					}  
+					else
+					{
+						COUNT = COUNT-1;
+					}
+
+					if (STBY_COUNT==0)
+					{
+                                                STBY_COUNT = 0;
+					}  
+					else
+					{
+                                                STBY_COUNT--;
+					}
+
+				}    
+				else if (V<=15)
+				{
+					if (COUNT<30)
+					{
+						COUNT = COUNT+1;
+					}
+
+ 					if (STBY_COUNT<300)
+					{
+						STBY_COUNT++;
+					}                                       
+				} 
+
+
+				if (STBY_COUNT>=300)
+				{ 
   
-  uint8_t odroid_status=0;
-  
-  init();
-  
-  // set UART speed to 57600
-  UART_Init(16);
-  baud = 57600;
+					sbi(PORTB,6);
+					delay_ms(1500);
+					cbi(PORTB,6);
+					COUNT=30;
+                                        states = POWEROFF;
+                                        printf("Exiting STANDBY mode\r");
+				}                     
+                                else if(COUNT < 1)
+                                {
+					printf("Entering RECORDING mode\r"); 
+					states = RECORDING;                                        
+                                }
+
+				break;
+			default:
+				break;
 
 
-  sbi(PORTB,5);
-  
-  Ax0 = 0;
-  Ay0 = 0;
-  Az0 = 0;
-  
-  while(1)
-  {	
+		}	// end of switch(states)
+		
+	//}
 
-    //check to see if autorun is set, if it is don't print the menu
-    //if(read_from_EEPROM(1) == 48) config_read();
-    //else config_menu();
-    
-    // reset x, y, z variables
-    Ax = 0;
-    Ay = 0;
-    Az = 0;
-    
-    // collect 16 samples on each axis and sum together
-    for(i=0;i<16;i++)
-    {
-      Ax += x_accel();
-      Ay += y_accel();
-      Az += z_accel();
-
-      delay_ms(62);      // delay designed to put average out on a 1 second interval
-    }
-    
-    // take the average and one extra division by 2
-    Ax = Ax>>4;
-    Ay = Ay>>4;
-    Az = Az>>4;
-    
-    // The  Accelerations are now averaged
-    
-    // print out the accelerations
-    printf("%d,%d,%d,",Ax,Ay,Az);
-//    printf("%d,", Ax);
-//    printf("%d,", Ay);
-//    printf("%d,", Az);  
-//    printf("\r\n");
-    
-    
-    Vx = Vx0 - (Ax-Ax0);
-    Vy = Vy0 - (Ay-Ay0);
-    Vz = Vz0 - (Az-Az0);
-
-    printf("%d,%d,%d,",Vx,Vy,Vz);
-    
-    
-    Vx = Vx>>2;
-    Vy = Vy>>2;
-    Vz = Vz>>2;
-    
-    VX2 = (Vx*Vx);
-    VY2 = (Vy*Vy);
-    VZ2 = (Vz*Vz);  
-    
-    // debug
-//    printf("Vx = %4d\tVx0 = %4d\tVx^2 = %5u\r\n",Vx,Vx0,VX2);
-//    printf("Vy = %4d\tVy0 = %4d\tVy^2 = %5u\r\n",Vy,Vy0,VY2);
-//    printf("Vz = %4d\tVz0 = %4d\tVz^2 = %5u\r\n",Vz,Vz0,VZ2);
-    
-    // divide by 4 to reduce the size 
-//    Ax = Ax>>2;
-//    Ay = Ay>>2;
-//    Az = Az>>2;   
-    
-//    X2 = (Ax*Ax);
-//    Y2 = (Ay*Ay);
-//    Z2 = (Az*Az);
-    
-    V_sqr = (VX2 + VY2 + VZ2);
-    
-    V = 4*SQRT(Vx, V_sqr);
-    
-    // debug
-    //printf("V_sqr = %5u\tV = ",V_sqr);
-    
-    printf("%u\n\r",V);
-    //odroid_status++;
-    
-    //cbi(PORTB,5);
-    odroid_status ^= 0x01;
-    //sbi(PORTB,5);
-    
-    Vx0 = Vx;
-    Vy0 = Vy;
-    Vz0 = Vz;
-    
-    Ax0 = Ax;
-    Ay0 = Ay;
-    Az0 = Az;
-    
-    // print out th results of the 
-
-//    printf("%u,",X2);
-//    printf("%u,",Y2);
-//    printf("%u,",Z2);    
-//    printf("%u,",sqr);
-    
-    //printf("%u\n\r",sq_root);
-    // test to toggle PB4 pin - ODROID_PWR
-    //digitalWrite(ODROID_PWR, !digitalRead(ODROID_PWR));
-
-    
-  }
+	}	// end of while(1)
 
 }  // end of main
+
+
 
 /////////////////////////////////////////////////////////////////////////////////
 
 uint16_t SQRT(int16_t InitialGuess, uint16_t Number)
 {
-	uint16_t max_iterations = 20;
+  uint16_t max_iterations = 20;
 
-	int16_t sqrt_err = 1000;
-	int16_t min_sqrt_err = 1;
-	int16_t Xo = InitialGuess;
+  int16_t sqrt_err = 1000;
+  int16_t min_sqrt_err = 1;
+  int16_t Xo = InitialGuess;
 
-	int16_t iteration_count;
+  int16_t iteration_count;
 
-	uint16_t result = 0;
-	if (Number == 0) // zero check
-	{
-		return result;
-	}	
+  uint16_t result = 0;
+  if (Number == 0) // zero check
+  {
+    return result;
+  } 
 
-	if (Xo<0)
-	{
-		Xo = Xo*(-1);
-	}
+  if (Xo<0)
+  {
+    Xo = Xo*(-1);
+  }
 
-	iteration_count = 0;
-	// printf("Number = %4u\r\n", Number);
-	// printf("result = %4u ",result);
-	// printf("Xo = %4d ",Xo);	
-	// printf("sqrt_err = %4d ",sqrt_err);
-	// printf("\r\n");
+  iteration_count = 0;
+  // printf("Number = %4u\r", Number);
+  // printf("result = %4u ",result);
+  // printf("Xo = %4d ",Xo);  
+  // printf("sqrt_err = %4d ",sqrt_err);
+  // printf("\r");
 
-	while (iteration_count < max_iterations && ((sqrt_err > min_sqrt_err || sqrt_err < -min_sqrt_err)))
-	{
+  while (iteration_count < max_iterations && ((sqrt_err > min_sqrt_err || sqrt_err < -min_sqrt_err)))
+  {
 
-		//result = (uint16_t)(Xo - (Xo * Xo - Number) / (2 * Xo));
-		result = (Xo + (Number / Xo))>>1;
-		//result = Xo - (Xo >> 1) + ((Number / Xo) >> 1);
+    //result = (uint16_t)(Xo - (Xo * Xo - Number) / (2 * Xo));
+    result = (Xo + (Number / Xo))>>1;
+    //result = Xo - (Xo >> 1) + ((Number / Xo) >> 1);
 
-		//printf("inner: %4d ", ((int16_t)((Xo * Xo) - Number) / (2 * Xo)));
-		// printf("result = %4u ", result);
-		// printf("Xo = %4d ", Xo);
-		
-		sqrt_err = (int16_t)(result - Xo);
-		Xo = (int16_t)(result);
-		
-		// printf("sqrt_err = %4d ", sqrt_err);
-		// printf("\r\n");
-		iteration_count++;
-	}
-	return result;
+    //printf("inner: %4d ", ((int16_t)((Xo * Xo) - Number) / (2 * Xo)));
+    // printf("result = %4u ", result);
+    // printf("Xo = %4d ", Xo);
+    
+    sqrt_err = (int16_t)(result - Xo);
+    Xo = (int16_t)(result);
+    
+    // printf("sqrt_err = %4d ", sqrt_err);
+    // printf("\r");
+    iteration_count++;
+  }
+  return result;
 
 }   // end of SQRT
 
@@ -342,7 +506,7 @@ uint16_t x_accel(void)
   i2cSendByte(0x32);    //X0 data register
   i2cWaitForComplete();
 
-  i2cSendStop();		 //repeat start
+  i2cSendStop();     //repeat start
   i2cSendStart();
 
   i2cWaitForComplete();
@@ -350,13 +514,13 @@ uint16_t x_accel(void)
   i2cWaitForComplete();
   i2cReceiveByte(TRUE);
   i2cWaitForComplete();
-  xl = i2cGetReceivedByte();	//x low byte
+  xl = i2cGetReceivedByte();  //x low byte
   i2cWaitForComplete();
   i2cReceiveByte(FALSE);
   i2cWaitForComplete();
-  dummy = i2cGetReceivedByte();	//must do a multiple byte read?
+  dummy = i2cGetReceivedByte(); //must do a multiple byte read?
   i2cWaitForComplete();
-  i2cSendStop();	
+  i2cSendStop();  
 
   //0x33 data registers
   i2cSendStart();
@@ -366,7 +530,7 @@ uint16_t x_accel(void)
   i2cSendByte(0x33);    //X1 data register
   i2cWaitForComplete();
 
-  i2cSendStop();		 //repeat start
+  i2cSendStop();     //repeat start
   i2cSendStart();
 
   i2cWaitForComplete();
@@ -374,11 +538,11 @@ uint16_t x_accel(void)
   i2cWaitForComplete();
   i2cReceiveByte(TRUE);
   i2cWaitForComplete();
-  xh = i2cGetReceivedByte();	//x high byte
+  xh = i2cGetReceivedByte();  //x high byte
   i2cWaitForComplete();
   i2cReceiveByte(FALSE);
   i2cWaitForComplete();
-  dummy = i2cGetReceivedByte();	//must do a multiple byte read?
+  dummy = i2cGetReceivedByte(); //must do a multiple byte read?
   i2cWaitForComplete();
   i2cSendStop();
   xo = xl|(xh << 8);
@@ -386,7 +550,7 @@ uint16_t x_accel(void)
 }
 
 uint16_t y_accel(void)
-{		
+{   
   //0xA6 for a write
   //0xA7 for a read
 
@@ -401,7 +565,7 @@ uint16_t y_accel(void)
   i2cSendByte(0x34);    //Y0 data register
   i2cWaitForComplete();
 
-  i2cSendStop();		 //repeat start
+  i2cSendStop();     //repeat start
   i2cSendStart();
 
   i2cWaitForComplete();
@@ -409,13 +573,13 @@ uint16_t y_accel(void)
   i2cWaitForComplete();
   i2cReceiveByte(TRUE);
   i2cWaitForComplete();
-  yl = i2cGetReceivedByte();	//x low byte
+  yl = i2cGetReceivedByte();  //x low byte
   i2cWaitForComplete();
   i2cReceiveByte(FALSE);
   i2cWaitForComplete();
-  dummy = i2cGetReceivedByte();	//must do a multiple byte read?
+  dummy = i2cGetReceivedByte(); //must do a multiple byte read?
   i2cWaitForComplete();
-  i2cSendStop();	
+  i2cSendStop();  
 
   //0x35 data registers
   i2cSendStart();
@@ -425,7 +589,7 @@ uint16_t y_accel(void)
   i2cSendByte(0x35);    //Y1 data register
   i2cWaitForComplete();
 
-  i2cSendStop();		 //repeat start
+  i2cSendStop();     //repeat start
   i2cSendStart();
 
   i2cWaitForComplete();
@@ -433,11 +597,11 @@ uint16_t y_accel(void)
   i2cWaitForComplete();
   i2cReceiveByte(TRUE);
   i2cWaitForComplete();
-  yh = i2cGetReceivedByte();	//y high byte
+  yh = i2cGetReceivedByte();  //y high byte
   i2cWaitForComplete();
   i2cReceiveByte(FALSE);
   i2cWaitForComplete();
-  dummy = i2cGetReceivedByte();	//must do a multiple byte read?
+  dummy = i2cGetReceivedByte(); //must do a multiple byte read?
   i2cWaitForComplete();
   i2cSendStop();
   yo = yl|(yh << 8);
@@ -445,7 +609,7 @@ uint16_t y_accel(void)
 }
 
 uint16_t z_accel(void)
-{	
+{ 
   //0xA6 for a write
   //0xA7 for a read
 
@@ -460,7 +624,7 @@ uint16_t z_accel(void)
   i2cSendByte(0x36);    //Z0 data register
   i2cWaitForComplete();
 
-  i2cSendStop();		 //repeat start
+  i2cSendStop();     //repeat start
   i2cSendStart();
 
   i2cWaitForComplete();
@@ -468,13 +632,13 @@ uint16_t z_accel(void)
   i2cWaitForComplete();
   i2cReceiveByte(TRUE);
   i2cWaitForComplete();
-  zl = i2cGetReceivedByte();	//z low byte
+  zl = i2cGetReceivedByte();  //z low byte
   i2cWaitForComplete();
   i2cReceiveByte(FALSE);
   i2cWaitForComplete();
-  dummy = i2cGetReceivedByte();	//must do a multiple byte read?
+  dummy = i2cGetReceivedByte(); //must do a multiple byte read?
   i2cWaitForComplete();
-  i2cSendStop();	
+  i2cSendStop();  
 
   //0x37 data registers
   i2cSendStart();
@@ -484,7 +648,7 @@ uint16_t z_accel(void)
   i2cSendByte(0x37);    //Z1 data register
   i2cWaitForComplete();
 
-  i2cSendStop();		 //repeat start
+  i2cSendStop();     //repeat start
   i2cSendStart();
 
   i2cWaitForComplete();
@@ -492,14 +656,14 @@ uint16_t z_accel(void)
   i2cWaitForComplete();
   i2cReceiveByte(TRUE);
   i2cWaitForComplete();
-  zh = i2cGetReceivedByte();	//z high byte
+  zh = i2cGetReceivedByte();  //z high byte
   i2cWaitForComplete();
   i2cReceiveByte(FALSE);
   i2cWaitForComplete();
-  dummy = i2cGetReceivedByte();	//must do a multiple byte read?
+  dummy = i2cGetReceivedByte(); //must do a multiple byte read?
   i2cWaitForComplete();
   i2cSendStop();
-  zo = zl|(zh << 8);	
+  zo = zl|(zh << 8);  
   return zo;
 }
 
@@ -568,7 +732,7 @@ static int uart_putchar(char c, FILE *stream)
 
 //Description: Writes an unsigned char(Data)  to the EEPROM at the given Address
 //Pre: Unsigned Int Address contains address to be written to
-//	 Unsigned Char Data contains data to be written
+//   Unsigned Char Data contains data to be written
 //Post: EEPROM "Address" contains the "Data"
 //Usage: write_to_EEPROM(0, 'A');
 void write_to_EEPROM(unsigned int Address, unsigned char Data)
@@ -577,25 +741,26 @@ void write_to_EEPROM(unsigned int Address, unsigned char Data)
 
   while(EECR & (1<<EEPE)); //Wait for last Write to complete
   //May need to wait for Flash to complete also!
-  EEAR = Address;			//Assign the Address Register with "Address"
-  EEDR=Data;				//Put "Data" in the Data Register
-  EECR |= (1<<EEMPE); 	//Write to Master Write Enable
-  EECR |= (1<<EEPE);  	//Start Write by setting EE Write Enable
+  EEAR = Address;     //Assign the Address Register with "Address"
+  EEDR=Data;        //Put "Data" in the Data Register
+  EECR |= (1<<EEMPE);   //Write to Master Write Enable
+  EECR |= (1<<EEPE);    //Start Write by setting EE Write Enable
 }
 
 //Description: Reads the EEPROM data at "Address" and returns the character
 //Pre: Unsigned Int Address is the address to be read
 //Post: Character at "Address" is returned
-//Usage: 	unsigned char Data;
-//		Data=read_from_EEPROM(0);
+//Usage:  unsigned char Data;
+//    Data=read_from_EEPROM(0);
 unsigned char read_from_EEPROM(unsigned int Address)
 {
   //Interrupts are globally disabled!
 
-  while(EECR & (1<<EEPE));	//Wait for last Write to complete
-  EEAR = Address;				//Assign the Address Register with "Address"
-  EECR |= (1<<EERE); 			//Start Read by writing to EER
-  return EEDR;				//EEPROM Data is returned
+  while(EECR & (1<<EEPE));  //Wait for last Write to complete
+  EEAR = Address;       //Assign the Address Register with "Address"
+  EECR |= (1<<EERE);      //Start Read by writing to EER
+  return EEDR;        //EEPROM Data is returned
 }
+
 
 
