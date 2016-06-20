@@ -18,6 +18,9 @@
 // windows Includes
 //#include <windows.h>
 
+// DEFINES
+#define STNDBY_PIN	31	/* Pin to monitor the standby/recording  status */
+
 // OPENCV Includes
 #define USE_OPENCV
 
@@ -29,15 +32,18 @@
 #endif
 
 // Point Grey Includes
-#include "../Camera_Shared_Code/stdafx.h"
+#include "stdafx.h"
 #include "include/FlyCapture2.h"
-#include "../Camera_Shared_Code/Chameleon_Utilities.h"
+#include "Chameleon_Utilities.h"
 
 // Lens Driver Includes
-#include "../Camera_Shared_Code/Lens_Driver.h"
+#include "Lens_Driver.h"
 
 // FTDI Driver Includes
-#include "../Camera_Shared_Code/ftd2xx.h"
+#include "ftd2xx.h"
+
+// GPIO Control Includes
+#include "GPIO_Ctrl.h"
 
 using namespace std;
 using namespace FlyCapture2;
@@ -52,47 +58,14 @@ struct ftdiDeviceDetails //structure storage for FTDI device details
 	string serialNumber;
 };
 
-double tickFreq = 1.0 / getTickFrequency();
+double tickFreq = 1000.0 / getTickFrequency();
 
 //void getcurrenttime(char currenttime[]);
 int videoCapture(Camera *cam, FT_HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps);
 int imageCapture(Camera *cam, FT_HANDLE lensDriver, string file_base, unsigned int numCaptures, float fps);
 
 
-
 FT_HANDLE OpenComPort(ftdiDeviceDetails *device, string descript);
-
-
-
-//void PrintBuildInfo()
-//{
-//    FC2Version fc2Version;
-//    Utilities::GetLibraryVersion( &fc2Version );
-    
-//	ostringstream version;
-//	version << "FlyCapture2 library version: " << fc2Version.major << "." << fc2Version.minor << "." << fc2Version.type << "." << fc2Version.build;
-//	cout << version.str() << endl;  
-    
-//	ostringstream timeStamp;
-//    timeStamp <<"Application build date: " << __DATE__ << " " << __TIME__;
-//	cout << timeStamp.str() << endl << endl;  
-//}
-
-
-//void PrintDriverInfo(LensDriverInfo *LensInfo)
-//{
-//	cout << "*** LENS DRIVER INFO ***" << endl;
-//	cout << "Serial Number: " << (unsigned int)LensInfo->SerialNumber << endl;
-//	cout << "Firmware Version: " << (unsigned int)LensInfo->FirmwareVersion[0] << "." << setfill('0') << setw(2) << (unsigned int)LensInfo->FirmwareVersion[1] << endl;
-//	if (LensInfo->DriverType == 0)
-//	{
-//		cout << "Driver Type: Microchip HV892" << endl;
-//	}
-//	cout << endl;
-//	
-//
-//}	// end of PrintDriverInfo
-
 
 int main(int /*argc*/, char** /*argv*/)
 {    
@@ -108,7 +81,7 @@ int main(int /*argc*/, char** /*argv*/)
 	PixelFormat pixelFormat;
 	float shutter, gain, brightness, auto_exp;
 	int sharpness;
-	float framerate = 60.0;
+	float cam_framerate = 50.0;
 
 	
 	//Lens_Driver
@@ -116,8 +89,10 @@ int main(int /*argc*/, char** /*argv*/)
 	LensRxPacket LensRx;
 	LensDriverInfo LensInfo;
 	unsigned char status;
-	unsigned char data[1] {135};
+	unsigned char data[] = {135};
+	//data[0] = 135;
 	LensTxPacket Focus(FAST_SET_VOLT, 1, &data[0]);
+	unsigned char CheckCount = 0;	// counter to limit the number of check to see it the LensDriver is attached
 
 	// Serial Port specific variables
 	FT_HANDLE lensDriver = NULL;
@@ -138,16 +113,21 @@ int main(int /*argc*/, char** /*argv*/)
 	std::ofstream configFile;
 	char currenttime[80];
 
+	int stndby_status;			// variable use to track the recording/standby status
 
-	// place videos in specific location based on the OS that the code is running on
-	//videoSaveFile = "/home/odroid/Videos/test_recording_" + (string)currenttime + ".avi";
-	//videoSaveFile = "/media/odroid/TOSHIBA EXT/Videos/test_recording_" + (string)currenttime + ".avi";
+	int temp1 = exportPin(STNDBY_PIN);
+	int temp2 = setPinDirection(STNDBY_PIN, 0);
+	int temp3 = readPin(STNDBY_PIN);
+	int temp4 = readPin(STNDBY_PIN);
+	int temp5 = setPinValue(STNDBY_PIN, 0);
+	int temp6 = setPinValue(STNDBY_PIN, 1);
 
 
 	PrintBuildInfo();
 
+	cout << "Connecting to Lens Driver..." << endl;
 	// check for lens driver
-	while (lensDriver == NULL)
+	while ((lensDriver == NULL) && (CheckCount<50))
 	{
 		driverDeviceDetails.devNumber = 0;
 		driverDeviceDetails.type = 0;
@@ -156,9 +136,37 @@ int main(int /*argc*/, char** /*argv*/)
 		driverDeviceDetails.serialNumber = "";
 
 		lensDriver = OpenComPort(&driverDeviceDetails, "Microfluidic Lens Driver");
-		//FTDI manual says that the buffer goes up to 64 KB
-		//SetupComm(lensDriver, 16 * 4 * 1024, 4 * 1024);
+
+		CheckCount++;
 	}
+	CheckCount = 0;
+	if(lensDriver == NULL)
+	{
+		cout << "No Lens Driver found... exiting!" << endl;
+		return -1;
+	}
+
+
+	cout << "Connecting to GPS Module..." << endl;
+	while ((gpsHandle == NULL) && (CheckCount<10))
+	{
+		gpsDeviceDetails.devNumber = 0;
+		gpsDeviceDetails.type = 0;
+		gpsDeviceDetails.BaudRate = 57600;
+		gpsDeviceDetails.Description = "";
+		gpsDeviceDetails.serialNumber = "";
+
+		gpsHandle = OpenComPort(&gpsDeviceDetails, "LOCOSYS GPS MC-1513");
+
+		CheckCount++;
+
+	}
+
+	if(gpsHandle == NULL)
+	{
+		cout << "No GPS was found!" << endl << endl;
+	}
+
 
 	sendLensPacket(LensTx, lensDriver);
 
@@ -207,7 +215,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 
 	cameraConfig.grabTimeout = 40;// (unsigned int)(1000 / framerate);
-	//cameraConfig.highPerformanceRetrieveBuffer = true;
+	cameraConfig.highPerformanceRetrieveBuffer = true;
 	cameraConfig.asyncBusSpeed = BUSSPEED_ANY;
 
 	// Set the camera configuration
@@ -226,8 +234,8 @@ int main(int /*argc*/, char** /*argv*/)
 	offsetX = 80;		// 40
 	width = 1120;		// 1200;
 	
-	offsetY = 228;		// 224;
-	height = 724;		// 768;
+	offsetY = 228;		// 228;
+	height = 724;		// 724;
 
 	cout << "Configuring Camera!" << endl;
 
@@ -254,8 +262,8 @@ int main(int /*argc*/, char** /*argv*/)
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
 	save_path = "d:\\IUPUI\\Test_Data\\";
 #else
-	save_path = "/home/odroid/Videos/test_recording_" + (string)currenttime + ".avi";
-	//save_path = "/media/odroid/TOSHIBA EXT/Videos/test_recording_" + (string)currenttime + ".avi";
+	//save_path = "/home/odroid/Videos/";
+	save_path = "/media/odroid/DATA_DRIVE/Data/";
 #endif
 
 	file_base = (string)currenttime + "_" + recording_name + "_raw";
@@ -267,7 +275,7 @@ int main(int /*argc*/, char** /*argv*/)
 	///////////////////////////////////////////////////////////////////////////
 
 
-	error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, &brightness, &auto_exp, framerate);
+	error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, &brightness, &auto_exp, cam_framerate);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
@@ -297,6 +305,7 @@ int main(int /*argc*/, char** /*argv*/)
 	// set the camera to software trigger mode
 	setSoftwareTrigger(&cam, true);
 
+	cout << "Tick Freq: " << tickFreq << endl;
 	// begin the capture process
 #ifdef IMG_CAP
 	string dir_name = (string)currenttime + "_" + recording_name + "_raw";
@@ -305,7 +314,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 #else
 	// videoCapture(&cam, lensDriver, video_save_file, framerate, framerate);
-	videoCapture(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, (unsigned int)framerate, framerate);
+	videoCapture(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, 20, cam_framerate);
 
 #endif
 
