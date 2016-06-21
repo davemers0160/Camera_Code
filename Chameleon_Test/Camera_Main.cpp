@@ -99,7 +99,7 @@ int main(int /*argc*/, char** /*argv*/)
 	FlyCapture2::Error error;
 	BusManager busMgr;
     PGRGuid guid;
-	Camera cam = Camera();
+	Camera cam;
 	FC2Config cameraConfig;
 	unsigned int numCameras;
 	unsigned int offsetX, offsetY, width, height;

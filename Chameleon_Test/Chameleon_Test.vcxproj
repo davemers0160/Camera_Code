@@ -96,7 +96,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ftd2xx.lib;FlyCapture2_v110.lib;opencv_core2410d.lib;opencv_features2d2410d.lib;opencv_highgui2410d.lib;opencv_imgproc2410d.lib;opencv_stitching2410d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ftd2xx.lib;FlyCapture2d_v110.lib;opencv_core2410d.lib;opencv_features2d2410d.lib;opencv_highgui2410d.lib;opencv_imgproc2410d.lib;opencv_stitching2410d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>C:\opencv\build\x64\vc12\lib;C:\Program Files\Point Grey Research\FlyCapture2\lib64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
