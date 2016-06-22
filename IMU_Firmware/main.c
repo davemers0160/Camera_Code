@@ -58,10 +58,18 @@
 
 #define ITG3200_R 0xD1  // ADD pin is pulled low
 #define ITG3200_W 0xD0 
+
+// Pins
+#define PWR_PIN    5  /* Pin to toggle the power for the Odroid */
+#define HUB_PIN    4  /* Pin to control the power to the USB hub */
+#define STNDBY_PIN 3  /* Pin to indicate when the Odroid should enter standby mode */ 
+
+// states
 #define POWEROFF  0
 #define POWERON   1
 #define RECORDING 2
 #define STANDBY   3
+
 //#define static int uart_putchar(char c, FILE *stream)
 
 ///============Initialize Prototypes=====//////////////////
@@ -281,31 +289,18 @@ int main(void)
         break;                     
       case POWERON:
               printf("V = %03u\tPOWERON count = %d\r",V,COUNT);
-        // if (V<15)
-        //      if (COUNT=0)
-        //      {
-        //           COUNT=0;
-        //         }
-        // else 
-        //       {
-        //       COUNT = COUNT+1;      
-        //     }
-        //if (COUNT>12 && COUNT< 300)
-        //{
-        //cbi(PORTB,5);
-        // printf("standby mode");
-        //}
-        //else if (COUNT<12) 
-        //{
-        //sbi(PORTB,5);
-        //printf("ON mode");
-        //}
-        //else if (COUNT>300)
-        //{
-        sbi(PORTB,6);
-        delay_ms(500);
-        cbi(PORTB,6);
+
+          
+          
+        // Power on the Hub first
+        sbi(PORTB, HUB_PIN);
         delay_ms(1000);
+      
+        // Turn on power to the Odroid  
+        sbi(PORTB,PWR_PIN);
+        delay_ms(500);
+        cbi(PORTB,PWR_PIN);
+        delay_ms(5000);  // wait a little to allow the Odroid to boot up
         printf("Exiting POWERON mode\r");
         states = RECORDING;
         //printf("OFF mode");
@@ -378,16 +373,22 @@ int main(void)
           }                                       
         } 
 
-
+        // check to see if the standby counter has reached the max value
         if (STBY_COUNT>=300)
         { 
   
-          sbi(PORTB,6);
-          delay_ms(1500);
-          cbi(PORTB,6);
-          COUNT=20;
-          states = POWEROFF;
-          printf("Exiting STANDBY mode\r");
+           // Power off the Hub first
+           cbi(PORTB, HUB_PIN);
+           delay_ms(800);
+      
+           // Turn off the Odroid  
+           sbi(PORTB,PWR_PIN);
+           delay_ms(1500);
+           cbi(PORTB,PWR_PIN);
+           delay_ms(1000);  // wait a little to allow the Odroid to power down
+           COUNT=20;
+           states = POWEROFF;
+           printf("Exiting STANDBY mode\r");
         }                     
                                 else if(COUNT < 1)
                                 {
