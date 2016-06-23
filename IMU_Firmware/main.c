@@ -60,9 +60,9 @@
 #define ITG3200_W 0xD0 
 
 // Pins
-#define PWR_PIN    5  /* Pin to toggle the power for the Odroid */
+#define PWR_PIN    3  /* Pin to toggle the power for the Odroid */
 #define HUB_PIN    4  /* Pin to control the power to the USB hub */
-#define STNDBY_PIN 3  /* Pin to indicate when the Odroid should enter standby mode */ 
+#define STNDBY_PIN 5  /* Pin to indicate when the Odroid should enter standby mode */ 
 
 // states
 #define POWEROFF  0
@@ -123,9 +123,9 @@ const char help_[] PROGMEM = "[?]Help\n\r";
 uint16_t x_mag, y_mag, z_mag; //x, y, and z magnetometer values
 long baud;
 
-int HUB_PWR = 15;
-int ODROID_PWR = 16;
-int STATUS_LED = 17;
+//int HUB_PWR = 15;
+//int ODROID_PWR = 16;
+//int STATUS_LED = 17;
 
 
 /////===========MAIN=====================/////////////////////
@@ -150,8 +150,11 @@ int main(void)
   UART_Init(16);
   baud = 57600;
 
-
-  cbi(PORTB,5);
+  // set all control pins to low
+  cbi(PORTB, STNDBY_PIN);
+  cbi(PORTB, PWR_PIN);
+  cbi(PORTB, HUB_PIN);
+  
   COUNT=20;
   STBY_COUNT = 0;
   Ax0 = 0;
@@ -191,15 +194,12 @@ int main(void)
     // print out the accelerations
     //printf("%d,%d,%d,",Ax,Ay,Az);
 
-
-
     Vx = Vx0 - (Ax-Ax0);
     Vy = Vy0 - (Ay-Ay0);
     Vz = Vz0 - (Az-Az0);
                 
                 // print out the velocty components
     //printf("%d,%d,%d,",Vx,Vy,Vz);
-
 
     Vx = Vx>>2;
     Vy = Vy>>2;
@@ -260,7 +260,9 @@ int main(void)
       //break;
       case POWEROFF:
               printf("V = %03u\tPOWEROFF count = %d\r",V,COUNT);
-              cbi(PORTB,5);
+              // make sure stnadby pin and hub power is off
+              cbi(PORTB, STNDBY_PIN);
+              cbi(PORTB, HUB_PIN);
 
         if (V>15)
         {
@@ -301,14 +303,16 @@ int main(void)
         delay_ms(500);
         cbi(PORTB,PWR_PIN);
         delay_ms(5000);  // wait a little to allow the Odroid to boot up
-        printf("Exiting POWERON mode\r");
+        
+        // turn on the standb pin to start recording
+        sbi(PORTB, STNDBY_PIN);
+        
         states = RECORDING;
-        //printf("OFF mode");
-        //}
+        printf("Exiting POWERON mode\r");
+
         break;
       case RECORDING :
                         printf("V = %03u\tRECORDING count = %d\r",V,COUNT);
-                        sbi(PORTB,5);
                         if (V>15)
         {
           if (COUNT==0)
@@ -322,23 +326,24 @@ int main(void)
         }    
         else if (V<=15)
         {
-          if (COUNT<=20)
+          if (COUNT<20)
           {
             COUNT = COUNT+1;
           }
         }
 
-        if (COUNT>20)
+        if (COUNT>=20)
         {
           printf("Exiting RECORDING mode\r"); 
-          states = STANDBY;
           STBY_COUNT = COUNT;
+          // clear the stnadby pin to cause Odroid to enter standby mode
+          cbi(PORTB, STNDBY_PIN);
+          states = STANDBY;
         }
         break;
       case STANDBY:
              printf("V = %03u\tSTANDBY count = %02d",V,COUNT);
              printf("\tSTANDBY stby_count = %003d\r",STBY_COUNT);
-             cbi(PORTB,5);
         if (V>15)
         {
           if (COUNT==0)
@@ -392,8 +397,10 @@ int main(void)
         }                     
                                 else if(COUNT < 1)
                                 {
+                                 // set the standby pin to begin the recoding process
+                                 sbi(PORTB, STNDBY_PIN);
+                                 states = RECORDING;                                        
           printf("Entering RECORDING mode\r"); 
-          states = RECORDING;                                        
                                 }
 
         break;
@@ -676,17 +683,16 @@ uint16_t z_accel(void)
 void init (void)
 {
   //1 = output, 0 = input
-  DDRB = 0b01111000; //PORTB4, B5 output for stat LED
+  DDRB = 0b01111000; //PORTB 3, 4, 5 output
   DDRC = 0b00010000; //PORTC4 (SDA), PORTC5 (SCL), PORTC all others are inputs
   DDRD = 0b00000010; //PORTD (TX output on PD1)
   PORTC = 0b00110000; //pullups on the I2C bus
 
-  cbi(PORTB, 5);
 
   i2cInit();
   accelerometer_init();
   
-  pinMode(STATUS_LED,OUTPUT);
+  //pinMode(STATUS_LED,OUTPUT);
 
   //check_baud();
 }
