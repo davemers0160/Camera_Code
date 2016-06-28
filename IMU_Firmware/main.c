@@ -299,9 +299,9 @@ int main(void)
         delay_ms(1000);
       
         // Turn on power to the Odroid  
-        cbi(PORTB,PWR_PIN);
-        delay_ms(500);
-        sbi(PORTB,PWR_PIN);
+//        cbi(PORTB,PWR_PIN);
+//        delay_ms(500);
+//        sbi(PORTB,PWR_PIN);
         delay_ms(5000);  // wait a little to allow the Odroid to boot up
         
         // turn on the standb pin to start recording
@@ -387,9 +387,9 @@ int main(void)
            delay_ms(800);
       
            // Turn off the Odroid  
-           cbi(PORTB,PWR_PIN);
-           delay_ms(1500);
-           sbi(PORTB,PWR_PIN);
+  //         cbi(PORTB,PWR_PIN);
+  //         delay_ms(1500);
+  //         sbi(PORTB,PWR_PIN);
            delay_ms(1000);  // wait a little to allow the Odroid to power down
            COUNT=20;
            states = POWEROFF;

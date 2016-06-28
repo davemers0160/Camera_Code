@@ -42,7 +42,6 @@
 		### INSTALL EXTRAS ###
 		sudo apt-get update
 		sudo apt-get install build-essential checkinstall cmake
-		sudo apt-get install emacs
 
 		### CONFIGURE DESKTOP ENVIRONMENT ###
 		Set background to solid color - Black
@@ -84,9 +83,7 @@
 	http://www.ptgrey.com/KB/10357
 	- Download the latest FlyCapture drivers for the Odroid Located in the Box folder
 	- Unzip to the Odroid home folder
-	- In a terminal type the following:
-		sudo apt-get install libraw1394-11 libgtkmm-2.4* libglademm-2.4* libusb-1*
-	- Copy all libraries to system folders:
+	- In a terminal type the following to copy all libraries to system folders:
 		cd flycapture-<version>_arm/lib
 		sudo cp libflycapture* /usr/lib
 		cd flycapture-<version>_arm/
@@ -137,21 +134,45 @@
 	- to check plug in the GPS, IMU or Lens Driver and restart the odroid.
 	- After restart open a terminal window and type lsmod,  ftdi_sio should not be listed
 
-15. Add the wiringPi libraries and install to support GPIO manipulation on the Odroid
-# Run the following commands in a terminal window starting at the Odroid home folder
-	- git clone https://github.com/hardkernel/wiringPi wiringPi
-	- cd wiringPi
-	- ./build
-	- cd examples
-	- make blink	# this makes an example file to test to see if the GPIO control is working
-
+15. Add VNC Server for remote desktop access. (http://forum.odroid.com/viewtopic.php?f=95&t=15320)
+and (http://ubuntuwiki.net/index.php/Xrdp,_installing)
+# Run the following:
+	- sudo apt-get install vino xrdp
+	- vino-preferences
+#Set the Vino server to start automatically at login.
+	- navigate to: System/Preferences/Startup Applications
+	- Use the Add button to create a new entry
+		Name = Vino Server
+		Command = /usr/lib/vino/vino-server
+		Comment = VNC Remote Desktop Server
+	
+		gsettings set org.gnome.Vino require-encryption false
+		
+	- edit /etc/xrdp/xrdp.ini
+	
+		[xrdp1]
+		name=Active Local Login
+		lib=libvnc.so
+		username=
+		password=ask
+		ip=127.0.0.1
+		port=5900
+		
+	- Restart the Odroid
+		
 16. Configure Odroid to shutdown when power button is pressed or voltage is applied to PWRON Pin
 	- Go to System->Preferences->Power Management
 	- Select the "General" Tab
 	- For the "When the power button is pressed" option select Shutdown from the options
 	- Press Close
+	
+17. Configure gpio user group and add odroid to the group and allow non root users to access the 
+gpio pins.  (http://forum.odroid.com/viewtopic.php?f=80&t=15000)
+	- Navigate to the BicycleCamera folder and in a terminal window enter the following:
+		sudo gpio_conf
+		
 
-16. Configure the startup script for the program
+18. Configure the startup script for the program
 # don't do this yet!!!!!!!!!!!!!!!!!!!!!!!!!
 # This is how to add the autostart capability in the GUI interface
 # 1. Create a .desktop file in /home/odroid/.config/autostart/
@@ -180,6 +201,7 @@ General Tips and Tricks
 # uname -r -> command to see what kernel version is running
 # lsb_release -r -> command to see what Ubuntu version is installed
 # cp -> copy a file from one location to another
+# ifconfig -a -> list the available network adapters and their IP addresses
  
 
 
