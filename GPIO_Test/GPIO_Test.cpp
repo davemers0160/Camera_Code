@@ -21,6 +21,8 @@
 // DEFINES
 #define STNDBY_PIN	31	/* Pin to monitor the standby/recording  status */
 
+void sleep_ms(int value);
+
 int main(int argc, char ** argv)
 {
 	unsigned int idx;
@@ -32,7 +34,7 @@ int main(int argc, char ** argv)
 	prev_state = 0;
 
 	int export_status = exportPin(STNDBY_PIN);
-	int dir_status = setPinDirection(STNDBY_PIN, 0);
+	int dir_status = setPinDirection(STNDBY_PIN, 1);
 
 
 	while(1)
@@ -44,21 +46,24 @@ int main(int argc, char ** argv)
 		if(pin_state == 0)
 		{
 		
-
+			current_state = 0;
 			if(current_state != prev_state)
 			{
 				cout << "Pin State: " << pin_state << endl;
 				cout << "Entering standby mode..." << endl;
+				prev_state = current_state;
 			}
 
 		}
  		else if (pin_state == 1)
 		{
 
+ 			current_state = 1;
 			if(current_state != prev_state)
 			{
 				cout << "Pin State: " << pin_state << endl;
 				cout << "Entering record mode..." << endl;
+				prev_state = current_state;
 			}
 
 		}
@@ -68,7 +73,26 @@ int main(int argc, char ** argv)
 		}
 
 
+		readPin(STNDBY_PIN);
+		sleep_ms(100);
+
+
+
 	}	// end of while(1)
 
 }	// end of main
 
+void sleep_ms(int value)
+{
+
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
+	Sleep(value);
+#else
+	const timespec delay[]= {0, value*1000000L} ;
+	//delay->tv_sec = 0;
+	//delay->tv_nsec = value*1000000L;
+	nanosleep(delay, NULL);
+	//nanosleep((const struct timespec[]){ {0, value*1000000L} }, NULL);
+#endif
+
+}
