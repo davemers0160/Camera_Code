@@ -151,17 +151,22 @@ int main(void)
   baud = 57600;
 
   // set all control pins to low
-  cbi(PORTB, STNDBY_PIN);
-  sbi(PORTB, PWR_PIN);
-  cbi(PORTB, HUB_PIN);
+  cbi(PORTB, PWR_PIN);
+  sbi(PORTB, STNDBY_PIN);
+  sbi(PORTB, HUB_PIN);
   
-  COUNT=20;
+  COUNT=0;
   STBY_COUNT = 0;
   Ax0 = 0;
   Ay0 = 0;
   Az0 = 0;
-  states=POWEROFF;
+  
+  // this is the first state that occurs when power is initially applied
+  // the Odroid will power up and begin recording
+  states=RECORDING;
 
+  delay_ms(8000);
+  
   while(1)
   { 
     //for (i=0;i<16;i++)
@@ -299,13 +304,15 @@ int main(void)
         delay_ms(1000);
       
         // Turn on power to the Odroid  
-//        cbi(PORTB,PWR_PIN);
-//        delay_ms(500);
-//        sbi(PORTB,PWR_PIN);
-        delay_ms(5000);  // wait a little to allow the Odroid to boot up
+        sbi(PORTB,PWR_PIN);
+        delay_ms(1000);
+        cbi(PORTB,PWR_PIN);
+        delay_ms(1500);
         
         // turn on the standb pin to start recording
         sbi(PORTB, STNDBY_PIN);
+        delay_ms(8000);  // wait a little to allow the Odroid to boot up   
+   
         
         states = RECORDING;
         printf("Exiting POWERON mode\r");
@@ -387,10 +394,10 @@ int main(void)
            delay_ms(800);
       
            // Turn off the Odroid  
-  //         cbi(PORTB,PWR_PIN);
-  //         delay_ms(1500);
-  //         sbi(PORTB,PWR_PIN);
-           delay_ms(1000);  // wait a little to allow the Odroid to power down
+           sbi(PORTB,PWR_PIN);
+           delay_ms(800);
+           cbi(PORTB,PWR_PIN);
+           delay_ms(1500);  // wait a little to allow the Odroid to power down
            COUNT=20;
            states = POWEROFF;
            printf("Exiting STANDBY mode\r");
