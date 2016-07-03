@@ -60,7 +60,7 @@ bool configLensDriver(LPCWSTR port, HANDLE &serialHandle);
 int videoCapture(Camera *cam, HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps);
 int imageCapture(Camera *cam, HANDLE lensDriver, string file_base, unsigned int numCaptures, float fps);
 
-double tickFreq = 1.0 / getTickFrequency();
+// double tickFreq = 1.0 / getTickFrequency();
 
 //void PrintBuildInfo()
 //{
@@ -107,6 +107,7 @@ int main(int /*argc*/, char** /*argv*/)
 	float shutter, gain, brightness, auto_exp;
 	int sharpness;
 	float framerate = 60.0;
+	float cam_framerate = 50.0;
 	
 	//Lens_Driver test_lens;
 	LensTxPacket LensTx(CON,0);
@@ -233,7 +234,15 @@ int main(int /*argc*/, char** /*argv*/)
 		return -1;
 	}
 
-	///////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Start monitoring the states of the pins for the odroid
+///////////////////////////////////////////////////////////////////////////////
+
+	// psuedo code
+	// start a never ending loop
+	// if the standby pin is high then start recording 
+	// otherwise skip
+
 	getcurrenttime(currenttime);
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
 	save_path = "d:\\IUPUI\\Test_Data\\";
@@ -251,7 +260,7 @@ int main(int /*argc*/, char** /*argv*/)
 	///////////////////////////////////////////////////////////////////////////
 
 	//error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, framerate);
-	error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, &brightness, &auto_exp, framerate);
+	error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, &brightness, &auto_exp, 2*cam_framerate);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
@@ -284,7 +293,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 #else
 	// videoCapture(&cam, lensDriver, video_save_file, framerate, framerate);
-	videoCapture(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, (unsigned int)framerate, framerate);
+	videoCapture(&cam, lensDriver, save_path + focus_save_file, save_path + defocus_save_file, (unsigned int)cam_framerate, 48.0);
 
 #endif
 
@@ -299,6 +308,13 @@ int main(int /*argc*/, char** /*argv*/)
 
 	setSoftwareTrigger(&cam, false);
 
+
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+
+
+
 	// Disconnect the camera
 	error = cam.Disconnect();
 	if (error != PGRERROR_OK)
@@ -310,8 +326,9 @@ int main(int /*argc*/, char** /*argv*/)
 	// disconnect from lens driver
 	CloseHandle(lensDriver);
 
-    cout << "Done! Press Enter to exit..." << endl; 
-    cin.ignore();
+	cout << "Program Complete!" << endl;
+	//cout << "Press Enter to exit..." << endl; 
+    //cin.ignore();
 
     return 0;
 }
