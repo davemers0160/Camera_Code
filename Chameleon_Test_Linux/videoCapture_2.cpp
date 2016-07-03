@@ -3,7 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-//#include <vector>
+#include <vector>
 //#include <iomanip>
 #include <ctime>
 //#include <chrono>
@@ -41,7 +41,7 @@ using namespace std;
 using namespace FlyCapture2;
 using namespace Lens_Driver;
 
-volatile extern double tickFreq;
+//volatile extern double tickFreq;
 
 
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
@@ -54,6 +54,7 @@ volatile extern double tickFreq;
 	//auto tick1 = chrono::high_resolution_clock::now();
 	//auto tick2 = chrono::high_resolution_clock::now();
 
+	double tickFreq = 1000.0 / getTickFrequency();
 
 	unsigned int count = 0;
 	unsigned int image_rows = 0;

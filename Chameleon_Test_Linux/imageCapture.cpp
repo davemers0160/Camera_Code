@@ -42,7 +42,7 @@ using namespace std;
 using namespace FlyCapture2;
 using namespace Lens_Driver;
 
-volatile extern double tickFreq;
+//volatile extern double tickFreq;
 
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
 	int imageCapture(Camera *cam, HANDLE lensDriver, string file_base, unsigned int numCaptures, float fps)
@@ -52,6 +52,7 @@ volatile extern double tickFreq;
 {
 	// timing variables
 	double duration=0;
+	double tickFreq = 1000.0 / getTickFrequency();
 
 	// image variables
 	unsigned int count = 0;

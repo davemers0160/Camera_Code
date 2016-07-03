@@ -58,7 +58,7 @@ struct ftdiDeviceDetails //structure storage for FTDI device details
 	string serialNumber;
 };
 
-double tickFreq = 1000.0 / getTickFrequency();
+//double tickFreq = 1000.0 / getTickFrequency();
 
 //void getcurrenttime(char currenttime[]);
 int videoCapture(Camera *cam, FT_HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps);
