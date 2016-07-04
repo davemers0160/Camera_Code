@@ -218,8 +218,8 @@ int main(int /*argc*/, char** /*argv*/)
 	height = 724;		// 768;
 
 	//pixelFormat = PIXEL_FORMAT_422YUV8;
-	//pixelFormat = PIXEL_FORMAT_444YUV8;
-	pixelFormat = PIXEL_FORMAT_RGB8;
+	pixelFormat = PIXEL_FORMAT_444YUV8;
+	//pixelFormat = PIXEL_FORMAT_RGB8;
 	error = configImagerFormat(&cam, offsetX, offsetY, width, height, pixelFormat);
 	if (error != PGRERROR_OK)
 	{
@@ -327,8 +327,8 @@ int main(int /*argc*/, char** /*argv*/)
 	CloseHandle(lensDriver);
 
 	cout << "Program Complete!" << endl;
-	//cout << "Press Enter to exit..." << endl; 
-    //cin.ignore();
+	cout << "Press Enter to exit..." << endl; 
+    cin.ignore();
 
     return 0;
 }
