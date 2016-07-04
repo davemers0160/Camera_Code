@@ -1,0 +1,13 @@
+# libraries to include
+opencv_core
+opencv_highgui
+opencv_imgproc
+ftd2xx
+flycapture
+
+
+
+# paths to include
+/usr/local/lib/
+/usr/lib/
+

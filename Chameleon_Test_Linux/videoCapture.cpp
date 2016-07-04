@@ -41,15 +41,8 @@ using namespace std;
 using namespace FlyCapture2;
 using namespace Lens_Driver;
 
-volatile extern double tickFreq;
-
 int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int numCaptures, float fps)
 {
-	// timing variables
-	//auto tick1 = chrono::high_resolution_clock::now();
-	//auto tick2 = chrono::high_resolution_clock::now();
-	double duration=0;
-
 
 	unsigned int key = 0;
 	unsigned int image_rows = 0;
@@ -70,6 +63,10 @@ int videoCapture(Camera *cam, HANDLE lensDriver, string save_file, unsigned int 
 #ifdef USE_OPENCV
 	// OpenCV variables
 	double tick1, tick2;
+	double duration = 0;
+	double tickFreq = 1000.0 / getTickFrequency();
+	double delta = (0.020*getTickFrequency());
+	double start, stop;
 	
 	int codec = CV_FOURCC('M', 'J', 'P', 'G');
 	//int codec = CV_FOURCC('D', 'I', 'V', 'X');

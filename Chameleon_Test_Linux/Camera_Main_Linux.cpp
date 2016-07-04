@@ -69,6 +69,10 @@ FT_HANDLE OpenComPort(ftdiDeviceDetails *device, string descript);
 
 int main(int /*argc*/, char** /*argv*/)
 {    
+	// GPIO variables
+	int export_status;
+	int dir_status;
+	int pin_value;
 	
 	// Camera specific variables
 	FlyCapture2::Error error;
@@ -115,15 +119,20 @@ int main(int /*argc*/, char** /*argv*/)
 
 	int stndby_status;			// variable use to track the recording/standby status
 
-	int temp1 = exportPin(STNDBY_PIN);
-	int temp2 = setPinDirection(STNDBY_PIN, 0);
-	int temp3 = readPin(STNDBY_PIN);
-	int temp4 = readPin(STNDBY_PIN);
-	int temp5 = setPinValue(STNDBY_PIN, 0);
-	int temp6 = setPinValue(STNDBY_PIN, 1);
+	//int temp1 = exportPin(STNDBY_PIN);
+	//int temp2 = setPinDirection(STNDBY_PIN, 0);
+	//int temp3 = readPin(STNDBY_PIN);
+	//int temp4 = readPin(STNDBY_PIN);
+	//int temp5 = setPinValue(STNDBY_PIN, 0);
+	//int temp6 = setPinValue(STNDBY_PIN, 1);
 
 
 	PrintBuildInfo();
+
+	// configure pin for reading standby status
+	export_status = exportPin(STNDBY_PIN);
+	dir_status = setPinDirection(STNDBY_PIN, 1);
+
 
 	cout << "Connecting to Lens Driver..." << endl;
 	// check for lens driver
@@ -226,7 +235,7 @@ int main(int /*argc*/, char** /*argv*/)
 		return -1;
 	}
 
-	// set lens to intial focus
+	// set lens to initial focus
 	sendLensPacket(Focus, lensDriver);
 
 	// configure the image size and the pixel format for the video
@@ -257,6 +266,11 @@ int main(int /*argc*/, char** /*argv*/)
 	}
 
 
+
+	pin_value = readPin(STNDBY_PIN);
+	cout << "Pin Value: " << pin_value << endl;
+	cout << "Entering standby mode..." << endl;
+
 	///////////////////////////////////////////////////////////////////////////
 	getcurrenttime(currenttime);
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
@@ -275,7 +289,7 @@ int main(int /*argc*/, char** /*argv*/)
 	///////////////////////////////////////////////////////////////////////////
 
 
-	error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, &brightness, &auto_exp, cam_framerate);
+	error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, &brightness, &auto_exp, 2*cam_framerate);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
@@ -305,7 +319,6 @@ int main(int /*argc*/, char** /*argv*/)
 	// set the camera to software trigger mode
 	setSoftwareTrigger(&cam, true);
 
-	cout << "Tick Freq: " << tickFreq << endl;
 	// begin the capture process
 #ifdef IMG_CAP
 	string dir_name = (string)currenttime + "_" + recording_name + "_raw";
