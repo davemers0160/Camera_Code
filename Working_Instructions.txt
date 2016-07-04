@@ -95,11 +95,11 @@
 	- Restart your board for the user permissions to take effect.
 
 12. Download and install the FTDI drivers that are required for the Lens Driver Board
-	- Go to Box and download libftdi2xx-arm-v7-hf-1.3.6.tgz
+	- Go to Box and download libftd2xx-arm-v7-hf-1.3.6.tgz
 	- unzip into the odroid home folder and rename the release folder to libftdi2xx-arm-v7-hf-1.3.6
 	- run the following commands in a terminal window
 		sudo -s
-		cd libftdi2xx-arm-v7-hf-1.3.6/build
+		cd libftd2xx-arm-v7-hf-1.3.6/build
 		cp libftd2xx.* /usr/local/lib
 		chmod 0755 /usr/local/lib/libftd2xx.so.1.3.6
 		ln -sf /usr/local/lib/libftd2xx.so.1.3.6 /usr/local/lib/libftd2xx.so
