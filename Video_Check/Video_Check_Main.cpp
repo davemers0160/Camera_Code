@@ -69,7 +69,8 @@ int main(int argc, char** argv)
 	unsigned char set[2] = { 0, 0 };
 
 	string filename;
-	string filepath = "D:\\IUPUI\\Test_Data\\";
+	//string filepath = "D:\\IUPUI\\Test_Data\\";
+	string filepath = "G:\\Data\\";
 
 	if (argc < 3)
 	{
