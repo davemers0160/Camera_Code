@@ -146,6 +146,8 @@ using namespace Lens_Driver;
 
 	sendLensPacket(Focus, lensDriver);
 
+	cout << "Starting capture loop (" << numCaptures << ")..." << endl;
+
 	// start of the main capture loop
 	while (count < numCaptures)
 	{
@@ -176,6 +178,7 @@ using namespace Lens_Driver;
 		if (error != PGRERROR_OK)
 		{
 			PrintError(error);
+			cout << "Count: " << count << endl;
 			continue;
 		}
 
@@ -243,6 +246,7 @@ using namespace Lens_Driver;
 		if (error != PGRERROR_OK)
 		{
 			PrintError(error);
+			cout << "Count: " << count << endl;
 			continue;
 		}
 		//t4 = (double)getTickCount();

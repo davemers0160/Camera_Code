@@ -86,6 +86,7 @@ int main(int /*argc*/, char** /*argv*/)
 	float shutter, gain, brightness, auto_exp;
 	int sharpness;
 	float cam_framerate = 50.0;
+	bool camera_on = true;
 
 	
 	//Lens_Driver
@@ -113,11 +114,16 @@ int main(int /*argc*/, char** /*argv*/)
 	string focus_save_file;
 	string defocus_save_file;
 	string config_save_file;	
+	string GPS_save_file;
 	string file_extension = ".avi";
 	std::ofstream configFile;
 	char currenttime[80];
 
-	int stndby_status;			// variable use to track the recording/standby status
+	// timing variables
+	double start, stop;
+	double delta;
+
+	//int stndby_status;			// variable use to track the recording/standby status
 
 	//int temp1 = exportPin(STNDBY_PIN);
 	//int temp2 = setPinDirection(STNDBY_PIN, 0);
@@ -223,7 +229,7 @@ int main(int /*argc*/, char** /*argv*/)
 	}
 
 
-	cameraConfig.grabTimeout = 40;// (unsigned int)(1000 / framerate);
+	cameraConfig.grabTimeout = 500;// (unsigned int)(1000 / framerate);
 	cameraConfig.highPerformanceRetrieveBuffer = true;
 	cameraConfig.asyncBusSpeed = BUSSPEED_ANY;
 
@@ -258,91 +264,148 @@ int main(int /*argc*/, char** /*argv*/)
 		return -1;
 	}
 
-	error = cam.StartCapture();
-	if (error != PGRERROR_OK)
+
+	while(1)
 	{
-		PrintError(error);
-		return -1;
-	}
+
+		pin_value = readPin(STNDBY_PIN);
+		cout << "Pin Value: " << pin_value << endl;
+
+		// standby
+		if(pin_value == 0)
+		{
+			cout << "Standby Mode..." << endl;
+			if(camera_on == true)
+			{
+				error = Camera_PowerOff(&cam);
+				if (error != PGRERROR_OK)
+				{
+					PrintError(error);
+				}
+				camera_on = false;
+				cout << "Turning Camera Off.." << endl;
+			}
+			delta = getTickFrequency();
+
+			start = (double)getTickCount();
+			do
+			{
+				stop = (double)getTickCount();
+			} while ((stop - start) < delta);
+		}
+		else
+		{
+			if(camera_on == false)
+			{
+				error = Camera_PowerOn(&cam);
+				if (error != PGRERROR_OK)
+				{
+					PrintError(error);
+				}
+				camera_on = true;
+				cout << "Turning Camera On.." << endl;
+
+				delta = 2*getTickFrequency();
+
+				start = (double)getTickCount();
+				do
+				{
+					stop = (double)getTickCount();
+				} while ((stop - start) < delta);
+			}
+
+			error = cam.StartCapture();
+			if (error != PGRERROR_OK)
+			{
+				PrintError(error);
+				return -1;
+			}
+
+			///////////////////////////////////////////////////////////////////////////
+			getcurrenttime(currenttime);
+		#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
+			save_path = "d:\\IUPUI\\Test_Data\\";
+		#else
+			//save_path = "/home/odroid/Videos/";
+			save_path = "/media/odroid/DATA_DRIVE/Data/";
+		#endif
+
+			file_base = (string)currenttime + "_" + recording_name + "_raw";
+			video_save_file = (string)currenttime + "_" + recording_name + "_raw" + file_extension;
+			focus_save_file = (string)currenttime + "_" + recording_name + "_focus" + file_extension;
+			defocus_save_file = (string)currenttime + "_" + recording_name + "_defocus" + file_extension;
+			config_save_file = (string)currenttime + "_" + recording_name + "_config.txt";
+			GPS_save_file = (string)currenttime + "_" + recording_name + "_GPS_Data.txt";
+			configFile.open((save_path+config_save_file).c_str(), ios::out | ios::app);
+			///////////////////////////////////////////////////////////////////////////
+
+
+			error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, &brightness, &auto_exp, 2*cam_framerate);
+			if (error != PGRERROR_OK)
+			{
+				PrintError(error);
+				return 1;
+			}
+
+			cout << "Shutter Speed (ms): " << shutter << endl;
+			cout << "Gain (dB): " << gain << endl;
+			cout << "Sharpness: " << sharpness << endl;
+			cout << "Brightness: " << brightness << endl;
+			cout << "Auto Exposure: " << auto_exp << endl;
+			cout << endl;
+
+			// write camera configuration values to a file
+			configFile << "Shutter Speed (ms): " << shutter << endl;
+			configFile << "Gain (dB): " << gain << endl;
+			configFile << "Sharpness: " << sharpness << endl;
+			configFile << "Brightness: " << brightness << endl;
+			configFile << "Auto Exposure: " << auto_exp << endl;
+			configFile << endl;
+			configFile.close();
+
+
+			// begin the video capture
+			cout << "Beginning Video Capture." << endl;
+
+			// set the camera to software trigger mode
+			setSoftwareTrigger(&cam, true);
+
+			// begin the capture process
+		#ifdef IMG_CAP
+			string dir_name = (string)currenttime + "_" + recording_name + "_raw";
+			mkDir(save_path, dir_name);
+			imageCapture(&cam, lensDriver, (save_path + dir_name + "\\" + file_base), framerate, framerate);
+
+		#else
+			//videoCapture(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, 47*9, cam_framerate);
+
+			// test of imu interface
+			delta = 20*getTickFrequency();
+
+			start = (double)getTickCount();
+			do
+			{
+				stop = (double)getTickCount();
+			} while ((stop - start) < delta);
+
+		#endif
 
 
 
-	pin_value = readPin(STNDBY_PIN);
-	cout << "Pin Value: " << pin_value << endl;
-	cout << "Entering standby mode..." << endl;
+			// stop the capture process
+			error = cam.StopCapture();
+			if (error != PGRERROR_OK)
+			{
+				PrintError(error);
+				return -1;
+			}
 
-	///////////////////////////////////////////////////////////////////////////
-	getcurrenttime(currenttime);
-#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
-	save_path = "d:\\IUPUI\\Test_Data\\";
-#else
-	//save_path = "/home/odroid/Videos/";
-	save_path = "/media/odroid/DATA_DRIVE/Data/";
-#endif
-
-	file_base = (string)currenttime + "_" + recording_name + "_raw";
-	video_save_file = (string)currenttime + "_" + recording_name + "_raw" + file_extension;
-	focus_save_file = (string)currenttime + "_" + recording_name + "_focus" + file_extension;
-	defocus_save_file = (string)currenttime + "_" + recording_name + "_defocus" + file_extension;
-	config_save_file = (string)currenttime + "_" + recording_name + "_config.txt";
-	configFile.open((save_path+config_save_file).c_str(), ios::out | ios::app);
-	///////////////////////////////////////////////////////////////////////////
+			// clear the software trigger
+			setSoftwareTrigger(&cam, false);
+		}
 
 
-	error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, &brightness, &auto_exp, 2*cam_framerate);
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		return 1;
-	}
-
-	cout << "Shutter Speed (ms): " << shutter << endl;
-	cout << "Gain (dB): " << gain << endl;
-	cout << "Sharpness: " << sharpness << endl;
-	cout << "Brightness: " << brightness << endl;
-	cout << "Auto Exposure: " << auto_exp << endl;
-	cout << endl;
-
-	// write camera configuration values to a file
-	configFile << "Shutter Speed (ms): " << shutter << endl;
-	configFile << "Gain (dB): " << gain << endl;
-	configFile << "Sharpness: " << sharpness << endl;
-	configFile << "Brightness: " << brightness << endl;
-	configFile << "Auto Exposure: " << auto_exp << endl;
-	configFile << endl;
-	configFile.close();
-
-
-	// begin the video capture
-	cout << "Beginning Video Capture." << endl;
-
-	// set the camera to software trigger mode
-	setSoftwareTrigger(&cam, true);
-
-	// begin the capture process
-#ifdef IMG_CAP
-	string dir_name = (string)currenttime + "_" + recording_name + "_raw";
-	mkDir(save_path, dir_name);
-	imageCapture(&cam, lensDriver, (save_path + dir_name + "\\" + file_base), framerate, framerate);
-
-#else
-	// videoCapture(&cam, lensDriver, video_save_file, framerate, framerate);
-	videoCapture(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, 20, cam_framerate);
-
-#endif
-
-
-
-	// stop the capture process
-	error = cam.StopCapture();
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		return -1;
-	}
-
-	// clear the software trigger
-	setSoftwareTrigger(&cam, false);
+	}	// end of while(1)
 
 	// Disconnect the camera
 	error = cam.Disconnect();
@@ -360,315 +423,14 @@ int main(int /*argc*/, char** /*argv*/)
     cin.ignore();
 
     return 0;
-}
+
+}	// end of main
 
 
 
 
 
 // support functions
-// void getcurrenttime(char currenttime[])
-// {
-	// time_t rawtime;
-	// struct tm * timeinfo;
-	
-	// time(&rawtime);
-	// timeinfo = localtime(&rawtime);
-
-	// strftime(currenttime, 80, "%m%d%Y_%H%M%S", timeinfo);
-	// string str(currenttime);
-// }
-
-/*
-bool configLensDriver(LPCWSTR commPort, HANDLE &serialHandle)
-{
-	BOOL status = false;
-	//HANDLE serialHandle;
-	DCB serialParams = { 0 };
-
-	serialParams.DCBlength = sizeof(serialParams);
-
-	// open up serial port and set paramters
-	serialHandle = CreateFileW(commPort, GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-
-	if (!GetCommState(serialHandle, &serialParams))
-		cout << "Error getting information from the specified serial port" << endl;
-
-	//GetCommState(serialHandle, &serialParams);
-	serialParams.BaudRate = 250000;
-	serialParams.ByteSize = 8;
-	serialParams.StopBits = TWOSTOPBITS;
-	serialParams.Parity = NOPARITY;
-	
-	status = SetCommState(serialHandle, &serialParams);
-	if (!status)
-	{
-		cout << "Error setting serial port configuration" << endl;
-		return false;
-	}
-
-	// Set timeouts
-	COMMTIMEOUTS timeout = { 0 };
-	timeout.ReadIntervalTimeout = 50;
-	timeout.ReadTotalTimeoutConstant = 100;
-	timeout.ReadTotalTimeoutMultiplier = 50;
-	timeout.WriteTotalTimeoutConstant = 50;
-	timeout.WriteTotalTimeoutMultiplier = 10;
-
-	status = SetCommTimeouts(serialHandle, &timeout);
-	if (!status)
-	{
-		cout << "Error setting serial port timeout parameters" << endl;
-		return false;
-	}
-
-	return true;
-
-}	// end of configLensDriver
-*/
-
-
-/*
-int videoCapture(Camera *cam, FT_HANDLE lensDriver, string save_file, unsigned int numCaptures)
-{
-	// timing variables
-
-	//auto tick1 = chrono::high_resolution_clock::now();
-	//auto tick2 = chrono::high_resolution_clock::now();
-	double duration=0;
-
-
-
-	unsigned int key = 0;
-	float fps = 55.0;
-	//unsigned int idx = 0;
-	unsigned int image_rows, image_cols;
-	//unsigned int numCaptures = 200;
-
-	// Lend Driver Variables
-	LensFocus LensDfD((unsigned char)134, (unsigned char)138);
-	//LensFocus LensDfD(38.295, 40.345);
-	LensTxPacket Focus(FAST_SET_VOLT, 1, &LensDfD.Focus[0]);
-	LensTxPacket DeFocus(FAST_SET_VOLT, 1, &LensDfD.Focus[1]);
-
-	// Camera variables
-	Error error;
-	Image rawImage;
-
-#ifdef USE_OPENCV
-	// OpenCV variables
-	double tick1, tick2;
-	double tickFreq = 1.0/getTickFrequency();
-	int codec = CV_FOURCC('M', 'J', 'P', 'G');
-	unsigned int rowBytes;
-	Size image_size;
-	Mat video_frame;
-	VideoWriter outputVideo;
-	//char* Window1 = "Video Display";
-	//int delay = 1;
-	Image convertedImageCV;
-	//namedWindow(Window1, WINDOW_NORMAL);   
-
-#else
-	clock_t tick1, tick2;
-	AVIRecorder videoFile;
-	MJPGOption option;
-	option.frameRate = fps;
-	option.quality = 100;
-	
-	// Point Grey FlyCapture2 AVI saving 
-	error = videoFile.AVIOpen(save_file.c_str(), &option);
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		return -1;
-	}
-#endif
-
-	// Start capturing images
-	error = cam->StartCapture();
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		return -1;
-	}
-	
-	unsigned char *image_data = NULL;
-
-	error = cam->RetrieveBuffer(&rawImage);
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		key = 'q';
-	}
-	else
-	{
-
-#ifdef USE_OPENCV
-		// OpenCV functions to save video
-		error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
-		if (error != PGRERROR_OK)
-		{
-			PrintError(error);
-			return -1;
-		}
-		
-		image_cols = convertedImageCV.GetCols();
-		image_rows = convertedImageCV.GetRows();
-		rowBytes = (unsigned int)((double)convertedImageCV.GetDataSize() / (double)convertedImageCV.GetRows());
-		image_size = Size((int)image_cols, (int)image_rows);
-		
-		outputVideo.open(save_file, codec, fps, image_size, true);
-#else
-		image_cols = rawImage.GetCols();
-		image_rows = rawImage.GetRows();
-
-#endif
-
-		cout << "video size: " << image_cols << " x " << image_rows << endl;
-
-	}
-
-	sendLensPacket(Focus, lensDriver);
-
-	while (key < numCaptures)
-	{
-#ifdef USE_OPENCV
-		tick1 = (double)getTickCount();
-#else
-		tick1 = clock();
-#endif
-
-		// Retrieve an image
-		error = cam->RetrieveBuffer(&rawImage);
-		if (error != PGRERROR_OK)
-		{
-			PrintError(error);
-			continue;
-		}
-
-		// send blurred voltage to lens driver
-		sendLensPacket(DeFocus, lensDriver);
-
-#ifdef USE_OPENCV
-		// Convert the raw image	PIXEL_FORMAT_BGR for opencv
-		error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
-		if (error != PGRERROR_OK)
-		{
-			PrintError(error);
-			return -1;
-		}
-
-		// Convert data to opencv format
-		image_data = convertedImageCV.GetData();
-		video_frame = Mat(image_size, CV_8UC3, image_data, rowBytes);
-
-		// display images
-		//imshow(Window1, video_frame);
-		outputVideo.write(video_frame);
-
-#else
-		// FlyCapture2 Append image to AVI file
-		error = videoFile.AVIAppend(&rawImage);
-		if (error != PGRERROR_OK)
-		{
-			PrintError(error);
-			continue;
-		}
-
-#endif
-
-		// Retrieve an image
-		error = cam->RetrieveBuffer(&rawImage);
-		if (error != PGRERROR_OK)
-		{
-			PrintError(error);
-			continue;
-		}
-
-		sendLensPacket(Focus, lensDriver);
-
-
-#ifdef USE_OPENCV
-		// Convert the raw image	PIXEL_FORMAT_BGR for opencv
-		error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
-		if (error != PGRERROR_OK)
-		{
-			PrintError(error);
-			return -1;
-		}
-
-		// Convert data to opencv format
-		image_data = convertedImageCV.GetData();
-		video_frame = Mat(image_size, CV_8UC3, image_data, rowBytes);
-
-		// display images
-		//imshow(Window1, video_frame);
-		outputVideo.write(video_frame);
-
-#else
-		// FlyCapture2 Append image to AVI file
-		error = videoFile.AVIAppend(&rawImage);
-		if (error != PGRERROR_OK)
-		{
-			PrintError(error);
-			continue;
-		}
-
-#endif
-
-
-#ifdef USE_OPENCV
-		tick2 = (double)getTickCount();
-		duration += (tick2 - tick1);// * tickFreq;
-#else
-		tick2 = clock();
-		duration += (double)((tick2 - tick1)/ CLOCKS_PER_SEC);
-#endif
-
-		//cout << (double)(t2 - t1)/ CLOCKS_PER_SEC  << "ms / CPS: " << CLOCKS_PER_SEC << endl;
-		//cout << (tick2 - tick1) * tickFreq << "ms" << endl;
-		key++;
-
-	}
-
-//	cout << "Average Execution Time: " << fixed << setw(5) << setprecision(2) << 1/((duration * tickFreq)/ (numCaptures*2)) << "ms" << endl;
-//	duration /= CLOCKS_PER_SEC;
-
-	// Finish writing video and close out file
-#ifdef USE_OPENCV
-	// OpenCV functions to complete Actions
-	cout << "Average Frame Rate (fps): " << dec << (unsigned short)(1/((duration * tickFreq)/ (numCaptures*2.0))) << endl;
-	outputVideo.release();
-	destroyAllWindows();
-
-#else
-	// FlyCapture2 functions to complete actions
-	cout << "Average Frame Rate (fps): " << dec << (unsigned short)(1.0/(duration/(numCaptures*2.0))) << endl;
-	error = videoFile.AVIClose();
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		return -1;
-	}
-#endif
-	sendLensPacket(Focus, lensDriver);
-
-	cout << "Finished Writing Video!" << endl;
-
-	// Stop capturing images
-	error = cam->StopCapture();
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		return -1;
-	}
-
-	return 0;
-
-}	// end of videoCapture
-
-*/
 
 FT_HANDLE OpenComPort(ftdiDeviceDetails *device, string descript)
 {
