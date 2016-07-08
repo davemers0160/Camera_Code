@@ -165,7 +165,7 @@ int main(void)
   // the Odroid will power up and begin recording
   states=RECORDING;
 
-  delay_ms(8000);
+  delay_ms(5000);
   
   while(1)
   { 
@@ -186,7 +186,8 @@ int main(void)
     Ay += y_accel();
     Az += z_accel();
 
-    delay_ms(325);      // delay designed to put average out on a 1 second interval
+    //delay_ms(325);      // delay designed to put average out on a 1 second interval
+    delay_ms(58);
     }
 
     // take the average and one extra division by 2
