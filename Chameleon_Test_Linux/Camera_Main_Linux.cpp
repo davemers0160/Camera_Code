@@ -18,8 +18,6 @@
 // windows Includes
 //#include <windows.h>
 
-// DEFINES
-#define STNDBY_PIN	31	/* Pin to monitor the standby/recording  status */
 
 // OPENCV Includes
 #define USE_OPENCV
@@ -39,16 +37,26 @@
 // Lens Driver Includes
 #include "Lens_Driver.h"
 
+// GPS Includes
+#include "GPS_Ctrl.h"
+
 // FTDI Driver Includes
 #include "ftd2xx.h"
 
 // GPIO Control Includes
 #include "GPIO_Ctrl.h"
 
+// Threading includes
+#include <pthread.h>
+
+// DEFINES
+#define STNDBY_PIN	31	/* Pin to monitor the standby/recording  status */
+
 using namespace std;
 using namespace FlyCapture2;
 using namespace Lens_Driver;
 
+// GLOBAL Variables
 struct ftdiDeviceDetails //structure storage for FTDI device details
 {
 	int devNumber;
@@ -58,9 +66,13 @@ struct ftdiDeviceDetails //structure storage for FTDI device details
 	string serialNumber;
 };
 
+volatile bool quit_GPS_Logging = true;
+
 //double tickFreq = 1000.0 / getTickFrequency();
 
 //void getcurrenttime(char currenttime[]);
+//void logGPSData(GPS_Thread_Vars *GPS_Ctrl_Info);
+
 int videoCapture(Camera *cam, FT_HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps);
 int imageCapture(Camera *cam, FT_HANDLE lensDriver, string file_base, unsigned int numCaptures, float fps);
 
@@ -69,12 +81,12 @@ FT_HANDLE OpenComPort(ftdiDeviceDetails *device, string descript);
 
 int main(int /*argc*/, char** /*argv*/)
 {    
-	// GPIO variables
+	// GPIO Specific Variables
 	int export_status;
 	int dir_status;
 	int pin_value;
 	
-	// Camera specific variables
+	// Camera Specific Variables
 	FlyCapture2::Error error;
 	BusManager busMgr;
     PGRGuid guid;
@@ -89,7 +101,9 @@ int main(int /*argc*/, char** /*argv*/)
 	bool camera_on = true;
 
 	
-	//Lens_Driver
+	//Lens_Driver Specific Variables
+	FT_HANDLE lensDriver = NULL;
+	ftdiDeviceDetails driverDeviceDetails;
 	LensTxPacket LensTx(CON,0);
 	LensRxPacket LensRx;
 	LensDriverInfo LensInfo;
@@ -99,13 +113,19 @@ int main(int /*argc*/, char** /*argv*/)
 	LensTxPacket Focus(FAST_SET_VOLT, 1, &data[0]);
 	unsigned char CheckCount = 0;	// counter to limit the number of check to see it the LensDriver is attached
 
-	// Serial Port specific variables
-	FT_HANDLE lensDriver = NULL;
-	FT_HANDLE gpsHandle = NULL;
-	ftdiDeviceDetails driverDeviceDetails, gpsDeviceDetails;
+	// GPS Specific Variables
+	GPS_Thread_Vars GPS_Ctrl_Info;
+	GPS_Ctrl_Info.GPS_Handle = NULL;
+	pthread_t GPS_Thread;
 
 
-	// file operations
+	//FT_HANDLE gpsHandle = NULL;
+	ftdiDeviceDetails gpsDeviceDetails;
+	bool gps_connected = false;
+
+
+
+	// File Operations Specific Variables
 	string save_path;
 	string file_base;
 	string recording_name = "test_recording";
@@ -116,21 +136,14 @@ int main(int /*argc*/, char** /*argv*/)
 	string config_save_file;	
 	string GPS_save_file;
 	string file_extension = ".avi";
-	std::ofstream configFile;
+	ofstream configFile;
 	char currenttime[80];
 
-	// timing variables
+	// Timing Specific Variables
 	double start, stop;
 	double delta;
 
-	//int stndby_status;			// variable use to track the recording/standby status
 
-	//int temp1 = exportPin(STNDBY_PIN);
-	//int temp2 = setPinDirection(STNDBY_PIN, 0);
-	//int temp3 = readPin(STNDBY_PIN);
-	//int temp4 = readPin(STNDBY_PIN);
-	//int temp5 = setPinValue(STNDBY_PIN, 0);
-	//int temp6 = setPinValue(STNDBY_PIN, 1);
 
 
 	PrintBuildInfo();
@@ -163,7 +176,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 
 	cout << "Connecting to GPS Module..." << endl;
-	while ((gpsHandle == NULL) && (CheckCount<10))
+	while ((GPS_Ctrl_Info.GPS_Handle == NULL) && (CheckCount<10))
 	{
 		gpsDeviceDetails.devNumber = 0;
 		gpsDeviceDetails.type = 0;
@@ -171,15 +184,25 @@ int main(int /*argc*/, char** /*argv*/)
 		gpsDeviceDetails.Description = "";
 		gpsDeviceDetails.serialNumber = "";
 
-		gpsHandle = OpenComPort(&gpsDeviceDetails, "LOCOSYS GPS MC-1513");
+		GPS_Ctrl_Info.GPS_Handle = OpenComPort(&gpsDeviceDetails, "LOCOSYS GPS MC-1513");
 
 		CheckCount++;
 
 	}
 
-	if(gpsHandle == NULL)
+	if(GPS_Ctrl_Info.GPS_Handle == NULL)
 	{
+		gps_connected = false;
 		cout << "No GPS was found!" << endl << endl;
+	}
+	else
+	{
+		gps_connected = true;
+		// clear FTDI buffer
+		FT_Purge(GPS_Ctrl_Info.GPS_Handle, FT_PURGE_RX | FT_PURGE_TX);
+		
+		// configure the GPS to GGA messages only
+		configGPS(GPS_Ctrl_Info.GPS_Handle);
 	}
 
 
@@ -297,14 +320,19 @@ int main(int /*argc*/, char** /*argv*/)
 		{
 			if(camera_on == false)
 			{
+				cout << "Turning Camera On.." << endl;
 				error = Camera_PowerOn(&cam);
 				if (error != PGRERROR_OK)
 				{
 					PrintError(error);
 				}
-				camera_on = true;
-				cout << "Turning Camera On.." << endl;
+				else
+				{
+					camera_on = true;
+					cout << "Camera On!" << endl;
+				}
 
+				// wait for a little bit to allow the camera to turn on
 				delta = 2*getTickFrequency();
 
 				start = (double)getTickCount();
@@ -334,12 +362,33 @@ int main(int /*argc*/, char** /*argv*/)
 			video_save_file = (string)currenttime + "_" + recording_name + "_raw" + file_extension;
 			focus_save_file = (string)currenttime + "_" + recording_name + "_focus" + file_extension;
 			defocus_save_file = (string)currenttime + "_" + recording_name + "_defocus" + file_extension;
+
 			config_save_file = (string)currenttime + "_" + recording_name + "_config.txt";
 			GPS_save_file = (string)currenttime + "_" + recording_name + "_GPS_Data.txt";
 			configFile.open((save_path+config_save_file).c_str(), ios::out | ios::app);
 			///////////////////////////////////////////////////////////////////////////
 
+			if(gps_connected == true)
+			{
+				quit_GPS_Logging = false;
+				cout << GPS_save_file << endl;
+				GPS_Ctrl_Info.gpsDataLog.open((save_path+GPS_save_file).c_str(), ios::out | ios::app);
+				
+				// open up a new thread and begin capturing the GPS data
+				// the new thread allows the code to continue and capture video images while 
+				// still recording the GPS data
+				// ???????
+				//int create1 = pthread_create(&GPS_Thread, NULL, logGPSData, reinterpret_cast<void*>(&GPS_Ctrl_Info) );
+				int create1 = pthread_create(&GPS_Thread, NULL, logGPSData, (void*)(&GPS_Ctrl_Info) );
+				//logGPSData(&GPS_Ctrl_Info);
+				if(create1 != 0)
+				{
+					cout << "Error Creating GPS Thread." << endl;
+				}
 
+			}
+
+			// configure the auto properties for the sharpness, shutter, gain, brightness, auto_exp
 			error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, &brightness, &auto_exp, 2*cam_framerate);
 			if (error != PGRERROR_OK)
 			{
@@ -377,9 +426,11 @@ int main(int /*argc*/, char** /*argv*/)
 			imageCapture(&cam, lensDriver, (save_path + dir_name + "\\" + file_base), framerate, framerate);
 
 		#else
-			//videoCapture(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, 47*9, cam_framerate);
+
+			videoCapture(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, 47*9, cam_framerate);
 
 			// test of imu interface
+			/*
 			delta = 20*getTickFrequency();
 
 			start = (double)getTickCount();
@@ -387,10 +438,14 @@ int main(int /*argc*/, char** /*argv*/)
 			{
 				stop = (double)getTickCount();
 			} while ((stop - start) < delta);
-
+			*/
 		#endif
 
+			quit_GPS_Logging = true;
+			// stop GPS Thread
+			pthread_join(GPS_Thread, NULL);
 
+			GPS_Ctrl_Info.gpsDataLog.close();
 
 			// stop the capture process
 			error = cam.StopCapture();
@@ -402,7 +457,11 @@ int main(int /*argc*/, char** /*argv*/)
 
 			// clear the software trigger
 			setSoftwareTrigger(&cam, false);
-		}
+
+
+
+
+		}	// end of if statement <- stanby/record
 
 
 	}	// end of while(1)
@@ -514,5 +573,8 @@ FT_HANDLE OpenComPort(ftdiDeviceDetails *device, string descript)
 
 	return ftHandle;
 }	// end of OpenComPort
+
+
+
 
 

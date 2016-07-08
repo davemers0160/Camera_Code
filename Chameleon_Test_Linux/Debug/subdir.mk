@@ -7,6 +7,7 @@ CPP_SRCS += \
 ../Camera_Main_Linux.cpp \
 ../Chameleon_Utilities.cpp \
 ../GPIO_Ctrl.cpp \
+../GPS_Ctrl.cpp \
 ../Lens_Driver.cpp \
 ../imageCapture.cpp \
 ../stdafx.cpp \
@@ -17,6 +18,7 @@ OBJS += \
 ./Camera_Main_Linux.o \
 ./Chameleon_Utilities.o \
 ./GPIO_Ctrl.o \
+./GPS_Ctrl.o \
 ./Lens_Driver.o \
 ./imageCapture.o \
 ./stdafx.o \
@@ -27,6 +29,7 @@ CPP_DEPS += \
 ./Camera_Main_Linux.d \
 ./Chameleon_Utilities.d \
 ./GPIO_Ctrl.d \
+./GPS_Ctrl.d \
 ./Lens_Driver.d \
 ./imageCapture.d \
 ./stdafx.d \

@@ -5,7 +5,7 @@ Camera_Main_Linux.d: ../Camera_Main_Linux.cpp ../stdafx.h \
  ../include/Image.h ../include/Utilities.h ../include/AVIRecorder.h \
  ../include/TopologyNode.h ../include/ImageStatistics.h \
  ../Chameleon_Utilities.h ../Lens_Driver.h ../ftd2xx.h ../WinTypes.h \
- ../GPIO_Ctrl.h
+ ../GPS_Ctrl.h ../GPIO_Ctrl.h
 
 ../stdafx.h:
 
@@ -42,5 +42,7 @@ Camera_Main_Linux.d: ../Camera_Main_Linux.cpp ../stdafx.h \
 ../ftd2xx.h:
 
 ../WinTypes.h:
+
+../GPS_Ctrl.h:
 
 ../GPIO_Ctrl.h:
