@@ -6,7 +6,7 @@
 #include <vector>
 //#include <iomanip>
 #include <ctime>
-//#include <chrono>
+#include <pthread.h>
 #include <stdio.h>
 
 // windows Includes
@@ -42,9 +42,9 @@ using namespace FlyCapture2;
 using namespace Lens_Driver;
 
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
-	int videoCapture(Camera *cam, HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps)
+	int videoCaptureInt(Camera *cam, HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps)
 #else
-	int videoCapture(Camera *cam, FT_HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps)
+	int videoCaptureInt(Camera *cam, FT_HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps)
 #endif
 {
 
@@ -72,19 +72,31 @@ using namespace Lens_Driver;
 	double delta = (0.020*getTickFrequency());
 	double start, stop;
 
-	int codec = CV_FOURCC('M', 'J', 'P', 'G');
+
+	//int codec = CV_FOURCC('M', 'J', 'P', 'G');
 	//int codec = CV_FOURCC('D', 'I', 'V', 'X');
-	//int codec = CV_FOURCC('H', '2', '6', '4');
-	//int codec = CV_FOURCC('X', '2', '6', '4');
-	//int codec = CV_FOURCC('L', 'A', 'G', 'S');
+	//int codec = CV_FOURCC('X', 'V', 'I', 'D');
+	//int codec = CV_FOURCC('H', '2', '6', '4'); 		// not on Odroid
+	//int codec = CV_FOURCC('X', '2', '6', '4');		// not on Odroid
 	//int codec = CV_FOURCC('M', 'J', '2', 'C');
+	int codec = CV_FOURCC('M', 'P', '4', 'V');
 	//int codec = -1;
 
+
+	pthread_t Focus_Thread, Defocus_Thread;
+	videoSaveStruct videoSaveFocus;
+	videoSaveStruct videoSaveDefocus;
+
+	//videoSaveFocus.VideoFrame = vector<Mat> (numCaptures);
+	//videoSaveDefocus.VideoFrame = vector<Mat> (numCaptures);
+	videoSaveFocus.FrameCount = 1;
+	videoSaveDefocus.FrameCount = 1;
+
 	Size image_size;
-	Mat video_frame;
-	vector<Mat> focusFrame(numCaptures);
-	vector<Mat> defocusFrame(numCaptures);
-	VideoWriter focusVideo, defocusVideo;
+	//Mat video_frame;
+	//vector<Mat> focusFrame(numCaptures);
+	//vector<Mat> defocusFrame(numCaptures);
+	//VideoWriter focusVideo, defocusVideo;
 	Image convertedImageCV;	
 	
 	unsigned char *image_data = NULL;
@@ -128,17 +140,27 @@ using namespace Lens_Driver;
 		image_size = Size((int)image_cols, (int)image_rows);
 
 		start = (double)getTickCount();
-		for (idx = 0; idx < numCaptures; idx++)
-		{
-			focusFrame[idx] = Mat(image_size, CV_8UC3);
-			defocusFrame[idx] = Mat(image_size, CV_8UC3);
-		}
+		//for (idx = 0; idx < numCaptures; idx++)
+		//{
+			//videoSaveFocus.VideoFrame[idx] = Mat(image_size, CV_8UC3);
+			//videoSaveDefocus.VideoFrame[idx] = Mat(image_size, CV_8UC3);
+			//focusFrame[idx] = Mat(image_size, CV_8UC3);
+			//defocusFrame[idx] = Mat(image_size, CV_8UC3);
+
+		//}
+
+		videoSaveFocus.VideoFrame = Mat(image_size, CV_8UC3);
+		videoSaveDefocus.VideoFrame = Mat(image_size, CV_8UC3);
+
 		stop = (double)getTickCount();
 		//cout << "1. stop-start: " << ((stop - start)) * tickFreq << endl;
 
-
-		focusVideo.open(focus_save_file, codec, fps, image_size, true);
-		defocusVideo.open(defocus_save_file, codec, fps, image_size, true);
+		videoSaveFocus.FileName = focus_save_file;
+		videoSaveDefocus.FileName = defocus_save_file;
+		videoSaveFocus.VideoFile.open(focus_save_file, codec, fps, image_size, true);
+		videoSaveDefocus.VideoFile.open(defocus_save_file, codec, fps, image_size, true);
+		//focusVideo.open(focus_save_file, codec, fps, image_size, true);
+		//defocusVideo.open(defocus_save_file, codec, fps, image_size, true);
 
 		cout << endl << "Video size: " << image_cols << " x " << image_rows << "\tImage stride: " << image_stride << endl;
 
@@ -147,7 +169,7 @@ using namespace Lens_Driver;
 	sendLensPacket(Focus, lensDriver);
 
 	cout << "Starting capture loop (" << numCaptures << ")..." << endl;
-
+	double loopstart = (double)getTickCount();
 	// start of the main capture loop
 	while (count < numCaptures)
 	{
@@ -159,11 +181,11 @@ using namespace Lens_Driver;
 
 		start = (double)getTickCount();
 
-		//double t1 = (double)getTickCount();
+		double t1 = (double)getTickCount();
 		// poll the camera to see if it is ready for a software trigger
 		PollForTriggerReady(cam);
 		
-		//double t2 = (double)getTickCount();
+		double t2 = (double)getTickCount();
 		status = FireSoftwareTrigger(cam);
 		if (status == false)
 		{
@@ -171,7 +193,7 @@ using namespace Lens_Driver;
 			continue;
 		}
 
-		//double t3 = (double)getTickCount();
+		double t3 = (double)getTickCount();
 
 		// Retrieve an image
 		error = cam->RetrieveBuffer(&rawImage);
@@ -179,10 +201,10 @@ using namespace Lens_Driver;
 		{
 			PrintError(error);
 			cout << "Count: " << count << endl;
-			continue;
+
 		}
 
-		//double t4 = (double)getTickCount();
+		double t4 = (double)getTickCount();
 
 		//cout << "t2-t1: " << ((t2 - t1) ) * tickFreq << endl;
 		//cout << "t3-t2: " << ((t3 - t2) ) * tickFreq << endl;
@@ -192,7 +214,7 @@ using namespace Lens_Driver;
 		sendLensPacket(DeFocus, lensDriver);
 
 
-		//double t5 = (double)getTickCount();
+		double t5 = (double)getTickCount();
 		// Convert the raw image	PIXEL_FORMAT_BGR for opencv
 		//error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
 		//if (error != PGRERROR_OK)
@@ -200,15 +222,21 @@ using namespace Lens_Driver;
 		//	PrintError(error);
 		//	return -1;
 		//}
-		//double t6 = (double)getTickCount();
 
 		// Convert data to opencv format
 		//image_data = convertedImageCV.GetData();
 		image_data = rawImage.GetData();
 
+		double t6 = (double)getTickCount();
+
 		//video_frame = Mat(image_size, CV_8UC3, image_data, image_stride);
-		//double t7 = (double)getTickCount();
-		focusFrame[count] = Mat(image_size, CV_8UC3, image_data, image_stride);
+		//focusFrame[count] = Mat(image_size, CV_8UC3, image_data, image_stride);
+		videoSaveFocus.VideoFrame = Mat(image_size, CV_8UC3, image_data, image_stride);
+
+		pthread_create(&Focus_Thread, NULL, saveVideo_t, (void*)(&videoSaveFocus) );
+
+
+		double t7 = (double)getTickCount();
 
 		do
 		{
@@ -216,8 +244,13 @@ using namespace Lens_Driver;
 		} while ((stop - start) < delta);
 		//cout << "1. stop-start: " << ((stop - start)) * tickFreq << endl;
 
+		if(count != 0)
+		{
+			pthread_join(Defocus_Thread, NULL);
+		}
+
 		//focusVideo.write(video_frame);
-		//double t8 = (double)getTickCount();
+		double t8 = (double)getTickCount();
 
 		//cout << "t6-t5: " << ((t6 - t5) ) * tickFreq << endl;
 		//cout << "t7-t6: " << ((t7 - t6) ) * tickFreq << endl;
@@ -228,11 +261,11 @@ using namespace Lens_Driver;
 ///////////////////////////////////////////////////////////////////////////////
 
 		start = (double)getTickCount();
-
+		double t9 = (double)getTickCount();
 		// poll the camera to see if it is ready for a software trigger
 		PollForTriggerReady(cam);
 
-		//t2 = (double)getTickCount();
+		double t10 = (double)getTickCount();
 		status = FireSoftwareTrigger(cam);
 		if (status == false)
 		{
@@ -240,16 +273,16 @@ using namespace Lens_Driver;
 			continue;
 		}
 
-		//t3 = (double)getTickCount();
+		double t11 = (double)getTickCount();
 		// Retrieve an image
 		error = cam->RetrieveBuffer(&rawImage);
 		if (error != PGRERROR_OK)
 		{
 			PrintError(error);
 			cout << "Count: " << count << endl;
-			continue;
+
 		}
-		//t4 = (double)getTickCount();
+		double t12 = (double)getTickCount();
 
 		//cout << "t2-t1: " << ((t2 - t1) ) * tickFreq << endl;
 		//cout << "t3-t2: " << ((t3 - t2) ) * tickFreq << endl;
@@ -257,6 +290,7 @@ using namespace Lens_Driver;
 
 		sendLensPacket(Focus, lensDriver);
 
+		double t13 = (double)getTickCount();
 		// Convert the raw image	PIXEL_FORMAT_BGR for opencv
 		//error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
 		//if (error != PGRERROR_OK)
@@ -268,15 +302,24 @@ using namespace Lens_Driver;
 		// Convert data to opencv format
 		//image_data = convertedImageCV.GetData();
 		image_data = rawImage.GetData();
+		double t14 = (double)getTickCount();
 
 		//video_frame = Mat(image_size, CV_8UC3, image_data, image_stride);
-		defocusFrame[count] = Mat(image_size, CV_8UC3, image_data, image_stride);
+		//defocusFrame[count] = Mat(image_size, CV_8UC3, image_data, image_stride);
+		videoSaveDefocus.VideoFrame = Mat(image_size, CV_8UC3, image_data, image_stride);
+		pthread_create(&Defocus_Thread, NULL, saveVideo_t, (void*)(&videoSaveDefocus) );
+
+
+		double t15 = (double)getTickCount();
 
 		do
 		{
 			stop = (double)getTickCount();
 		} while((stop-start) < delta);
 		//cout << "2. stop-start: " << ((stop - start)) * tickFreq << endl;
+		pthread_join(Focus_Thread, NULL);
+
+		double t16 = (double)getTickCount();
 
 		tick2 = (double)getTickCount();
 		duration += (tick2 - tick1);// * tickFreq;
@@ -285,8 +328,32 @@ using namespace Lens_Driver;
 		//cout << (tick2 - tick1) * tickFreq << "ms" << endl;
 		count++;
 
-	}	// end of while loop
+		//cout << "Poll:        " << ((t2 - t1) ) * tickFreq << endl;
+		//cout << "Trigger:     " << ((t3 - t2) ) * tickFreq << endl;
+		//cout << "Get Data:    " << ((t4 - t3) ) * tickFreq << endl;
+		//cout << "Send Focus:  " << ((t5 - t4) ) * tickFreq << endl;
+		//cout << "Data 2 char: " << ((t6 - t5) ) * tickFreq << endl;
+		//cout << "Save File:   " << ((t7 - t6) ) * tickFreq << endl;
+		//cout << "Wait Delay:  " << ((t8 - t7) ) * tickFreq << endl;
+		cout << "Focus Time:  " << ((t8 - t1) ) * tickFreq << endl;
+		//cout << "Poll:        " << ((t10 - t9) ) * tickFreq << endl;
+		//cout << "Trigger:     " << ((t11 - t10) ) * tickFreq << endl;
+		//cout << "Get Data:    " << ((t12 - t11) ) * tickFreq << endl;
+		//cout << "Send Defocus:" << ((t13 - t12) ) * tickFreq << endl;
+		//cout << "Data 2 char: " << ((t14 - t13) ) * tickFreq << endl;
+		//cout << "Save File:   " << ((t15 - t14) ) * tickFreq << endl;
+		//cout << "Wait Delay:  " << ((t16 - t15) ) * tickFreq << endl;
+		cout << "Defcous Time:" << ((t16 - t9) ) * tickFreq << endl;
+		cout << endl;
 
+		//pthread_join(Focus_Thread, NULL);
+		//pthread_join(Defocus_Thread, NULL);
+
+	}	// end of while loop
+	double loopstop = (double)getTickCount();
+
+	cout << "stop-start: " << ((loopstop - loopstart) ) * tickFreq << endl;
+	cout << "Average Frame Rate (fps): " << (int)((2000.0*numCaptures)/((loopstop - loopstart) * tickFreq)) << endl;
 	cout << "Average Frame Rate (fps): " << dec << (unsigned short)(1000/((duration * tickFreq)/ (numCaptures*2.0))) << endl;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -294,19 +361,34 @@ using namespace Lens_Driver;
 ///////////////////////////////////////////////////////////////////////////////
 
 	// write the vector mat images to a video file
-	cout << "Writing video files..." << endl;
-	for (idx = 0; idx < numCaptures; idx++)
-	{
-		focusVideo.write(focusFrame[idx]);
-		defocusVideo.write(defocusFrame[idx]);
-	}
+	//cout << "Writing video files..." << endl;
+	//double t1 = (double)getTickCount();
 
-	focusVideo.release(); 
-	defocusVideo.release();
 
-	//cv::destroyAllWindows();
+	//for (idx = 0; idx < numCaptures; idx++)
+	//{
+	//	focusVideo.write(focusFrame[idx]);
+	//	defocusVideo.write(defocusFrame[idx]);
+	//}
+	//pthread_create(&Focus_Thread, NULL, saveVideo_t, (void*)(&videoSaveFocus) );
+	//pthread_create(&Defocus_Thread, NULL, saveVideo_t, (void*)(&videoSaveDefocus) );
+
 
 	sendLensPacket(Focus, lensDriver);
+
+	//pthread_join(Focus_Thread, NULL);
+	pthread_join(Defocus_Thread, NULL);
+
+	//double t2 = (double)getTickCount();
+	//cout << "File Write:      " << ((t2 - t1) ) * tickFreq << endl;
+
+	//focusVideo.release();
+	//defocusVideo.release();
+
+	videoSaveFocus.VideoFile.release();
+	videoSaveDefocus.VideoFile.release();
+
+	//cv::destroyAllWindows();
 
 	cout << "Finished Writing Video!" << endl;
 

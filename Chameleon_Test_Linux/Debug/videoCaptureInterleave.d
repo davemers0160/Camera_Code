@@ -1,4 +1,4 @@
-videoCapture_2.d: ../videoCapture_2.cpp \
+videoCaptureInterleave.d: ../videoCaptureInterleave.cpp \
  ../../Chameleon_Test_Linux/include/FlyCapture2.h \
  ../../Chameleon_Test_Linux/include/FlyCapture2Platform.h \
  ../../Chameleon_Test_Linux/include/FlyCapture2Defs.h \

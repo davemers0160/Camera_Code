@@ -12,7 +12,7 @@ CPP_SRCS += \
 ../imageCapture.cpp \
 ../stdafx.cpp \
 ../videoCapture.cpp \
-../videoCapture_2.cpp 
+../videoCaptureInterleave.cpp 
 
 OBJS += \
 ./Camera_Main_Linux.o \
@@ -23,7 +23,7 @@ OBJS += \
 ./imageCapture.o \
 ./stdafx.o \
 ./videoCapture.o \
-./videoCapture_2.o 
+./videoCaptureInterleave.o 
 
 CPP_DEPS += \
 ./Camera_Main_Linux.d \
@@ -34,7 +34,7 @@ CPP_DEPS += \
 ./imageCapture.d \
 ./stdafx.d \
 ./videoCapture.d \
-./videoCapture_2.d 
+./videoCaptureInterleave.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

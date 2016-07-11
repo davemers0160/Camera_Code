@@ -3,8 +3,22 @@
 #ifndef CHAMELEON_UTILITIES_H
 #define CHAMELEON_UTILITIES_H
 
+#include <vector>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+
+using namespace cv;
 using namespace FlyCapture2;
 using namespace std;
+
+typedef struct
+{
+	int FrameCount;
+	string FileName;
+	VideoWriter VideoFile;
+	Mat VideoFrame;
+
+} videoSaveStruct;
 
 void getcurrenttime(char currenttime[]);
 void PrintError(FlyCapture2::Error error);
@@ -24,6 +38,9 @@ FlyCapture2::Error Camera_PowerOn(Camera *cam);
 FlyCapture2::Error setSoftwareTrigger(Camera *cam, bool onOff);
 bool PollForTriggerReady(Camera *cam);
 bool FireSoftwareTrigger(Camera *cam);
+void *saveVideo_t(void *args );
+void *saveBinVideo_t(void *args );
+
 void sleep_ms(int value);
 void mkDir(string directory_path, string new_folder);
 

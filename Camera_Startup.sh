@@ -6,5 +6,5 @@ echo "Sleeping for 10 seconds to allow all drivers to activate..."
 sleep 10;
 echo "Sleep done."
 export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib
-mate-terminal --command /home/odroid/BicycleCamera/Chameleon_Test_Linux/Debug/Chameleon_Test_Linux
+#mate-terminal --command /home/odroid/BicycleCamera/Chameleon_Test_Linux/Debug/Chameleon_Test_Linux
 

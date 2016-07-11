@@ -7,8 +7,9 @@ This file contains the configures the routines for the Chameleon 3 camera.
 #include <iostream>
 #include <ctime>
 #include <sstream>
-//#include <string>
-//#include <iomanip>
+#include <fstream>
+#include <string>
+#include <iomanip>
 
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
 	#include <Windows.h>
@@ -412,6 +413,48 @@ bool FireSoftwareTrigger(Camera *cam)
 	return true;
 }	// end of FireSoftwareTrigger
 
+void *saveVideo_t(void *args )
+{
+	int idx;
+	videoSaveStruct *videoSaveParam = (videoSaveStruct *)(args);
+
+
+	//for(idx=0; idx<videoSaveParam->FrameCount ; idx++)
+	//{
+		videoSaveParam->VideoFile.write(videoSaveParam->VideoFrame);
+	//}
+
+	pthread_exit(NULL);
+
+}	// end of saveVideo
+
+void *saveBinVideo_t(void *args )
+{
+	videoSaveStruct *videoSaveParam = (videoSaveStruct *)(args);
+
+	int idx=0;
+	int frameSize;
+	ofstream saveFile;
+
+	saveFile.open(videoSaveParam->FileName.c_str(), ios::out | ios::binary);
+
+	frameSize = 3 * videoSaveParam->VideoFrame.rows * videoSaveParam->VideoFrame.cols;
+
+	//videoSaveParam->VideoFrame[idx].data;
+
+	for(idx=0; idx<videoSaveParam->FrameCount ; idx++)
+	{
+		//const char *data = (char *)videoSaveParam->VideoFrame[idx].data;
+		saveFile.write((char *)videoSaveParam->VideoFrame.data,frameSize);
+	}
+
+
+	saveFile.close();
+
+	pthread_exit(NULL);
+
+
+}	// end of saveBinVideo_t
 
 // create a sleep function that can be used in both Windows and Linux
 void sleep_ms(int value)

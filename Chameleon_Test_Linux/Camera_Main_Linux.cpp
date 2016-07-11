@@ -73,6 +73,8 @@ volatile bool quit_GPS_Logging = true;
 //void getcurrenttime(char currenttime[]);
 //void logGPSData(GPS_Thread_Vars *GPS_Ctrl_Info);
 
+int videoCaptureInt(Camera *cam, FT_HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps);
+
 int videoCapture(Camera *cam, FT_HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps);
 int imageCapture(Camera *cam, FT_HANDLE lensDriver, string file_base, unsigned int numCaptures, float fps);
 
@@ -427,7 +429,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 		#else
 
-			videoCapture(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, 47*9, cam_framerate);
+			videoCaptureInt(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, 400, cam_framerate);
 
 			// test of imu interface
 			/*
