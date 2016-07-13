@@ -143,6 +143,7 @@ int main(void)
   uint16_t COUNT, STBY_COUNT, states;
 
   uint8_t odroid_status=0;
+  uint8_t threshold = 24;
 
   init();
 
@@ -165,7 +166,7 @@ int main(void)
   // the Odroid will power up and begin recording
   states=RECORDING;
 
-  delay_ms(5000);
+  delay_ms(10000);
   
   while(1)
   { 
@@ -270,7 +271,7 @@ int main(void)
               cbi(PORTB, STNDBY_PIN);
               cbi(PORTB, HUB_PIN);
 
-        if (V>15)
+        if (V>threshold)
         {
           if (COUNT==0)
           {
@@ -281,7 +282,7 @@ int main(void)
             COUNT = COUNT-1;
           }
         }    
-        else if (V<=15)
+        else if (V<=threshold)
         {
           if (COUNT<20)
           {
@@ -321,7 +322,7 @@ int main(void)
         break;
       case RECORDING :
                         printf("V = %03u\tRECORDING count = %d\r",V,COUNT);
-                        if (V>15)
+                        if (V>threshold)
         {
           if (COUNT==0)
           {
@@ -332,7 +333,7 @@ int main(void)
             COUNT = COUNT-1;
           }
         }    
-        else if (V<=15)
+        else if (V<=threshold)
         {
           if (COUNT<20)
           {
@@ -352,7 +353,7 @@ int main(void)
       case STANDBY:
              printf("V = %03u\tSTANDBY count = %02d",V,COUNT);
              printf("\tSTANDBY stby_count = %003d\r",STBY_COUNT);
-        if (V>15)
+        if (V>threshold)
         {
           if (COUNT==0)
           {
@@ -373,7 +374,7 @@ int main(void)
           }
 
         }    
-        else if (V<=15)
+        else if (V<=threshold)
         {
           if (COUNT<20)
           {

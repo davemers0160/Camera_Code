@@ -293,7 +293,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 #else
 	// videoCapture(&cam, lensDriver, video_save_file, framerate, framerate);
-	videoCapture(&cam, lensDriver, save_path + focus_save_file, save_path + defocus_save_file, (unsigned int)cam_framerate, 48.0);
+	videoCapture(&cam, lensDriver, save_path + focus_save_file, save_path + defocus_save_file, (unsigned int)cam_framerate*20, 48.0);
 
 #endif
 
