@@ -157,8 +157,8 @@ using namespace Lens_Driver;
 
 		videoSaveFocus.FileName = focus_save_file;
 		videoSaveDefocus.FileName = defocus_save_file;
-		videoSaveFocus.VideoFile.open(focus_save_file, codec, fps, image_size, true);
-		videoSaveDefocus.VideoFile.open(defocus_save_file, codec, fps, image_size, true);
+		videoSaveFocus.VideoFile.open(focus_save_file, codec, fps/2, image_size, true);
+		videoSaveDefocus.VideoFile.open(defocus_save_file, codec, fps/2, image_size, true);
 		//focusVideo.open(focus_save_file, codec, fps, image_size, true);
 		//defocusVideo.open(defocus_save_file, codec, fps, image_size, true);
 

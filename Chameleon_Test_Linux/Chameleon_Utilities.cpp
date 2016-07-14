@@ -78,8 +78,7 @@ void PrintBuildInfo(void)
 void cameraConnect(PGRGuid guid, Camera *cam)
 {
 	FlyCapture2::Error error;
-	//	Camera cam;
-	CameraInfo camInfo;
+	//CameraInfo camInfo;
 
 	error = cam->Connect(&guid);
 	if (error != PGRERROR_OK)
@@ -87,13 +86,13 @@ void cameraConnect(PGRGuid guid, Camera *cam)
 		PrintError(error);
 	}
 
-	error = cam->GetCameraInfo(&camInfo);
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-	}
+	//error = cam->GetCameraInfo(&camInfo);
+	//if (error != PGRERROR_OK)
+	//{
+	//	PrintError(error);
+	//}
 
-	PrintCameraInfo(&camInfo);
+	//PrintCameraInfo(&camInfo);
 
 	//return cam;
 

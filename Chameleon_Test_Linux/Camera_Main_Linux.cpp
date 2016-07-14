@@ -14,6 +14,7 @@
 #include <iomanip>
 #include <ctime>
 #include <stdio.h>
+#include <cstdlib>
 
 // windows Includes
 //#include <windows.h>
@@ -94,12 +95,14 @@ int main(int /*argc*/, char** /*argv*/)
     PGRGuid guid;
 	Camera cam;
 	FC2Config cameraConfig;
+	CameraInfo camInfo;
+	char camSerialNumber[16];
 	unsigned int numCameras;
 	unsigned int offsetX, offsetY, width, height;
 	PixelFormat pixelFormat;
 	float shutter, gain, brightness, auto_exp;
 	int sharpness;
-	float cam_framerate = 45.0;
+	float cam_framerate = 46.0;
 	bool camera_on = true;
 
 	
@@ -144,8 +147,6 @@ int main(int /*argc*/, char** /*argv*/)
 	// Timing Specific Variables
 	double start, stop;
 	double delta;
-
-
 
 
 	PrintBuildInfo();
@@ -220,7 +221,7 @@ int main(int /*argc*/, char** /*argv*/)
 	getLensDriverInfo(&LensInfo, LensRx);
 	PrintDriverInfo(&LensInfo);
 
-
+	// get the number of cameras attached
     error = busMgr.GetNumOfCameras(&numCameras);
     if (error != PGRERROR_OK)
     {
@@ -230,6 +231,7 @@ int main(int /*argc*/, char** /*argv*/)
 
     cout << "Number of cameras detected: " << numCameras << endl; 
     
+    // assume that we want to connect to the first camera and get the GUID for that camera
     error = busMgr.GetCameraFromIndex(0, &guid);
     if (error != PGRERROR_OK)
     {
@@ -245,6 +247,17 @@ int main(int /*argc*/, char** /*argv*/)
 		return 1;
 	}
 
+	// get the infor from the camera
+	error = cam.GetCameraInfo(&camInfo);
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+	}
+
+	PrintCameraInfo(&camInfo);
+	sprintf(camSerialNumber,"%u",camInfo.serialNumber);
+
+
 	// Get the camera configuration
 	error = cam.GetConfiguration(&cameraConfig);
 	if (error != PGRERROR_OK)
@@ -252,7 +265,6 @@ int main(int /*argc*/, char** /*argv*/)
 		PrintError(error);
 		return 1;
 	}
-
 
 	cameraConfig.grabTimeout = 500;// (unsigned int)(1000 / framerate);
 	cameraConfig.highPerformanceRetrieveBuffer = true;
@@ -280,8 +292,8 @@ int main(int /*argc*/, char** /*argv*/)
 	cout << "Configuring Camera!" << endl;
 
 	//pixelFormat = PIXEL_FORMAT_422YUV8;
-	pixelFormat = PIXEL_FORMAT_444YUV8;
-	//pixelFormat = PIXEL_FORMAT_RGB8;
+	//pixelFormat = PIXEL_FORMAT_444YUV8;
+	pixelFormat = PIXEL_FORMAT_RGB8;
 	error = configImagerFormat(&cam, offsetX, offsetY, width, height, pixelFormat);
 	if (error != PGRERROR_OK)
 	{
@@ -360,13 +372,17 @@ int main(int /*argc*/, char** /*argv*/)
 			save_path = "/media/odroid/DATA_DRIVE/Data/";
 		#endif
 
-			file_base = (string)currenttime + "_" + recording_name + "_raw";
-			video_save_file = (string)currenttime + "_" + recording_name + "_raw" + file_extension;
-			focus_save_file = (string)currenttime + "_" + recording_name + "_focus" + file_extension;
-			defocus_save_file = (string)currenttime + "_" + recording_name + "_defocus" + file_extension;
+			file_base = (string)currenttime + "_" + recording_name + "_" + (string)camSerialNumber;
+			//video_save_file = (string)currenttime + "_" + recording_name + "_raw" + file_extension;
+			//focus_save_file = (string)currenttime + "_" + recording_name + "_focus" + file_extension;
+			//defocus_save_file = (string)currenttime + "_" + recording_name + "_defocus" + file_extension;
+			focus_save_file = file_base + "_focus" + file_extension;
+			defocus_save_file = file_base + "_defocus" + file_extension;
 
-			config_save_file = (string)currenttime + "_" + recording_name + "_config.txt";
-			GPS_save_file = (string)currenttime + "_" + recording_name + "_GPS_Data.txt";
+			//config_save_file = (string)currenttime + "_" + recording_name + "_config.txt";
+			//GPS_save_file = (string)currenttime + "_" + recording_name + "_GPS_Data.txt";
+			config_save_file = file_base + "_config.txt";
+			GPS_save_file = file_base + "_GPS_Data.txt";
 			configFile.open((save_path+config_save_file).c_str(), ios::out | ios::app);
 			///////////////////////////////////////////////////////////////////////////
 
@@ -429,7 +445,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 		#else
 
-			videoCaptureInt(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, cam_framerate*120, cam_framerate);
+			videoCaptureInt(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, cam_framerate*60, cam_framerate);
 
 			// test of imu interface
 			/*
@@ -504,7 +520,7 @@ FT_HANDLE OpenComPort(ftdiDeviceDetails *device, string descript)
 	DWORD ID;
 	DWORD Type;
 	DWORD LocId;
-	DWORD iOldVID, iOldPID;
+	//DWORD iOldVID, iOldPID;
 	char SerialNumber[16];
 	char Description[64];
 	LONG lComPortNumber;
