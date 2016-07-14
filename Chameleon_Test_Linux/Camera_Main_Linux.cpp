@@ -99,7 +99,7 @@ int main(int /*argc*/, char** /*argv*/)
 	PixelFormat pixelFormat;
 	float shutter, gain, brightness, auto_exp;
 	int sharpness;
-	float cam_framerate = 50.0;
+	float cam_framerate = 45.0;
 	bool camera_on = true;
 
 	
@@ -110,7 +110,7 @@ int main(int /*argc*/, char** /*argv*/)
 	LensRxPacket LensRx;
 	LensDriverInfo LensInfo;
 	unsigned char status;
-	unsigned char data[] = {135};
+	unsigned char data[] = {136};
 	//data[0] = 135;
 	LensTxPacket Focus(FAST_SET_VOLT, 1, &data[0]);
 	unsigned char CheckCount = 0;	// counter to limit the number of check to see it the LensDriver is attached
@@ -429,7 +429,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 		#else
 
-			videoCaptureInt(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, 400, cam_framerate);
+			videoCaptureInt(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, cam_framerate*120, cam_framerate);
 
 			// test of imu interface
 			/*

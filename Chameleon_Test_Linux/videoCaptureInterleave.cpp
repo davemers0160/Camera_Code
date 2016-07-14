@@ -57,7 +57,7 @@ using namespace Lens_Driver;
 	BOOL status;
 
 	// Lens Driver Variables
-	LensFocus LensDfD((unsigned char)137, (unsigned char)142);
+	LensFocus LensDfD((unsigned char)136, (unsigned char)140);
 	LensTxPacket Focus(FAST_SET_VOLT, 1, &LensDfD.Focus[0]);
 	LensTxPacket DeFocus(FAST_SET_VOLT, 1, &LensDfD.Focus[1]);
 
@@ -67,9 +67,9 @@ using namespace Lens_Driver;
 
 	// OpenCV variables
 	double tick1, tick2;
-	double duration = 0;
+	double duration = 0.0;
 	double tickFreq = 1000.0 / getTickFrequency();
-	double delta = (0.020*getTickFrequency());
+	double delta = (getTickFrequency()/fps);
 	double start, stop;
 
 

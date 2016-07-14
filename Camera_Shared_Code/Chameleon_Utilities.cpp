@@ -281,14 +281,14 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 
 
 	// set the auto values to fixed
-	configProperty(cam, Shutter, SHUTTER, false, false, true);
-	error = setProperty(cam, Shutter, *shutter);
-	configProperty(cam, Gain, GAIN, false, false, true);
-	error = setProperty(cam, Gain, *gain);
-	configProperty(cam, Sharpness, SHARPNESS, false, false, false);
-	error = setProperty(cam, Sharpness, (float)*sharpness);
-	configProperty(cam, Auto_Exposure, AUTO_EXPOSURE, false, false, true);
-	error = setProperty(cam, Auto_Exposure, *auto_exp);
+	//configProperty(cam, Shutter, SHUTTER, false, false, true);
+	//error = setProperty(cam, Shutter, *shutter);
+	//configProperty(cam, Gain, GAIN, false, false, true);
+	//error = setProperty(cam, Gain, *gain);
+	//configProperty(cam, Sharpness, SHARPNESS, false, false, false);
+	//error = setProperty(cam, Sharpness, (float)*sharpness);
+	//configProperty(cam, Auto_Exposure, AUTO_EXPOSURE, false, false, true);
+	//error = setProperty(cam, Auto_Exposure, *auto_exp);
 
 	return error;
 

@@ -69,7 +69,7 @@ using namespace Lens_Driver;
 	double tick1, tick2;
 	double duration = 0;
 	double tickFreq = 1000.0 / getTickFrequency();
-	double delta = (0.020*getTickFrequency());
+	double delta = (getTickFrequency() / fps);
 	double start, stop;
 
 	int codec = CV_FOURCC('M', 'J', 'P', 'G');
