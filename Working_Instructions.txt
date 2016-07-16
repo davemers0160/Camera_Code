@@ -98,11 +98,10 @@
 	- Go to Box and download libftd2xx-arm-v7-hf-1.3.6.tgz
 	- unzip into the odroid home folder and rename the release folder to libftdi2xx-arm-v7-hf-1.3.6
 	- run the following commands in a terminal window
-		sudo -s
 		cd libftd2xx-arm-v7-hf-1.3.6/build
-		cp libftd2xx.* /usr/local/lib
-		chmod 0755 /usr/local/lib/libftd2xx.so.1.3.6
-		ln -sf /usr/local/lib/libftd2xx.so.1.3.6 /usr/local/lib/libftd2xx.so
+		sudo cp libftd2xx.* /usr/local/lib
+		sudo chmod 0755 /usr/local/lib/libftd2xx.so.1.3.6
+		sudo ln -sf /usr/local/lib/libftd2xx.so.1.3.6 /usr/local/lib/libftd2xx.so
 		cd ../examples
 		make -B
 
@@ -137,26 +136,30 @@
 # THIS IS THE NEW INSTRUCTION
 	- This file is located in the repository. In a terminal window navigate to the BicycleCamera
 	- Type the following:
-		sudo ftdi_config.sh
+		sudo sh ftdi_config.sh
 	- On the next restart the ftdi_sio drivers should not load
 	- To check plug in the GPS, IMU or Lens Driver and in a terminal window and type lsmod.  The
 	  ftdi_sio drivers should not be listed.
 	  
 15. Add VNC Server for remote desktop access. (http://forum.odroid.com/viewtopic.php?f=95&t=15320)
 and (http://ubuntuwiki.net/index.php/Xrdp,_installing)
-# Run the following:
+# Run the following commands in a terminal window:
 	- sudo apt-get install vino xrdp
 	- vino-preferences
+		- Check the box for "Allow other users to view your desktop"
+		- Un-check the box "You must confirm each access to this machine"
+		- Select the "Close" button
+	- gsettings set org.gnome.Vino require-encryption false
+	
 #Set the Vino server to start automatically at login.
-	- navigate to: System/Preferences/Startup Applications
+	- navigate to: System->Preferences->Startup Applications
 	- Use the Add button to create a new entry
 		Name = Vino Server
 		Command = /usr/lib/vino/vino-server
-		Comment = VNC Remote Desktop Server
-	- In a terminal window type the following:
-		gsettings set org.gnome.Vino require-encryption false
-		
-	- edit /etc/xrdp/xrdp.ini
+		Comment = VNC Remote Desktop Server	
+	- Click the "Save" button
+	
+	- Edit /etc/xrdp/xrdp.ini
 	
 		[xrdp1]
 		name=Active Local Login
@@ -166,6 +169,15 @@ and (http://ubuntuwiki.net/index.php/Xrdp,_installing)
 		ip=127.0.0.1
 		port=5900
 		
+	- Configure the wired IP address for the Odroid.  Go to System->Preferences->Network Connections
+		- Select the Wired Connect and hit the "Edit" button
+		- Select the "IPv4 Setting" tab and change the method to manual
+		- Click the "Add" button and enter the following:
+			Address: 192.168.10.30
+			Netmask: 255.255.255.0
+			Gateway: leave blank
+		- Click the "Save" button and then the "Close" button
+	
 	- Restart the Odroid
 		
 16. Configure Odroid to shutdown when power button is pressed or voltage is applied to PWRON Pin
@@ -177,8 +189,7 @@ and (http://ubuntuwiki.net/index.php/Xrdp,_installing)
 17. Configure gpio user group and add odroid to the group and allow non root users to access the 
 gpio pins.  (http://forum.odroid.com/viewtopic.php?f=80&t=15000)
 	- Navigate to the BicycleCamera folder and in a terminal window enter the following:
-		sudo gpio_conf
-		
+		sudo sh gpio_conf.sh
 	
 18. Increase the USB transfer size so that the camera will work correctly
 	- open /media/boot/boot.ini as an administrator
@@ -193,15 +204,22 @@ gpio pins.  (http://forum.odroid.com/viewtopic.php?f=80&t=15000)
 # 1. Create a .desktop file in /home/odroid/.config/autostart/
 # 2. Add the following:
 
-[Desktop Entry]
-Name=Chameleon_Launch
-Comment=Autostart Entry for Chameleon Camera Code
-Type=Application
-Exec=/home/odroid/BicycleCamera/Camera_Startup.sh
-Terminal=true
+# [Desktop Entry]
+# Name=Chameleon_Launch
+# Comment=Autostart Entry for Chameleon Camera Code
+# Type=Application
+# Exec=/home/odroid/BicycleCamera/Camera_Startup.sh
+# Terminal=true
 
 # Where "Camera_Startup.sh" is the script file that starts the program with
 # the required amount of delay.
+
+	- navigate to: System->Preferences->Startup Applications
+	- Use the Add button to create a new entry
+		Name = Camera Startup
+		Command = /home/odroid/BicycleCamera/Camera_Startup.sh
+		Comment = Script to start Camera recording code
+	- Click the "Save" button
 
 ###############################################################################
 General Tips and Tricks

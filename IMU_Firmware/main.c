@@ -143,7 +143,12 @@ int main(void)
   uint16_t COUNT, STBY_COUNT, states;
 
   uint8_t odroid_status=0;
-  uint8_t threshold = 24;
+  uint8_t stdby_threshold = 24;
+  uint8_t on_threshold = 12;
+  
+  uint16_t on_count = 5;
+  uint16_t stdby_count = 20;
+  uint16_t off_count = 200;
 
   init();
 
@@ -271,7 +276,7 @@ int main(void)
               cbi(PORTB, STNDBY_PIN);
               cbi(PORTB, HUB_PIN);
 
-        if (V>threshold)
+        if (V>on_threshold)
         {
           if (COUNT==0)
           {
@@ -282,9 +287,9 @@ int main(void)
             COUNT = COUNT-1;
           }
         }    
-        else if (V<=threshold)
+        else if (V<=on_threshold)
         {
-          if (COUNT<20)
+          if (COUNT<on_count)
           {
             COUNT = COUNT+1;
           }
@@ -298,9 +303,7 @@ int main(void)
         break;                     
       case POWERON:
               printf("V = %03u\tPOWERON count = %d\r",V,COUNT);
-
-          
-          
+        
         // Power on the Hub first
         sbi(PORTB, HUB_PIN);
         delay_ms(1000);
@@ -313,16 +316,15 @@ int main(void)
         
         // turn on the standb pin to start recording
         sbi(PORTB, STNDBY_PIN);
-        delay_ms(8000);  // wait a little to allow the Odroid to boot up   
-   
-        
+        delay_ms(10000);  // wait a little to allow the Odroid to boot up   
+          
         states = RECORDING;
         printf("Exiting POWERON mode\r");
 
         break;
       case RECORDING :
                         printf("V = %03u\tRECORDING count = %d\r",V,COUNT);
-                        if (V>threshold)
+                        if (V>stdby_threshold)
         {
           if (COUNT==0)
           {
@@ -333,15 +335,15 @@ int main(void)
             COUNT = COUNT-1;
           }
         }    
-        else if (V<=threshold)
+        else if (V<=stdby_threshold)
         {
-          if (COUNT<20)
+          if (COUNT<stdby_count)
           {
             COUNT = COUNT+1;
           }
         }
 
-        if (COUNT>=20)
+        if (COUNT>=stdby_count)
         {
           printf("Exiting RECORDING mode\r"); 
           STBY_COUNT = COUNT;
@@ -353,7 +355,7 @@ int main(void)
       case STANDBY:
              printf("V = %03u\tSTANDBY count = %02d",V,COUNT);
              printf("\tSTANDBY stby_count = %003d\r",STBY_COUNT);
-        if (V>threshold)
+        if (V>stdby_threshold)
         {
           if (COUNT==0)
           {
@@ -374,21 +376,21 @@ int main(void)
           }
 
         }    
-        else if (V<=threshold)
+        else if (V<=stdby_threshold)
         {
-          if (COUNT<20)
+          if (COUNT<stdby_count)
           {
             COUNT++;
           }
 
-          if (STBY_COUNT<300)
+          if (STBY_COUNT<off_count)
           {
             STBY_COUNT++;
           }                                       
         } 
 
         // check to see if the standby counter has reached the max value
-        if (STBY_COUNT>=300)
+        if (STBY_COUNT>=off_count)
         { 
   
            // Power off the Hub first
@@ -400,7 +402,7 @@ int main(void)
            delay_ms(800);
            cbi(PORTB,PWR_PIN);
            delay_ms(1500);  // wait a little to allow the Odroid to power down
-           COUNT=20;
+           COUNT=on_count;
            states = POWEROFF;
            printf("Exiting STANDBY mode\r");
         }                     
