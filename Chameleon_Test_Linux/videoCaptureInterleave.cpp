@@ -233,8 +233,11 @@ using namespace Lens_Driver;
 		//focusFrame[count] = Mat(image_size, CV_8UC3, image_data, image_stride);
 		videoSaveFocus.VideoFrame = Mat(image_size, CV_8UC3, image_data, image_stride);
 
-		pthread_create(&Focus_Thread, NULL, saveVideo_t, (void*)(&videoSaveFocus) );
+		cvtColor(videoSaveFocus.VideoFrame,videoSaveFocus.VideoFrame, CV_RGB2BGR);
 
+		double t6a = (double)getTickCount();
+
+		pthread_create(&Focus_Thread, NULL, saveVideo_t, (void*)(&videoSaveFocus) );
 
 		double t7 = (double)getTickCount();
 
@@ -307,8 +310,12 @@ using namespace Lens_Driver;
 		//video_frame = Mat(image_size, CV_8UC3, image_data, image_stride);
 		//defocusFrame[count] = Mat(image_size, CV_8UC3, image_data, image_stride);
 		videoSaveDefocus.VideoFrame = Mat(image_size, CV_8UC3, image_data, image_stride);
-		pthread_create(&Defocus_Thread, NULL, saveVideo_t, (void*)(&videoSaveDefocus) );
 
+		cvtColor(videoSaveDefocus.VideoFrame, videoSaveDefocus.VideoFrame, CV_RGB2BGR);
+
+		double t14a = (double)getTickCount();
+
+		pthread_create(&Defocus_Thread, NULL, saveVideo_t, (void*)(&videoSaveDefocus) );
 
 		double t15 = (double)getTickCount();
 
@@ -328,22 +335,26 @@ using namespace Lens_Driver;
 		//cout << (tick2 - tick1) * tickFreq << "ms" << endl;
 		count++;
 
-		//cout << "Poll:        " << ((t2 - t1) ) * tickFreq << endl;
-		//cout << "Trigger:     " << ((t3 - t2) ) * tickFreq << endl;
-		//cout << "Get Data:    " << ((t4 - t3) ) * tickFreq << endl;
-		//cout << "Send Focus:  " << ((t5 - t4) ) * tickFreq << endl;
-		//cout << "Data 2 char: " << ((t6 - t5) ) * tickFreq << endl;
-		//cout << "Save File:   " << ((t7 - t6) ) * tickFreq << endl;
-		//cout << "Wait Delay:  " << ((t8 - t7) ) * tickFreq << endl;
+		cout << "Poll:        " << ((t2 - t1) ) * tickFreq << endl;
+		cout << "Trigger:     " << ((t3 - t2) ) * tickFreq << endl;
+		cout << "Get Data:    " << ((t4 - t3) ) * tickFreq << endl;
+		cout << "Send Focus:  " << ((t5 - t4) ) * tickFreq << endl;
+		cout << "Data 2 char: " << ((t6 - t5) ) * tickFreq << endl;
+		cout << "Convert Data:" << ((t6a - t6)) * tickFreq << endl;
+		cout << "Save File:   " << ((t7 - t6a) ) * tickFreq << endl;
+		cout << "Wait Delay:  " << ((t8 - t7) ) * tickFreq << endl;
 		cout << "Focus Time:  " << ((t8 - t1) ) * tickFreq << endl;
 		//cout << "Poll:        " << ((t10 - t9) ) * tickFreq << endl;
 		//cout << "Trigger:     " << ((t11 - t10) ) * tickFreq << endl;
 		//cout << "Get Data:    " << ((t12 - t11) ) * tickFreq << endl;
 		//cout << "Send Defocus:" << ((t13 - t12) ) * tickFreq << endl;
 		//cout << "Data 2 char: " << ((t14 - t13) ) * tickFreq << endl;
+		cout << "Convert Data:" << ((t14a - t14)) * tickFreq << endl;
 		//cout << "Save File:   " << ((t15 - t14) ) * tickFreq << endl;
 		//cout << "Wait Delay:  " << ((t16 - t15) ) * tickFreq << endl;
 		cout << "Defcous Time:" << ((t16 - t9) ) * tickFreq << endl;
+
+		cout << "Count:			" << count << endl;
 		cout << endl;
 
 		//pthread_join(Focus_Thread, NULL);

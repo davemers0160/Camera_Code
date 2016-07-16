@@ -102,7 +102,7 @@ int main(int /*argc*/, char** /*argv*/)
 	PixelFormat pixelFormat;
 	float shutter, gain, brightness, auto_exp;
 	int sharpness;
-	float cam_framerate = 46.0;
+	float cam_framerate = 40.0;
 	bool camera_on = true;
 
 	
@@ -158,7 +158,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 	cout << "Connecting to Lens Driver..." << endl;
 	// check for lens driver
-	while ((lensDriver == NULL) && (CheckCount<50))
+	while ((lensDriver == NULL) && (CheckCount<10))
 	{
 		driverDeviceDetails.devNumber = 0;
 		driverDeviceDetails.type = 0;
@@ -283,11 +283,11 @@ int main(int /*argc*/, char** /*argv*/)
 
 	// configure the image size and the pixel format for the video
 	// 1.216 MB/s
-	offsetX = 80;		// 40
-	width = 1120;		// 1200;
+	offsetX = 40;		// 40
+	width = 1200;		// 1200;
 	
 	offsetY = 228;		// 228;
-	height = 724;		// 724;
+	height = 720;		// 724;
 
 	cout << "Configuring Camera!" << endl;
 
@@ -301,7 +301,7 @@ int main(int /*argc*/, char** /*argv*/)
 		return -1;
 	}
 
-
+	//main loop to do the recording
 	while(1)
 	{
 
@@ -445,7 +445,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 		#else
 
-			videoCaptureInt(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, cam_framerate*60, cam_framerate);
+			videoCaptureInt(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, cam_framerate*10, cam_framerate);
 
 			// test of imu interface
 			/*

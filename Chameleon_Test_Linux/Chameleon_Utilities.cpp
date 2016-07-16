@@ -205,7 +205,7 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 	Property Shutter, Gain, Sharpness, Framerate, Brightness, Auto_Exposure;
 	
 	*sharpness = 1200;
-	*shutter = 16.0;
+	*shutter = 12.0;
 	*gain = 10.0;
 	*auto_exp = 1.0;
 	*brightness = 2.0;
@@ -272,7 +272,7 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 	//sleep_ms(500);
 
 	// get the auto values
-	//*shutter = getABSProperty(cam, Shutter);
+	*shutter = getABSProperty(cam, Shutter);
 	//*gain = getABSProperty(cam, Gain);
 	//*sharpness = getProperty(cam, Sharpness);
 	//*brightness = getABSProperty(cam, Brightness);
@@ -281,8 +281,8 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 
 
 	// set the auto values to fixed
-	// configProperty(cam, Shutter, SHUTTER, false, false, true);
-	// error = setProperty(cam, Shutter, *shutter);
+	configProperty(cam, Shutter, SHUTTER, false, false, true);
+	error = setProperty(cam, Shutter, *shutter);
 	// configProperty(cam, Gain, GAIN, false, false, true);
 	// error = setProperty(cam, Gain, *gain);
 	// configProperty(cam, Sharpness, SHARPNESS, false, false, false);
