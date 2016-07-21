@@ -71,7 +71,9 @@ using namespace Lens_Driver;
 	double tickFreq = 1000.0 / getTickFrequency();
 	double delta = (getTickFrequency()/fps);
 	double start, stop;
-
+	vector<Mat> Color_Channel(3);
+	Mat tempVideoFrame;
+	int fromTo[] = {0,2, 1,1, 2,0};
 
 	//int codec = CV_FOURCC('M', 'J', 'P', 'G');
 	//int codec = CV_FOURCC('D', 'I', 'V', 'X');
@@ -79,7 +81,9 @@ using namespace Lens_Driver;
 	//int codec = CV_FOURCC('H', '2', '6', '4'); 		// not on Odroid
 	//int codec = CV_FOURCC('X', '2', '6', '4');		// not on Odroid
 	//int codec = CV_FOURCC('M', 'J', '2', 'C');
-	int codec = CV_FOURCC('M', 'P', '4', 'V');
+	int codec = CV_FOURCC('M', 'P', '4', 'V');		// this one works the best do far
+	//int codec = CV_FOURCC('I', 'Y', 'U', '2');		// not on Odroid
+	//int codec = CV_FOURCC('A', 'Y', 'U', 'V');		// not on Odroid
 	//int codec = -1;
 
 
@@ -185,7 +189,7 @@ using namespace Lens_Driver;
 		// poll the camera to see if it is ready for a software trigger
 		PollForTriggerReady(cam);
 		
-		double t2 = (double)getTickCount();
+		//double t2 = (double)getTickCount();
 		status = FireSoftwareTrigger(cam);
 		if (status == false)
 		{
@@ -193,7 +197,7 @@ using namespace Lens_Driver;
 			continue;
 		}
 
-		double t3 = (double)getTickCount();
+		//double t3 = (double)getTickCount();
 
 		// Retrieve an image
 		error = cam->RetrieveBuffer(&rawImage);
@@ -204,7 +208,7 @@ using namespace Lens_Driver;
 
 		}
 
-		double t4 = (double)getTickCount();
+		//double t4 = (double)getTickCount();
 
 		//cout << "t2-t1: " << ((t2 - t1) ) * tickFreq << endl;
 		//cout << "t3-t2: " << ((t3 - t2) ) * tickFreq << endl;
@@ -214,7 +218,7 @@ using namespace Lens_Driver;
 		sendLensPacket(DeFocus, lensDriver);
 
 
-		double t5 = (double)getTickCount();
+		//double t5 = (double)getTickCount();
 		// Convert the raw image	PIXEL_FORMAT_BGR for opencv
 		//error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
 		//if (error != PGRERROR_OK)
@@ -227,19 +231,23 @@ using namespace Lens_Driver;
 		//image_data = convertedImageCV.GetData();
 		image_data = rawImage.GetData();
 
-		double t6 = (double)getTickCount();
+		//double t6 = (double)getTickCount();
 
 		//video_frame = Mat(image_size, CV_8UC3, image_data, image_stride);
 		//focusFrame[count] = Mat(image_size, CV_8UC3, image_data, image_stride);
-		videoSaveFocus.VideoFrame = Mat(image_size, CV_8UC3, image_data, image_stride);
+		//videoSaveFocus.VideoFrame = Mat(image_size, CV_8UC3, image_data, image_stride);
 
-		cvtColor(videoSaveFocus.VideoFrame,videoSaveFocus.VideoFrame, CV_RGB2BGR);
 
-		double t6a = (double)getTickCount();
+		tempVideoFrame = Mat(image_size, CV_8UC3, image_data, image_stride);
+		cvtColor(tempVideoFrame,videoSaveFocus.VideoFrame, CV_RGB2BGR,3);
+
+		//mixChannels(&tempVideoFrame, 1, &videoSaveFocus.VideoFrame, 1, fromTo,3);
+
+		//double t6a = (double)getTickCount();
 
 		pthread_create(&Focus_Thread, NULL, saveVideo_t, (void*)(&videoSaveFocus) );
 
-		double t7 = (double)getTickCount();
+		//double t7 = (double)getTickCount();
 
 		do
 		{
@@ -268,7 +276,7 @@ using namespace Lens_Driver;
 		// poll the camera to see if it is ready for a software trigger
 		PollForTriggerReady(cam);
 
-		double t10 = (double)getTickCount();
+		//double t10 = (double)getTickCount();
 		status = FireSoftwareTrigger(cam);
 		if (status == false)
 		{
@@ -276,7 +284,7 @@ using namespace Lens_Driver;
 			continue;
 		}
 
-		double t11 = (double)getTickCount();
+		//double t11 = (double)getTickCount();
 		// Retrieve an image
 		error = cam->RetrieveBuffer(&rawImage);
 		if (error != PGRERROR_OK)
@@ -285,7 +293,7 @@ using namespace Lens_Driver;
 			cout << "Count: " << count << endl;
 
 		}
-		double t12 = (double)getTickCount();
+		//double t12 = (double)getTickCount();
 
 		//cout << "t2-t1: " << ((t2 - t1) ) * tickFreq << endl;
 		//cout << "t3-t2: " << ((t3 - t2) ) * tickFreq << endl;
@@ -293,7 +301,7 @@ using namespace Lens_Driver;
 
 		sendLensPacket(Focus, lensDriver);
 
-		double t13 = (double)getTickCount();
+		//double t13 = (double)getTickCount();
 		// Convert the raw image	PIXEL_FORMAT_BGR for opencv
 		//error = rawImage.Convert(PIXEL_FORMAT_BGR, &convertedImageCV);
 		//if (error != PGRERROR_OK)
@@ -305,19 +313,23 @@ using namespace Lens_Driver;
 		// Convert data to opencv format
 		//image_data = convertedImageCV.GetData();
 		image_data = rawImage.GetData();
-		double t14 = (double)getTickCount();
+		//double t14 = (double)getTickCount();
 
 		//video_frame = Mat(image_size, CV_8UC3, image_data, image_stride);
 		//defocusFrame[count] = Mat(image_size, CV_8UC3, image_data, image_stride);
-		videoSaveDefocus.VideoFrame = Mat(image_size, CV_8UC3, image_data, image_stride);
+		//videoSaveDefocus.VideoFrame = Mat(image_size, CV_8UC3, image_data, image_stride);
 
-		cvtColor(videoSaveDefocus.VideoFrame, videoSaveDefocus.VideoFrame, CV_RGB2BGR);
+		//cvtColor(videoSaveDefocus.VideoFrame, videoSaveDefocus.VideoFrame, CV_RGB2BGR);
 
-		double t14a = (double)getTickCount();
+		tempVideoFrame = Mat(image_size, CV_8UC3, image_data, image_stride);
+		//mixChannels(&tempVideoFrame, 1, &videoSaveDefocus.VideoFrame, 1, fromTo,3);
+		cvtColor(tempVideoFrame, videoSaveDefocus.VideoFrame, CV_RGB2BGR, 3);
+
+		//double t14a = (double)getTickCount();
 
 		pthread_create(&Defocus_Thread, NULL, saveVideo_t, (void*)(&videoSaveDefocus) );
 
-		double t15 = (double)getTickCount();
+		//double t15 = (double)getTickCount();
 
 		do
 		{
@@ -335,27 +347,27 @@ using namespace Lens_Driver;
 		//cout << (tick2 - tick1) * tickFreq << "ms" << endl;
 		count++;
 
-		cout << "Poll:        " << ((t2 - t1) ) * tickFreq << endl;
-		cout << "Trigger:     " << ((t3 - t2) ) * tickFreq << endl;
-		cout << "Get Data:    " << ((t4 - t3) ) * tickFreq << endl;
-		cout << "Send Focus:  " << ((t5 - t4) ) * tickFreq << endl;
-		cout << "Data 2 char: " << ((t6 - t5) ) * tickFreq << endl;
-		cout << "Convert Data:" << ((t6a - t6)) * tickFreq << endl;
-		cout << "Save File:   " << ((t7 - t6a) ) * tickFreq << endl;
-		cout << "Wait Delay:  " << ((t8 - t7) ) * tickFreq << endl;
-		cout << "Focus Time:  " << ((t8 - t1) ) * tickFreq << endl;
+		//cout << "Poll:        " << ((t2 - t1) ) * tickFreq << endl;
+		//cout << "Trigger:     " << ((t3 - t2) ) * tickFreq << endl;
+		//cout << "Get Data:    " << ((t4 - t3) ) * tickFreq << endl;
+		//cout << "Send Focus:  " << ((t5 - t4) ) * tickFreq << endl;
+		//cout << "Data 2 char: " << ((t6 - t5) ) * tickFreq << endl;
+		//cout << "Convert Data:" << ((t6a - t6)) * tickFreq << endl;
+		//cout << "Save File:   " << ((t7 - t6a) ) * tickFreq << endl;
+		//cout << "Wait Delay:  " << ((t8 - t7) ) * tickFreq << endl;
+		//cout << "Focus Time:  " << ((t8 - t1) ) * tickFreq << endl;
 		//cout << "Poll:        " << ((t10 - t9) ) * tickFreq << endl;
 		//cout << "Trigger:     " << ((t11 - t10) ) * tickFreq << endl;
 		//cout << "Get Data:    " << ((t12 - t11) ) * tickFreq << endl;
 		//cout << "Send Defocus:" << ((t13 - t12) ) * tickFreq << endl;
 		//cout << "Data 2 char: " << ((t14 - t13) ) * tickFreq << endl;
-		cout << "Convert Data:" << ((t14a - t14)) * tickFreq << endl;
+		//cout << "Convert Data:" << ((t14a - t14)) * tickFreq << endl;
 		//cout << "Save File:   " << ((t15 - t14) ) * tickFreq << endl;
 		//cout << "Wait Delay:  " << ((t16 - t15) ) * tickFreq << endl;
-		cout << "Defcous Time:" << ((t16 - t9) ) * tickFreq << endl;
+		//cout << "Defcous Time:" << ((t16 - t9) ) * tickFreq << endl;
 
-		cout << "Count:			" << count << endl;
-		cout << endl;
+		//cout << "Count:			" << count << endl;
+		//cout << endl;
 
 		//pthread_join(Focus_Thread, NULL);
 		//pthread_join(Defocus_Thread, NULL);
@@ -365,7 +377,7 @@ using namespace Lens_Driver;
 
 	cout << "stop-start: " << ((loopstop - loopstart) ) * tickFreq << endl;
 	cout << "Average Frame Rate (fps): " << (int)((2000.0*numCaptures)/((loopstop - loopstart) * tickFreq)) << endl;
-	cout << "Average Frame Rate (fps): " << dec << (unsigned short)(1000/((duration * tickFreq)/ (numCaptures*2.0))) << endl;
+	//cout << "Average Frame Rate (fps): " << dec << (unsigned short)(1000/((duration * tickFreq)/ (numCaptures*2.0))) << endl;
 
 ///////////////////////////////////////////////////////////////////////////////
 //						START THE IMAGE WRITING 							 //
