@@ -19,10 +19,10 @@ using namespace std;
 typedef struct
 {
 	int hour, minute;
-	float second;
-	float Latitude;
-	float Longitude;
-	float Speed;
+	double second;
+	double Latitude;
+	double Longitude;
+	double Speed;
 
 } GPS_info;
 
@@ -108,7 +108,7 @@ int main(int argc, char ** argv)
 
 	while(1)
 	{
-		gpsDataLog.open(gpsSaveFile.c_str(), ios::out | ios::app);
+		//gpsDataLog.open(gpsSaveFile.c_str(), ios::out | ios::app);
 
 		for (int idx = 0; idx < 60; idx++)
 		{
@@ -120,13 +120,13 @@ int main(int argc, char ** argv)
 			cout << "Latitude: " << std::fixed << std::setprecision(6) << GPS_data.Latitude << "\t";
 			cout << "Longitude: " << std::fixed << std::setprecision(6) << GPS_data.Longitude << endl;
 
-			gpsDataLog << "Time: " << setfill('0') << setw(2) << GPS_data.hour << ":" << setfill('0') << setw(2) << GPS_data.minute << ":" << fixed << setfill('0') << setw(4) << setprecision(1) << GPS_data.second << ",";
-			gpsDataLog << "Latitude: " << std::fixed << std::setprecision(6) << GPS_data.Latitude << ",";
-			gpsDataLog << "Longitude: " << std::fixed << std::setprecision(6) << GPS_data.Longitude << endl;
+			//gpsDataLog << "Time: " << setfill('0') << setw(2) << GPS_data.hour << ":" << setfill('0') << setw(2) << GPS_data.minute << ":" << fixed << setfill('0') << setw(4) << setprecision(1) << GPS_data.second << ",";
+			//gpsDataLog << "Latitude: " << std::fixed << std::setprecision(6) << GPS_data.Latitude << ",";
+			//gpsDataLog << "Longitude: " << std::fixed << std::setprecision(6) << GPS_data.Longitude << endl;
 
 		}
 
-		gpsDataLog.close();
+		//gpsDataLog.close();
 
 	}
 
@@ -146,9 +146,9 @@ int main(int argc, char ** argv)
 
 void configGPS(FT_HANDLE GPS_Handle)
 {
-	unsigned int dwBytesWritten;
+	unsigned long dwBytesWritten;
 	ULONG ft_write_Status;
-
+	
 	// message checksum is bitwise XOR between $ and *; PSRF103 = 0x25;
 	// disable GSV
 	//char GSV[] = "$PSRF103,03,00,00,01*27\r\n";
@@ -180,7 +180,7 @@ void configGPS(FT_HANDLE GPS_Handle)
 
 void getGPSInfo(FT_HANDLE GPS_Handle, GPS_info *GPS_data)
 {
-	unsigned int BytesRead;
+	unsigned long BytesRead;
 	char rx_data[96] = { 0 };
 	//OVERLAPPED osReader = { 0 };
 	//BOOL comm_result;
@@ -194,6 +194,8 @@ void getGPSInfo(FT_HANDLE GPS_Handle, GPS_info *GPS_data)
 		string gps_str = (string)rx_data;
 		vector<string> vect;
 		string temp;
+		double tempLatDD, tempLatMM, tempLongDD, tempLongMM;
+		unsigned int tempLatInt, tempLongInt;
 
 		stringstream ss(gps_str);
 		//while (ss >> temp)
@@ -216,13 +218,21 @@ void getGPSInfo(FT_HANDLE GPS_Handle, GPS_info *GPS_data)
 		if ((vect.size() > 10) && (vect[0] == "$GPGGA"))
 		{
 			
-			GPS_data->Latitude = atof(vect[2].c_str());
+			tempLatDD = (atof(vect[2].c_str())/100.0);
+			tempLatInt = (int)(tempLatDD);
+			tempLatMM = (tempLatDD - tempLatInt)*100;
+
+			GPS_data->Latitude = (double)tempLatInt + (tempLatMM / 60.0);		//atof(vect[2].c_str());
 			if (vect[3] == "S")
 			{
 				GPS_data->Latitude = -GPS_data->Latitude;
 			}
 			
-			GPS_data->Longitude = atof(vect[4].c_str());
+			tempLongDD = (atof(vect[4].c_str()) / 100.0);
+			tempLongInt = (int)(tempLongDD);
+			tempLongMM = (tempLongDD - tempLongInt) * 100;
+
+			GPS_data->Longitude = (double)tempLongInt + (tempLongMM / 60.0);		//atof(vect[4].c_str());
 			if (vect[5] == "W")
 			{
 				GPS_data->Longitude = -GPS_data->Longitude;
