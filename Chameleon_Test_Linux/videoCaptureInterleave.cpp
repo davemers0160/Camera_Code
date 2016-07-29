@@ -143,7 +143,7 @@ using namespace Lens_Driver;
 
 		image_size = Size((int)image_cols, (int)image_rows);
 
-		start = (double)getTickCount();
+		//start = (double)getTickCount();
 		//for (idx = 0; idx < numCaptures; idx++)
 		//{
 			//videoSaveFocus.VideoFrame[idx] = Mat(image_size, CV_8UC3);
@@ -156,13 +156,13 @@ using namespace Lens_Driver;
 		videoSaveFocus.VideoFrame = Mat(image_size, CV_8UC3);
 		videoSaveDefocus.VideoFrame = Mat(image_size, CV_8UC3);
 
-		stop = (double)getTickCount();
+		//stop = (double)getTickCount();
 		//cout << "1. stop-start: " << ((stop - start)) * tickFreq << endl;
 
 		videoSaveFocus.FileName = focus_save_file;
 		videoSaveDefocus.FileName = defocus_save_file;
-		videoSaveFocus.VideoFile.open(focus_save_file, codec, fps/2, image_size, true);
-		videoSaveDefocus.VideoFile.open(defocus_save_file, codec, fps/2, image_size, true);
+		videoSaveFocus.VideoFile.open(focus_save_file, codec, fps/2.0, image_size, true);
+		videoSaveDefocus.VideoFile.open(defocus_save_file, codec, fps/2.0, image_size, true);
 		//focusVideo.open(focus_save_file, codec, fps, image_size, true);
 		//defocusVideo.open(defocus_save_file, codec, fps, image_size, true);
 

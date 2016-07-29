@@ -102,7 +102,7 @@ int main(int /*argc*/, char** /*argv*/)
 	PixelFormat pixelFormat;
 	float shutter, gain, brightness, auto_exp;
 	int sharpness;
-	float cam_framerate = 40.0;
+	float cam_framerate = 30.0;
 	bool camera_on = true;
 
 	
@@ -445,7 +445,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 		#else
 
-			videoCaptureInt(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, cam_framerate*10, cam_framerate);
+			videoCaptureInt(&cam, lensDriver, save_path+focus_save_file, save_path+defocus_save_file, (unsigned int)(cam_framerate*15), cam_framerate);
 
 			// test of imu interface
 			/*

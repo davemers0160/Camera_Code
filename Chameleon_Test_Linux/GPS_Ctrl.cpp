@@ -49,8 +49,8 @@ void *logGPSData(void *args)
 			//std::cout << "Longitude: " << std::fixed << std::setprecision(6) << GPS_data.Longitude << endl;
 
 			GPS_Ctrl_Info->gpsDataLog << "Time: " << setfill('0') << setw(2) << GPS_data.hour << ":" << setfill('0') << setw(2) << GPS_data.minute << ":" << std::fixed << setfill('0') << setw(4) << setprecision(1) << GPS_data.second << ",";
-			GPS_Ctrl_Info->gpsDataLog << "Latitude: " << std::fixed << std::setprecision(6) << GPS_data.Latitude << ",";
-			GPS_Ctrl_Info->gpsDataLog << "Longitude: " << std::fixed << std::setprecision(6) << GPS_data.Longitude << endl;
+			GPS_Ctrl_Info->gpsDataLog << " Latitude: " << std::fixed << std::setprecision(6) << GPS_data.Latitude << ",";
+			GPS_Ctrl_Info->gpsDataLog << " Longitude: " << std::fixed << std::setprecision(6) << GPS_data.Longitude << endl;
 
 		//}
 
@@ -106,6 +106,8 @@ void getGPSInfo(FT_HANDLE GPS_Handle, GPS_info *GPS_data)
 	//OVERLAPPED osReader = { 0 };
 	//BOOL comm_result;
 	ULONG ft_read_Status;
+	double tempLatDD, tempLatMM, tempLongDD, tempLongMM;
+	unsigned int tempLatInt, tempLongInt;
 
 	FT_Purge(GPS_Handle, FT_PURGE_RX | FT_PURGE_TX);
 
@@ -131,13 +133,23 @@ void getGPSInfo(FT_HANDLE GPS_Handle, GPS_info *GPS_data)
 		if ((vect.size() > 10) && (vect[0] == "$GPGGA"))
 		{
 			
-			GPS_data->Latitude = atof(vect[2].c_str());
+			//GPS_data->Latitude = atof(vect[2].c_str());
+			tempLatDD = (atof(vect[2].c_str())/100.0);
+			tempLatInt = (int)(tempLatDD);
+			tempLatMM = (tempLatDD - tempLatInt)*100;
+
+			GPS_data->Latitude = (double)tempLatInt + (tempLatMM / 60.0);
 			if (vect[3] == "S")
 			{
 				GPS_data->Latitude = -GPS_data->Latitude;
 			}
 			
-			GPS_data->Longitude = atof(vect[4].c_str());
+			//GPS_data->Longitude = atof(vect[4].c_str());
+			tempLongDD = (atof(vect[4].c_str()) / 100.0);
+			tempLongInt = (int)(tempLongDD);
+			tempLongMM = (tempLongDD - tempLongInt) * 100;
+
+			GPS_data->Longitude = (double)tempLongInt + (tempLongMM / 60.0);
 			if (vect[5] == "W")
 			{
 				GPS_data->Longitude = -GPS_data->Longitude;

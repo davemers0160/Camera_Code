@@ -60,9 +60,6 @@ int main(int argc, char ** argv)
 	GPS_data.Latitude = 0.0;
 	GPS_data.Longitude = 0.0;
 
-
-
-
 	if (GPS_Handle == NULL)
 	{
 		gpsDeviceDetails.devNumber = 0;
@@ -93,11 +90,8 @@ int main(int argc, char ** argv)
 	gpsSaveFile = "/home/odroid/Videos/GPS_Log_" + (string)currenttime + ".txt";
 #endif
 	
-
-
 	cout << "Log File Location: " << endl;
 	cout << gpsSaveFile << endl;
-
 
 	// clear FTDI buffer
 	FT_Purge(GPS_Handle, FT_PURGE_RX | FT_PURGE_TX);
@@ -130,11 +124,6 @@ int main(int argc, char ** argv)
 
 	}
 
-
-
-
-
-
 	FT_Close(GPS_Handle);
 	GPS_Handle = NULL;
 	gpsDataLog.close();
@@ -146,7 +135,7 @@ int main(int argc, char ** argv)
 
 void configGPS(FT_HANDLE GPS_Handle)
 {
-	unsigned long dwBytesWritten;
+	unsigned int dwBytesWritten;
 	ULONG ft_write_Status;
 	
 	// message checksum is bitwise XOR between $ and *; PSRF103 = 0x25;
@@ -162,8 +151,8 @@ void configGPS(FT_HANDLE GPS_Handle)
 	// disable GGA
 	//char GGA[] = "$PSRF103,00,00,00,01*24\r\n";
 
-	char PMTK_Config[] = "$PMTK314,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0*2D\r\n";	//47
-	char cc = 0;
+	unsigned char PMTK_Config[] = "$PMTK314,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0*2D\r\n";	//47
+	unsigned char cc = 0;
 	for (int idx = 1; idx < 42; idx++)
 	{
 		cc ^= PMTK_Config[idx];
@@ -180,7 +169,7 @@ void configGPS(FT_HANDLE GPS_Handle)
 
 void getGPSInfo(FT_HANDLE GPS_Handle, GPS_info *GPS_data)
 {
-	unsigned long BytesRead;
+	unsigned int BytesRead;
 	char rx_data[96] = { 0 };
 	//OVERLAPPED osReader = { 0 };
 	//BOOL comm_result;
@@ -197,6 +186,7 @@ void getGPSInfo(FT_HANDLE GPS_Handle, GPS_info *GPS_data)
 		double tempLatDD, tempLatMM, tempLongDD, tempLongMM;
 		unsigned int tempLatInt, tempLongInt;
 
+		//cout << gps_str <<  endl;
 		stringstream ss(gps_str);
 		//while (ss >> temp)
 		//{
@@ -218,7 +208,7 @@ void getGPSInfo(FT_HANDLE GPS_Handle, GPS_info *GPS_data)
 		if ((vect.size() > 10) && (vect[0] == "$GPGGA"))
 		{
 			
-			tempLatDD = (atof(vect[2].c_str())/100.0);
+			tempLatDD = atof(vect[2].c_str())/100.0;
 			tempLatInt = (int)(tempLatDD);
 			tempLatMM = (tempLatDD - tempLatInt)*100;
 
@@ -228,7 +218,7 @@ void getGPSInfo(FT_HANDLE GPS_Handle, GPS_info *GPS_data)
 				GPS_data->Latitude = -GPS_data->Latitude;
 			}
 			
-			tempLongDD = (atof(vect[4].c_str()) / 100.0);
+			tempLongDD = atof(vect[4].c_str()) / 100.0;
 			tempLongInt = (int)(tempLongDD);
 			tempLongMM = (tempLongDD - tempLongInt) * 100;
 

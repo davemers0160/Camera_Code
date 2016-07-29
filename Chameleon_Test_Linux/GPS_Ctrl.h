@@ -12,10 +12,10 @@ using namespace std;
 typedef struct
 {
 	int hour, minute;
-	float second;
-	float Latitude;
-	float Longitude;
-	float Speed;
+	double second;
+	double Latitude;
+	double Longitude;
+	double Speed;
 
 } GPS_info;
 
