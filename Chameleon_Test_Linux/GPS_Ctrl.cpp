@@ -93,7 +93,7 @@ void configGPS(FT_HANDLE GPS_Handle)
 	//PMTK_Config[45] = (cc>4)&0x0F;
 	//PMTK_Config[46] = (cc & 0x0F);
 
-	ft_write_Status = FT_Write(GPS_Handle, PMTK_Config, 48, &dwBytesWritten);
+	ft_write_Status = FT_Write(GPS_Handle, PMTK_Config, 47, &dwBytesWritten);
 
 
 }	// end of configGPS
