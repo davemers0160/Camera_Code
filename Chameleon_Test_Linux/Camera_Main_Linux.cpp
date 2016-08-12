@@ -461,10 +461,12 @@ int main(int /*argc*/, char** /*argv*/)
 
 			quit_GPS_Logging = true;
 			// stop GPS Thread
-			pthread_join(GPS_Thread, NULL);
+			if(gps_connected == true)
+			{
+				pthread_join(GPS_Thread, NULL);
 
-			GPS_Ctrl_Info.gpsDataLog.close();
-
+				GPS_Ctrl_Info.gpsDataLog.close();
+			}
 			// stop the capture process
 			error = cam.StopCapture();
 			if (error != PGRERROR_OK)

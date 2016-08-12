@@ -42,14 +42,14 @@ all: Chameleon_Test_Linux
 # Tool invocations
 Chameleon_Test_Linux: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
-	@echo 'Invoking: GCC C++ Linker'
-	g++ -L/usr/lib -L/usr/local/lib -o "Chameleon_Test_Linux" $(OBJS) $(USER_OBJS) $(LIBS)
+	@echo 'Invoking: Cross G++ Linker'
+	g++ -L/usr/local/lib -L/usr/lib -o "Chameleon_Test_Linux" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) Chameleon_Test_Linux
+	-$(RM) $(C++_DEPS)$(OBJS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) Chameleon_Test_Linux
 	-@echo ' '
 
 .PHONY: all clean dependents

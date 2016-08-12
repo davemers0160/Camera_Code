@@ -78,6 +78,25 @@
 10. If needed install Eclipse-CDT <- only needed if we are debugging c++ code 
     - sudo apt-get install eclipse-cdt
 	- Restart the Odroid
+
+# The following are the project settings for the Chameleon_Test_Linux project
+# Open Eclipse and set the working directory to: /home/odroid/BicycleCamera
+# The first time you run eclipse start a new project and name it: Chameleon_Test_Linux
+# Right click on the project and select properties
+# select C/C++ Build->Settings, under the "Linker->Libraries" section add the following under Libraries (-l)
+pthread
+flycapture
+ftd2xx
+opencv_core
+opencv_highgui
+opencv_imgproc
+
+# add the following under Library Search Path (-L)
+/usr/local/lib
+/usr/lib
+
+# close and compile. There should be no errors.
+
 	
 11. This link shows the required steps to configure the FlyCapture drivers for an ARM processor
 	http://www.ptgrey.com/KB/10357
@@ -199,7 +218,6 @@ gpio pins.  (http://forum.odroid.com/viewtopic.php?f=80&t=15000)
 	- save the file and reboot
 	
 19. Configure the startup script for the program
-# don't do this yet!!!!!!!!!!!!!!!!!!!!!!!!!
 # This is how to add the autostart capability in the GUI interface
 # 1. Create a .desktop file in /home/odroid/.config/autostart/
 # 2. Add the following:
@@ -220,6 +238,12 @@ gpio pins.  (http://forum.odroid.com/viewtopic.php?f=80&t=15000)
 		Command = /home/odroid/BicycleCamera/Camera_Startup.sh
 		Comment = Script to start Camera recording code
 	- Click the "Save" button
+
+20. Add LD_LIBRARY_PATH to the environment variables
+	- open /etc/environment as an administrator
+	- add the following to a new line:
+		LD_LIBRARY_PATH="/usr/local/lib:/usr/lib"
+	- save the file and exit
 
 ###############################################################################
 General Tips and Tricks
