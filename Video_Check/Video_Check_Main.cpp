@@ -68,21 +68,27 @@ int main(int argc, char** argv)
 	unsigned char idx;
 	unsigned char set[2] = { 0, 0 };
 
-	string filename;
-	//string filepath = "D:\\IUPUI\\Test_Data\\";
-	string filepath = "G:\\Data\\";
+	string focusfilename, defocusfilename;
+	string filepath = "D:\\IUPUI\\Test_Data\\Data1\\";
+	//string filepath = "G:\\Data\\";
 
 	if (argc < 3)
 	{
 		printHelp();
 		return 1;
 	}
-	else if (argc == 3)
+	else if (argc == 5)
 	{
 		if (strcmp(argv[1], "-f") == 0)
 		{
-			filename = filepath + argv[2];
+			focusfilename = filepath + argv[2];
 		}
+
+		if (strcmp(argv[3], "-d") == 0)
+		{
+			defocusfilename = filepath + argv[4];
+		}
+
 	}
 	else
 	{
@@ -91,8 +97,9 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	VideoCaptureInfo VideoCap;
-	getVideoInfo(filename, VideoCap);
+	VideoCaptureInfo focusVideoCap, defocusVideoCap;
+	getVideoInfo(focusfilename, focusVideoCap);
+	getVideoInfo(defocusfilename, defocusVideoCap);
 	char* Window1 = "Focus";
 	char* Window2 = "Defocus";
 	Mat focus, defocus;
@@ -105,17 +112,17 @@ int main(int argc, char** argv)
 
 	while (key != 'q')
 	{
-		frameRead = VideoCap.Video.read(focus);
-		frameRead = VideoCap.Video.read(defocus);
+		frameRead = focusVideoCap.Video.read(focus);
+		frameRead = defocusVideoCap.Video.read(defocus);
 
 		imshow(Window1, focus);
 		imshow(Window2, defocus);
 
-		frameCount += 2;
+		frameCount++;
 
-		if (frameCount < VideoCap.frameCount)
+		if (frameCount < focusVideoCap.frameCount)
 		{
-			key = waitKey(100);
+			key = waitKey(500);
 		}
 		else
 		{

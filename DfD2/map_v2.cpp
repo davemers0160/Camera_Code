@@ -388,7 +388,8 @@ double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[],unsigned
 
 
 
-void map3(double **y[], double **xt[], double **diff_y[], double **diff_Cr[], double **diff_Cb[], double **atlas[], double beta,double gama, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum,double *Num,unsigned char **xttemp[],unsigned char **xttempCr[],unsigned char **xttempCb[],IplImage*texture,IplImage*textureCb,IplImage*textureCr,IplImage*highpass,IplImage*highpassCr,IplImage*highpassCb)////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//void map3(double **y[], double **xt[], double **diff_y[], double **diff_Cr[], double **diff_Cb[], double **atlas[], double beta,double gama, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum,double *Num,unsigned char **xttemp[],unsigned char **xttempCr[],unsigned char **xttempCb[],IplImage*texture,IplImage*textureCb,IplImage*textureCr,IplImage*highpass,IplImage*highpassCr,IplImage*highpassCb)////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void map3(double **y[], double *xt[], double **diff_y[], double **diff_Cr[], double **diff_Cb[], double **atlas[], double beta, double gama, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, unsigned char **xttemp[], unsigned char **xttempCr[], unsigned char **xttempCb[], IplImage*texture, IplImage*textureCb, IplImage*textureCr, IplImage*highpass, IplImage*highpassCr, IplImage*highpassCb)////////////////////////////////////////////////////////////////////////////////////////////////////////////
 {
 	int idx, jdx, kdx;
 	double tick, tock, delta_T;
@@ -549,8 +550,9 @@ void map3(double **y[], double **xt[], double **diff_y[], double **diff_Cr[], do
 				//tttt++;
 
 				//unsigned char  temp = gridResult.at<unsigned char>(idx, jdx);
+				//xt[0][idx][jdx] = (unsigned int)(255.0 - ((256.0 / MAX_CLASSES)*(gridResult.at<unsigned char>(idx, jdx) - 1.0)));
 
-				xt[0][idx][jdx] = (unsigned int)(255.0 - ((256.0 / MAX_CLASSES)*(gridResult.at<unsigned char>(idx, jdx) - 1.0)));
+				xt[idx][jdx] = (unsigned int)(255.0 - ((256.0 / MAX_CLASSES)*(gridResult.at<unsigned char>(idx, jdx) - 1.0)));
 				xttemp[0][idx][jdx] = gridResult.at<unsigned char>(idx, jdx);
 				tttt++;
 				gridResult_N.at<unsigned char>(idx, jdx) = (unsigned char)(255.0 - ((256.0 / MAX_CLASSES)*(gridResult.at<unsigned char>(idx, jdx) - 1.0)));

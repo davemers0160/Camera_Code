@@ -120,7 +120,7 @@ int main(int /*argc*/, char** /*argv*/)
 	// Serial Port specific variables
 	//wstring port = L"\\\\.\\COM9";
 	//LPCWSTR lensPort = port.c_str();	//L"\\\\.\\COM9"; //(LPCWSTR)port.c_str();	//"\\\\.\\COM7";
-	string port_num = "COM9";
+	string port_num = "COM7";
 	wstring port = L"\\\\.\\" + wstring(port_num.begin(), port_num.end());
 	LPCWSTR lensPort = port.c_str();
 	HANDLE lensDriver = NULL;

@@ -78,6 +78,8 @@ int main( int argc, char** argv )
 	file_path = image_locations + "\\view5_color.tif";
 	IplImage*   ImageInFocus3 = cvLoadImage(file_path.c_str(), CV_LOAD_IMAGE_COLOR);
 
+	Mat infocus3 = Mat(ImageInFocus3);
+
  /////// split the in focus color image into RGB channel (integers) ///////////////////////
 	IplImage* ImageInFocusR=cvCreateImage(cvGetSize(ImageInFocus3), 8, 1);
 	IplImage* ImageInFocusG=cvCreateImage(cvGetSize(ImageInFocus3), 8, 1);
@@ -524,17 +526,24 @@ int main( int argc, char** argv )
 	cout << "Creating Depth Map..." << endl;
 
  ///// Generate depth map and save it ////////////////////////////////////////////////
-    IplImage* BlurMap = cvCreateImage(cvSize(col,row),8,1);
+    //IplImage* DepthMap = cvCreateImage(cvSize(col,row),8,1);
+
+	Mat DepthMap = Mat(Size(col, row), CV_8UC1);
+
+	//Mat DepthMap = Mat(Size(col, row), CV_8UC1 , (unsigned char *)xtY[0], col);
 
 	for (int i = 0; i < row; i++)
 	{
 		for (int j = 0; j < col; j++)
 		{
-			cvSetReal2D(BlurMap, i, j, (double)xtY[0][i][j]);
+			DepthMap.at<uchar>(i, j) = xtY[0][i][j];
+			//cvSetReal2D(DepthMap, i, j, (double)xtY[0][i][j]);
 		}
 	}
 
-	cvSaveImage((image_locations + "\\blurmaplc64.png").c_str() , BlurMap);
+	imwrite(image_locations + "\\blurmaplc64.png", DepthMap);
+	//cvSaveImage((image_locations + "\\blurmaplc64.png").c_str() , DepthMap);
+
 //	cvSaveImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/blurmaplc64.png",BlurMap);
 
 	cout << "Completed Step 8." << endl;

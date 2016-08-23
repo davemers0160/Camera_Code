@@ -39,9 +39,6 @@ using namespace FlyCapture2;
 using namespace Lens_Driver;
 
 
-//#define SAVE_VIDEO
-
-
 //GLOBAL VARIABLES & STRUCTURES
 struct ftdiDeviceDetails //structure storage for FTDI device details
 {
@@ -89,7 +86,7 @@ int main(int argc, char** argv)
 	unsigned int rowBytes;
 	float shutter, gain;
 	int sharpness;
-	float framerate = 40.0;
+	float framerate = 30.0;
 
 	//Lens_Driver test_lens;
 	//unsigned char data[4] = { 1, 2, 3, 4 };
@@ -97,13 +94,13 @@ int main(int argc, char** argv)
 	LensRxPacket LensRx;
 	LensDriverInfo LensInfo;
 	unsigned char status;
-	unsigned char stepStart = 120;
-	unsigned char stepRange = 25;
+	unsigned char stepStart = 125;
+	unsigned char stepRange = 31;
 	unsigned char data[1] {stepStart};
 	LensTxPacket Focus(FAST_SET_VOLT, 1, &data[0]);
 
 	// Serial Port specific variables
-	string port_num = "COM10";
+	string port_num = "COM9";
 	wstring port = L"\\\\.\\"+ wstring(port_num.begin(),port_num.end());
 	LPCWSTR lensPort = port.c_str();	//L"\\\\.\\COM9"; //(LPCWSTR)port.c_str();	//"\\\\.\\COM7";
 	HANDLE lensDriver = NULL;
@@ -169,19 +166,19 @@ int main(int argc, char** argv)
 
 	PrintBuildInfo();
 
-	configLensDriver(lensPort, lensDriver);
+	//configLensDriver(lensPort, lensDriver);
 
-	sendLensPacket(LensTx, lensDriver);
-	status = readLensPacket(&LensRx, lensDriver, 9);
+	//sendLensPacket(LensTx, lensDriver);
+	//status = readLensPacket(&LensRx, lensDriver, 9);
 
-	if (status == false)
-	{
-		cout << "Error communicating with lens driver." << endl;
-		//cin.ignore();
-		//return 1;
-	}
-	getLensDriverInfo(&LensInfo, LensRx);
-	PrintDriverInfo(&LensInfo);
+	//if (status == false)
+	//{
+	//	cout << "Error communicating with lens driver." << endl;
+	//	cin.ignore();
+	//	return 1;
+	//}
+	//getLensDriverInfo(&LensInfo, LensRx);
+	//PrintDriverInfo(&LensInfo);
 
 
 
@@ -190,7 +187,7 @@ int main(int argc, char** argv)
 	//camImage = imread("4_bar_test.png", CV_LOAD_IMAGE_GRAYSCALE);
 
 
-	sendLensPacket(Focus, lensDriver);
+	//sendLensPacket(Focus, lensDriver);
 
 
 	error = busMgr.GetNumOfCameras(&numCameras);
@@ -313,8 +310,6 @@ int main(int argc, char** argv)
 	//configProperty(&cam, sharpness, SHARPNESS, false, false, false);
 	//error = setProperty(&cam, sharpness, temp_sharp);
 
-	Focus.Data[0] = 133;
-	sendLensPacket(Focus, lensDriver);
 
 	error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, framerate);
 	if (error != PGRERROR_OK)
@@ -366,7 +361,7 @@ int main(int argc, char** argv)
 
 	std::cout << "Press esc to exit! " << std::endl;
 
-	// start the loop to continueally take data
+	// start the loop to continually take data
 	while (exit == false)
 	{
 		error = cam.RetrieveBuffer(&rawImage);
@@ -400,7 +395,7 @@ int main(int argc, char** argv)
 
 		imshow(roi_img_window, ROI_img);
 
-		std::cout << "Press 'a' to accept the selected ROI. " << std::endl;
+		std::cout << "Press 'q' to accept the selected ROI. " << std::endl;
 		do
 		{
 			error = cam.RetrieveBuffer(&rawImage);
@@ -430,9 +425,9 @@ int main(int argc, char** argv)
 			if (key == 0x1B)
 			{
 				exit = true;
-				key = 'a';
+				key = 'q';
 			}
-		}while (key != 'a');
+		}while (key != 'q');
 
 		if (exit == false)
 		{
@@ -446,25 +441,26 @@ int main(int argc, char** argv)
 			Mat video_frame_color = Mat(Size(ROI_img.cols + c, ROI_img.rows), CV_8UC3);
 
 			// get the current time for the video file name and saving the output data
-			getcurrenttime(currenttime);
-			log_save_file = "blurcheck_log_" + (string)currenttime + ".txt";
-			video_save_file = "blurcheck_" + (string)currenttime + file_extension;
-#ifdef SAVE_VIDEO
-			outputVideo.open(video_save_file, codec, 10.0, Size(ROI_img.cols + c, ROI_img.rows),true);
-#endif
-			DataLogStream.open(log_save_file.c_str(), ios::out);
+			//getcurrenttime(currenttime);
+			//log_save_file = "blurcheck_log_" + (string)currenttime + ".txt";
+			//video_save_file = "blurcheck_" + (string)currenttime + file_extension;
+
+			//outputVideo.open(video_save_file, codec, 10.0, Size(ROI_img.cols + c, ROI_img.rows),true);
+
+			//DataLogStream.open(log_save_file.c_str(), ios::out);
 			
-			DataLogStream << "Shutter Speed (ms):, " << shutter << endl;
-			DataLogStream << "Gain (dB):, " << gain << endl;
-			DataLogStream << "Sharpness:, " << sharpness << endl;
+			//DataLogStream << "Shutter Speed (ms):, " << temp_shutter << endl;
+			//DataLogStream << "Gain (dB):, " << temp_gain << endl;
+			//DataLogStream << "Sharpness:, " << temp_sharp << endl;
 
 			// for loop to loop through variaous voltage levels for the lens
-			for (idx = 0; idx < stepRange; idx++)
+			//for (idx = 0; idx < stepRange; idx++)
+			do
 			{
 
-				Focus.Data[0] = idx + stepStart;
-				sendLensPacket(Focus, lensDriver);
-				Sleep(100);
+				//Focus.Data[0] = idx + stepStart;
+				//sendLensPacket(Focus, lensDriver);
+				//Sleep(100);
 
 
 				// simulated blurs
@@ -536,27 +532,30 @@ int main(int argc, char** argv)
 				imshow(dft_window, video_frame_color);
 
 				DFTSum = cv::sum(magI)[0];
-				std::cout << "Voltage Step: " << (int)Focus.Data[0] << "\tDFT sum of image: " << DFTSum << endl;
-				DataLogStream << (int)Focus.Data[0] << "," << DFTSum << endl;
+				std::cout << "DFT sum of image: " << DFTSum << endl;
+				//DataLogStream << (int)Focus.Data[0] << "," << DFTSum << endl;
 
-				if (DFTSum > maxDFTValue)
+				//if (DFTSum > maxDFTValue)
+				//{
+				//	maxDFTValue = DFTSum;
+				//	bestStep = Focus.Data[0];
+				//}
+
+				//for (int jdx = 0; jdx < 5; jdx++)
+				//{
+
+					//outputVideo.write(video_frame_color);
+				//}
+
+				key = (char)waitKey(200);
+				if (key == 0x1B)
 				{
-					maxDFTValue = DFTSum;
-					bestStep = Focus.Data[0];
+					exit = true;
+					key = 'q';
 				}
-#ifdef SAVE_VIDEO
-				for (int jdx = 0; jdx < 5; jdx++)
-				{
+			} while (key != 'q');	// end of loop
 
-					outputVideo.write(video_frame_color);
-				}
-#endif
-			waitKey(200);
-
-			}	// end of for loop
-#ifdef SAVE_VIDEO
-			outputVideo.release();
-#endif
+			//outputVideo.release();
 			std::cout << endl << "Best Voltage Step Value: " << (int)bestStep << endl << endl;
 			DataLogStream << "Best Voltage Step Value:, " << (int)bestStep << endl;
 			DataLogStream.close();
@@ -589,7 +588,9 @@ int main(int argc, char** argv)
 	//std::cout << "Done! Press Enter to exit..." << endl;
 	//std::cin.ignore();
 	
+	
 	return 0;
+
 
 }	// end of main
 

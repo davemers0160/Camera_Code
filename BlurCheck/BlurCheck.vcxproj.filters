@@ -18,10 +18,10 @@
     <ClCompile Include="Lens_Driver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BlurCheck.cpp">
+    <ClCompile Include="Chameleon_Utilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Chameleon_Utilities.cpp">
+    <ClCompile Include="BlurCheck.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
