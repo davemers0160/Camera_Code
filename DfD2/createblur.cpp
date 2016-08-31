@@ -17,6 +17,8 @@
 #define MAX_CLASSES 256.0
 #define MaxSigma 2.5
 
+using namespace std;
+using namespace cv;
 
 ///////// Space Varying 2D filter ///////////////////////////////////////////////////////
 void SpaceVaryingfilter2D (IplImage * image, int kernel_size,double min_sigma, double max_sigma, IplImage * filter);
@@ -25,10 +27,18 @@ void SpaceVaryingfilter2D (IplImage * image, int kernel_size,double min_sigma, d
 void createblur(int col, int row, IplImage* ImageInFocus, int classes,double **y[],double **xt[], double **atlas[], int ATLAS, IplImage*ImageOutOfFocus, IplImage * SyntheticDefocus, IplImage* GauBlur[],unsigned char **xttemp[], IplImage *groundtruth)
 {
 	int i, j, dd, kk, step,channels;
+	int idx, jdx, kdx;
 	double x = rand()%1001;
 	double flag, BlurStep, para;
 	CvScalar r, s, t, a;
     int kernel_size;
+
+	vector<Mat> xt_Mat(classes);
+
+	for (idx = 0; idx < 256; idx++)
+	{
+		xt_Mat[idx] = Mat(Size(col,row), CV_64F, Scalar::all(0));
+	}
 
   ///// Initialize image data structure ////////////////////////////////////////////////////////////////////////
 	col = ImageInFocus->width , row = ImageInFocus->height;

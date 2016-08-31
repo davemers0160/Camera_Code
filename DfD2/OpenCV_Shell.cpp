@@ -47,7 +47,10 @@ using namespace cv;
 
 
 ////////// MAP estimation ////////////////////////////////////////////////////////////////
-void map3(double **yY[], double **xtY[],double **diff_y[], double **diff_Cr[], double **diff_Cb[], double **atlas[], double beta,double gamma, int ATLAS, int ICM, int cols, int rows, int classes,int map_iter,double *, double *,double *, double *,unsigned char **xttemp[],unsigned char **xttempCr[],unsigned char **xttempCb[],IplImage*texture,IplImage*textureCb,IplImage*textureCr,IplImage*highpass,IplImage*highpassCr,IplImage*highpassCb);
+//void map3(double **yY[], double **xtY[],double **diff_y[], double **diff_Cr[], double **diff_Cb[], double **atlas[], double beta,double gamma, int ATLAS, int ICM, int cols, int rows, int classes,int map_iter,double *, double *,double *, double *,unsigned char **xttemp[],unsigned char **xttempCr[],unsigned char **xttempCb[],IplImage*texture,IplImage*textureCb,IplImage*textureCr,IplImage*highpass,IplImage*highpassCr,IplImage*highpassCb);
+void map3(double **y[], Mat &Depth_Map, double **diff_y[], double **diff_Cr[], double **diff_Cb[], double **atlas[], double beta, double gama, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, unsigned char **xttemp[], unsigned char **xttempCr[], unsigned char **xttempCb[], IplImage*texture, IplImage*textureCb, IplImage*textureCr, IplImage*highpass, IplImage*highpassCr, IplImage*highpassCb);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////// Automatically add blur to original image based on disparity map///////////////
 void createblur(int col, int row, IplImage* ImageInFocus, int classes,double **y[],double **xt[], double **atlas[], int ATLAS, IplImage*ImageOutOfFocus, IplImage * ImageInFocustemp, IplImage* GauBlur[],unsigned char **xttemp[], IplImage *groundtruth);
@@ -488,7 +491,7 @@ int main( int argc, char** argv )
 	}
 
  //// EM brgin /////////////////////////////////////////////////////////////////////////
-  
+  Mat DepthMap = Mat(Size(col, row), CV_8UC1);
 	double start= (double)cvGetTickCount();
 
 	for (int i=0; i<EMiteration; i++)
@@ -500,7 +503,7 @@ int main( int argc, char** argv )
 		cout << "Running MAP..." << endl;
 
 //		map3(yY, xtY, diff_y, xtCr, xtCb, atlas, beta, gama, ATLAS, ICM, col, row, classes, mapiter, v_Y, yaccum, ysquaredaccum, Num,xttempy, xttempCr, xttempCb,texture,textureCb,textureCr,highpass,highpassCr,highpassCb);	  
-		std::thread t(map3,yY, xtY, diff_y, xtCr, xtCb, atlas, beta, gama, ATLAS, ICM, col, row, classes, mapiter, v_Y, yaccum, ysquaredaccum, Num, xttempy, xttempCr, xttempCb, texture, textureCb, textureCr, highpass, highpassCr, highpassCb);
+		std::thread t(map3, yY, DepthMap, diff_y, xtCr, xtCb, atlas, beta, gama, ATLAS, ICM, col, row, classes, mapiter, v_Y, yaccum, ysquaredaccum, Num, xttempy, xttempCr, xttempCb, texture, textureCb, textureCr, highpass, highpassCr, highpassCb);
 		t.join();
 
 		cout << "MAP Complete." << endl;
@@ -528,20 +531,30 @@ int main( int argc, char** argv )
  ///// Generate depth map and save it ////////////////////////////////////////////////
     //IplImage* DepthMap = cvCreateImage(cvSize(col,row),8,1);
 
-	Mat DepthMap = Mat(Size(col, row), CV_8UC1);
+	
 
 	//Mat DepthMap = Mat(Size(col, row), CV_8UC1 , (unsigned char *)xtY[0], col);
 
-	for (int i = 0; i < row; i++)
-	{
-		for (int j = 0; j < col; j++)
-		{
-			DepthMap.at<uchar>(i, j) = xtY[0][i][j];
-			//cvSetReal2D(DepthMap, i, j, (double)xtY[0][i][j]);
-		}
-	}
+	//for (int i = 0; i < row; i++)
+	//{
+	//	for (int j = 0; j < col; j++)
+	//	{
+	//		DepthMap.at<uchar>(i, j) = xtY[0][i][j];
+	//		//cvSetReal2D(DepthMap, i, j, (double)xtY[0][i][j]);
+	//	}
+	//}
 
 	imwrite(image_locations + "\\blurmaplc64.png", DepthMap);
+
+
+
+	imshow("Depth Map", DepthMap);
+
+	//imshow("Ground Truth", groundtruth);
+
+	waitKey(-1);
+
+	destroyAllWindows();
 	//cvSaveImage((image_locations + "\\blurmaplc64.png").c_str() , DepthMap);
 
 //	cvSaveImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/blurmaplc64.png",BlurMap);

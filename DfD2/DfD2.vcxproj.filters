@@ -39,7 +39,7 @@
     <ClCompile Include="gco-v3.0\LinkedBlockList.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="map_v2.cpp">
+    <ClCompile Include="map_v3.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -155,7 +155,7 @@
     <ClCompile Include="createblur.cpp" />
     <ClCompile Include="gco-v3.0\GCoptimization.cpp" />
     <ClCompile Include="gco-v3.0\LinkedBlockList.cpp" />
-    <ClCompile Include="map_v2.cpp" />
+    <ClCompile Include="map_v3.cpp" />
     <ClCompile Include="OpenCV_Shell.cpp" />
     <ClCompile Include="random.c" />
     <ClCompile Include="space_varying.cpp" />
