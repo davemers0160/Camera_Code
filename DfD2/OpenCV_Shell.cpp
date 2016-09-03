@@ -47,13 +47,15 @@ using namespace cv;
 
 
 ////////// MAP estimation ////////////////////////////////////////////////////////////////
-//void map3(double **yY[], double **xtY[],double **diff_y[], double **diff_Cr[], double **diff_Cb[], double **atlas[], double beta,double gamma, int ATLAS, int ICM, int cols, int rows, int classes,int map_iter,double *, double *,double *, double *,unsigned char **xttemp[],unsigned char **xttempCr[],unsigned char **xttempCb[],IplImage*texture,IplImage*textureCb,IplImage*textureCr,IplImage*highpass,IplImage*highpassCr,IplImage*highpassCb);
-void map3(double **y[], Mat &Depth_Map, double **diff_y[], double **diff_Cr[], double **diff_Cb[], double **atlas[], double beta, double gama, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, unsigned char **xttemp[], unsigned char **xttempCr[], unsigned char **xttempCb[], IplImage*texture, IplImage*textureCb, IplImage*textureCr, IplImage*highpass, IplImage*highpassCr, IplImage*highpassCb);
+// 0. void map3(double **yY[], double **xtY[],double **diff_y[], double **diff_Cr[], double **diff_Cb[], double **atlas[], double beta,double gamma, int ATLAS, int ICM, int cols, int rows, int classes,int map_iter,double *, double *,double *, double *,unsigned char **xttemp[],unsigned char **xttempCr[],unsigned char **xttempCb[],IplImage*texture,IplImage*textureCb,IplImage*textureCr,IplImage*highpass,IplImage*highpassCr,IplImage*highpassCb);
+// 1. void map3(double **y[], Mat &Depth_Map, double **diff_y[], double **diff_Cr[], double **diff_Cb[], double **atlas[], double beta, double gama, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, unsigned char **xttemp[], unsigned char **xttempCr[], unsigned char **xttempCb[], IplImage*texture, IplImage*textureCb, IplImage*textureCr, IplImage*highpass, IplImage*highpassCr, IplImage*highpassCb);
+void map3(double **y[], Mat &Depth_Map, double **diff_y[], double **diff_Cr[], double **diff_Cb[], double **atlas[], double beta, double gama, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, IplImage*texture, IplImage*textureCb, IplImage*textureCr, IplImage*highpass, IplImage*highpassCr, IplImage*highpassCb);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////// Automatically add blur to original image based on disparity map///////////////
-void createblur(int col, int row, IplImage* ImageInFocus, int classes,double **y[],double **xt[], double **atlas[], int ATLAS, IplImage*ImageOutOfFocus, IplImage * ImageInFocustemp, IplImage* GauBlur[],unsigned char **xttemp[], IplImage *groundtruth);
+// 1. void createblur(int col, int row, IplImage* ImageInFocus, int classes,double **y[],double **xt[], double **atlas[], int ATLAS, IplImage*ImageOutOfFocus, IplImage * ImageInFocustemp, IplImage* GauBlur[], Mat &xttemp, IplImage *groundtruth);
+void createblur(int col, int row, IplImage* ImageInFocus, int classes, double **y[], double **xt[], double **atlas[], int ATLAS, IplImage*ImageOutOfFocus, IplImage * ImageInFocustemp, IplImage* GauBlur[], Mat &xttemp);
 
 ///////// Space Varying 2D filter ///////////////////////////////////////////////////////
 void SpaceVaryingfilter2D (IplImage * image, int kernel_size,double min_sigma, double max_sigma, IplImage * filter);
@@ -368,28 +370,18 @@ int main( int argc, char** argv )
 	int    ATLAS       = 0;	
 
  ///// Read in initial depth map resutl ////////////////////////////////////////////////////
-	IplImage* preresult = cvCreateImage(cvGetSize(inf),IPL_DEPTH_64F,0);  
-	preresult = cvLoadImage( "\\preresult.png" , 0 );
-//  preresult = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/preresult.png", 0);
+	//IplImage* preresult = cvCreateImage(cvGetSize(inf),IPL_DEPTH_64F,0);  
+	//preresult = cvLoadImage( "\\preresult.png" , 0 );
 
  ///// Bring in edge information and texture information
-	IplImage* texture = cvLoadImage((image_locations+"\\texturelessregion.png").c_str(), 0);
+	IplImage* textureY = cvLoadImage((image_locations + "\\texturelessregion.png").c_str(), 0);
 	IplImage* textureCb = cvLoadImage((image_locations + "\\texturelessregionCb.png").c_str(), 0);
 	IplImage* textureCr = cvLoadImage((image_locations + "\\texturelessregionCr.png").c_str(), 0);
-	//IplImage* texture_tmp = cvLoadImage((image_locations + "\\texturelessregion.png").c_str(), 0);
-	IplImage* highpass = cvLoadImage((image_locations + "\\highpass.png").c_str(), 0);
+	IplImage* highpassY = cvLoadImage((image_locations + "\\highpass.png").c_str(), 0);
 	IplImage* highpassCr = cvLoadImage((image_locations + "\\highpassCr.png").c_str(), 0);
 	IplImage* highpassCb = cvLoadImage((image_locations + "\\highpassCb.png").c_str(), 0);
 
-  //IplImage* texture = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/texturelessregion.png", 0);
-  //IplImage* textureCb = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/texturelessregionCb.png", 0);
-  //IplImage* textureCr = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/texturelessregionCr.png", 0);
-  //IplImage* texture_tmp = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/texturelessregion.png", 0);
-  //IplImage* highpass = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/highpass.png", 0);
-  //IplImage* highpassCr = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/highpassCr.png", 0);
-  //IplImage* highpassCb = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/highpassCb.png", 0);
-
-  cout << "Completed Step 6." << endl;
+	cout << "Completed Step 6." << endl;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -407,9 +399,13 @@ int main( int argc, char** argv )
 
 	IplImage* GauBlur[260];
  ////// Store blur index for each pixel each channel /////////////////////////////////////////	
-	unsigned char **xttempy[260];
-	unsigned char **xttempCr[260];
-	unsigned char **xttempCb[260];
+	//unsigned char **xttempy[260];
+	//unsigned char **xttempCr[260];
+	//unsigned char **xttempCb[260];
+
+	Mat xttempY = Mat(Size(col, row), CV_8UC1);
+	Mat xttempCr = Mat(Size(col, row), CV_8UC1);
+	Mat xttempCb = Mat(Size(col, row), CV_8UC1);
 
  ////// y : true defocus image ///////////////////////////////////////////////////////////////
  ////// xt : 256 synthetic defocus images ////////////////////////////////////////////////////
@@ -421,9 +417,9 @@ int main( int argc, char** argv )
 	//createblur(col, row, ImageInFocusY, classes, yY, xtY, atlas, ATLAS, ImageOutOfFocusY, SyntheticDefocusY, GauBlur, xttempy, preresult);
 	//createblur(col, row, ImageInFocusCr, classes, yCr, xtCr, atlas, ATLAS, ImageOutOfFocusCr, SyntheticDefocusCr, GauBlur, xttempCr,preresult);
 	//createblur(col, row, ImageInFocusCb, classes, yCb, xtCb, atlas, ATLAS, ImageOutOfFocusCb, SyntheticDefocusCb, GauBlur, xttempCb,preresult);
-	std::thread t_Y(createblur, col, row, ImageInFocusY, classes, yY, xtY, atlas, ATLAS, ImageOutOfFocusY, SyntheticDefocusY, GauBlur, xttempy, preresult);
-	std::thread t_Cr(createblur, col, row, ImageInFocusCr, classes, yCr, xtCr, atlas, ATLAS, ImageOutOfFocusCr, SyntheticDefocusCr, GauBlur, xttempCr, preresult);
-	std::thread t_Cb(createblur, col, row, ImageInFocusCb, classes, yCb, xtCb, atlas, ATLAS, ImageOutOfFocusCb, SyntheticDefocusCb, GauBlur, xttempCb, preresult);
+	std::thread t_Y(createblur, col, row, ImageInFocusY, classes, yY, xtY, atlas, ATLAS, ImageOutOfFocusY, SyntheticDefocusY, GauBlur, xttempY);
+	std::thread t_Cr(createblur, col, row, ImageInFocusCr, classes, yCr, xtCr, atlas, ATLAS, ImageOutOfFocusCr, SyntheticDefocusCr, GauBlur, xttempCr);
+	std::thread t_Cb(createblur, col, row, ImageInFocusCb, classes, yCb, xtCb, atlas, ATLAS, ImageOutOfFocusCb, SyntheticDefocusCb, GauBlur, xttempCb);
 
 	t_Y.join();
 	t_Cr.join();
@@ -503,7 +499,7 @@ int main( int argc, char** argv )
 		cout << "Running MAP..." << endl;
 
 //		map3(yY, xtY, diff_y, xtCr, xtCb, atlas, beta, gama, ATLAS, ICM, col, row, classes, mapiter, v_Y, yaccum, ysquaredaccum, Num,xttempy, xttempCr, xttempCb,texture,textureCb,textureCr,highpass,highpassCr,highpassCb);	  
-		std::thread t(map3, yY, DepthMap, diff_y, xtCr, xtCb, atlas, beta, gama, ATLAS, ICM, col, row, classes, mapiter, v_Y, yaccum, ysquaredaccum, Num, xttempy, xttempCr, xttempCb, texture, textureCb, textureCr, highpass, highpassCr, highpassCb);
+		std::thread t(map3, yY, DepthMap, diff_y, xtCr, xtCb, atlas, beta, gama, ATLAS, ICM, col, row, classes, mapiter, v_Y, yaccum, ysquaredaccum, Num, xttempY, xttempCr, xttempCb, textureY, textureCb, textureCr, highpassY, highpassCr, highpassCb);
 		t.join();
 
 		cout << "MAP Complete." << endl;

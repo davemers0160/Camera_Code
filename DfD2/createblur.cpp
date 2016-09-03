@@ -24,7 +24,8 @@ using namespace cv;
 void SpaceVaryingfilter2D (IplImage * image, int kernel_size,double min_sigma, double max_sigma, IplImage * filter);
 
 
-void createblur(int col, int row, IplImage* ImageInFocus, int classes,double **y[],double **xt[], double **atlas[], int ATLAS, IplImage*ImageOutOfFocus, IplImage * SyntheticDefocus, IplImage* GauBlur[],unsigned char **xttemp[], IplImage *groundtruth)
+//void createblur(int col, int row, IplImage* ImageInFocus, int classes,double **y[],double **xt[], double **atlas[], int ATLAS, IplImage*ImageOutOfFocus, IplImage * SyntheticDefocus, IplImage* GauBlur[],unsigned char **xttemp[], IplImage *groundtruth)
+void createblur(int col, int row, IplImage* ImageInFocus, int classes, double **y[], double **xt[], double **atlas[], int ATLAS, IplImage*ImageOutOfFocus, IplImage * SyntheticDefocus, IplImage* GauBlur[], Mat &xttemp)
 {
 	int i, j, dd, kk, step,channels;
 	int idx, jdx, kdx;
@@ -137,15 +138,17 @@ void createblur(int col, int row, IplImage* ImageInFocus, int classes,double **y
     
 
 ///// Use initial depth map as starting point, here "groundtruth" is initial depth map //////////////////////////
-	xttemp[0] = (unsigned char **)get_img(col,row,sizeof(double));
-	for (i = 0; i < row; i++)
-	{
-		for (j = 0; j < col; j++)
-		{
-			xttemp[0][i][j] = xt[0][i][j];
-		}
-	}
-	//{xttemp[0][i][j]=cvGetReal2D(groundtruth,i,j);xttemp[0][i][j] = unsigned(255.0-((256.0/MAX_CLASSES)*(xttemp[0][i][j]-1.0)));}
+	//xttemp[0] = (unsigned char **)get_img(col,row,sizeof(double));
 
+	Mat temp = Mat(Size(col, row), CV_64FC1, *xt[0], 2688);
+	temp.convertTo(xttemp, CV_8UC1, 1, 0);
+	//for (i = 0; i < row; i++)
+	//{
+	//	for (j = 0; j < col; j++)
+	//	{
+	//		xttemp[0][i][j] = xt[0][i][j];
+	//	}
+	//}
+	//{xttemp[0][i][j]=cvGetReal2D(groundtruth,i,j);xttemp[0][i][j] = unsigned(255.0-((256.0/MAX_CLASSES)*(xttemp[0][i][j]-1.0)));}
 
 }	// end ofcreateblur
