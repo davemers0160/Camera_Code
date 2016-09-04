@@ -7,8 +7,8 @@
 #include "allocate.h"
 #include <iostream>
 #include <fstream>
-//#include "cv.h"
-//#include "highgui.h"
+#include <thread>
+
 // added
 #include <opencv2/core/core.hpp>           
 #include <opencv2/highgui/highgui.hpp>     
@@ -40,7 +40,8 @@ ofstream outfile("logpost.txt",ios::out);
 
 // 0. double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], unsigned char **xttemp[], int cols, int rows, int ATLAS, double gama, int classes, double beta, double *d, double *con, double *logpost, int edgevalue, int texturevalue, IplImage *highpass, IplImage* texture);
 // 1. double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], unsigned char **xttemp[], int cols, int rows, int ATLAS, double gama, int classes, double beta, double *d, double *con, double *logpost, int edgevalue, int texturevalue, Mat highpass, Mat texture);
-double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], Mat xttemp, int cols, int rows, int ATLAS, double gama, int classes, double beta, double *d, double *con, double *logpost, int edgevalue, int texturevalue, Mat highpass, Mat texture);
+// 2. double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], Mat xttemp, int cols, int rows, int ATLAS, double gamma, int classes, double beta, double *d, double *con, double *logpost, int edgevalue, int texturevalue, Mat highpass, Mat texture);
+double callogpost(cv::Point pixel, vector<Mat> &diff_sq, double **atlas[], Mat xttemp, int cols, int rows, int ATLAS, double gamma, int classes, double beta, double *d, double *con, double *logpost, int edgevalue, int texturevalue, Mat highpass, Mat texture);
 
 //void GridGraph_DArraySArray(int width,int height,int num_labels,double **logpost1[],int *result);
 //void GridGraph_DArraySArray(int width, int height, int num_labels, vector<cv::Mat> &logpost1, int *result);
@@ -150,7 +151,8 @@ double random2()
 
 
 //double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], unsigned char **xttemp[], int cols, int rows, int ATLAS, double gama, int classes, double beta, double *d, double *con, double logpost[], int edgevalue, int texturevalue, Mat highpass, Mat texture)
-double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], Mat xttemp, int cols, int rows, int ATLAS, double gama, int classes, double beta, double *d, double *con, double logpost[], int edgevalue, int texturevalue, Mat highpass, Mat texture)
+//double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], Mat xttemp, int cols, int rows, int ATLAS, double gamma, int classes, double beta, double *d, double *con, double logpost[], int edgevalue, int texturevalue, Mat highpass, Mat texture)
+double callogpost(cv::Point pixel, vector<Mat> &diff_sq, double **atlas[], Mat xttemp, int cols, int rows, int ATLAS, double gamma, int classes, double beta, double *d, double *con, double *logpost, int edgevalue, int texturevalue, Mat highpass, Mat texture)
 {
 	int idx, jdx;
 	int edgevalue1,texture1;
@@ -189,25 +191,29 @@ double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], Mat xtt
 		{
 			prior[k] = 0;
 			diff[k] = 0;
-			diff[k] += diff_sq[k][i][j];
+			//diff[k] += diff_sq[k][i][j];
+			diff[k] += diff_sq[k].at<double>(i, j);
 
 			//**************************************************************************//
 			if (i-1 >= 0) 
 			{                       							
 				//prior[k]+=(double)abs(xttemp[0][i-1][j]-k); 
 				prior[k] += (double)abs(xttemp.at<unsigned char>(i - 1,j) - k);
-				diff[k]+=diff_sq[k][i-1][j]; //neighbors difference       left	
+				//diff[k]+=diff_sq[k][i-1][j]; //neighbors difference       left	
+				diff[k] += diff_sq[k].at<double>(i-1, j);
 									
 				if (j-1 >=0) 
 				{
-					diff[k]+=diff_sq[k][i-1][j-1]; //neighbors difference    left top  
+					//diff[k]+=diff_sq[k][i-1][j-1]; //neighbors difference    left top  
+					diff[k] += diff_sq[k].at<double>(i-1, j-1);
 					//prior[k]+=(double)abs(xttemp[0][i-1][j-1]-k); 
 					prior[k] += (double)abs(xttemp.at<unsigned char>(i - 1, j - 1) - k);
 				} 
 
 				if (j+1 <= cols-1) 
 				{
-					diff[k]+=diff_sq[k][i-1][j+1]; //neighbors difference   left bottom
+					//diff[k]+=diff_sq[k][i-1][j+1]; //neighbors difference   left bottom
+					diff[k] += diff_sq[k].at<double>(i-1, j+1);
 					//prior[k]+=(double)abs(xttemp[0][i-1][j+1]-k); 
 					prior[k] += (double)abs(xttemp.at<unsigned char>(i - 1, j + 1) - k);
 				} 
@@ -218,17 +224,20 @@ double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], Mat xtt
 			{						
 				//prior[k]+=(double)abs(xttemp[0][i+1][j]-k);
 				prior[k] += (double)abs(xttemp.at<unsigned char>(i + 1, j) - k);
-				diff[k]+=diff_sq[k][i+1][j]; //neighbors difference
+				//diff[k]+=diff_sq[k][i+1][j]; //neighbors difference
+				diff[k] += diff_sq[k].at<double>(i+1, j);
 
 				if (j-1 >=0) 
 				{
-					diff[k]+=diff_sq[k][i+1][j-1];
+					//diff[k]+=diff_sq[k][i+1][j-1];
+					diff[k] += diff_sq[k].at<double>(i+1, j-1);
 					//prior[k]+=(double)abs(xttemp[0][i+1][j-1]-k); 
 					prior[k] += (double)abs(xttemp.at<unsigned char>(i + 1, j - 1) - k);
 				} 									
 				if (j+1 <= cols-1) 
 				{      
-					diff[k]+=diff_sq[k][i+1][j+1];
+					//diff[k]+=diff_sq[k][i+1][j+1];
+					diff[k] += diff_sq[k].at<double>(i+1, j+1);
 					//prior[k]+=(double)abs(xttemp[0][i+1][j+1]-k); 
 					prior[k] += (double)abs(xttemp.at<unsigned char>(i + 1, j + 1) - k);
 				}
@@ -239,7 +248,8 @@ double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], Mat xtt
 			{									
 				//prior[k]+=(double)abs(xttemp[0][i][j-1]-k);	
 				prior[k] += (double)abs(xttemp.at<unsigned char>(i, j - 1) - k);
-				diff[k]+=diff_sq[k][i][j-1]; //neighbors difference
+				//diff[k]+=diff_sq[k][i][j-1]; //neighbors difference
+				diff[k] += diff_sq[k].at<double>(i, j-1);
 			}
 
 			//**************************************************************************//
@@ -247,7 +257,8 @@ double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], Mat xtt
 			{									
 				//prior[k]+=(double)abs(xttemp[0][i][j+1]-k);
 				prior[k] += (double)abs(xttemp.at<unsigned char>(i, j + 1) - k);
-				diff[k]+=diff_sq[k][i][j+1]; //neighbors difference
+				//diff[k]+=diff_sq[k][i][j+1]; //neighbors difference
+				diff[k] += diff_sq[k].at<double>(i, j+1);
 			}
 		}
 	}	// end of if (texturevalue == 0 )
@@ -260,7 +271,8 @@ double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], Mat xtt
 		{
 			prior[k] = 0;
 			diff[k] = 0;
-			diff[k] += diff_sq[k][i][j];
+			//diff[k] += diff_sq[k][i][j];
+			diff[k] += diff_sq[k].at<double>(i, j);
 
 			//**************************************************************************//
 			if (i-1 >= 0) 
@@ -298,16 +310,19 @@ double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], Mat xtt
 					prior[k] += weight*(double)abs(xttemp.at<unsigned char>(i - 1, j) - k);
 				}
 
-				diff[k]+=diff_sq[k][i][j]; //neighbors difference       left	
+				//diff[k]+=diff_sq[k][i][j]; //neighbors difference       left
+				diff[k] += diff_sq[k].at<double>(i, j);
 
 				if (j - 1 >= 0)
 				{
-					(diff[k] += diff_sq[k][i - 1][j - 1]); //neighbors difference    left top     
+					//(diff[k] += diff_sq[k][i - 1][j - 1]); //neighbors difference    left top 
+					diff[k] += diff_sq[k].at<double>(i-1, j-1);
 				}
 
 				if (j + 1 <= cols - 1)
 				{
-					(diff[k] += diff_sq[k][i - 1][j + 1]); //neighbors difference   left bottom
+					//(diff[k] += diff_sq[k][i - 1][j + 1]); //neighbors difference   left bottom
+					diff[k] += diff_sq[k].at<double>(i-1, j+1);
 				}
 			}
 
@@ -349,14 +364,17 @@ double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], Mat xtt
 									
 				if (j - 1 >= 0)
 				{
-					(diff[k] += diff_sq[k][i + 1][j - 1]); //neighbors difference
+					//(diff[k] += diff_sq[k][i + 1][j - 1]); //neighbors difference
+					diff[k] += diff_sq[k].at<double>(i+1, j-1);
 				}
 
-				diff[k]+=diff_sq[k][i+1][j]; //neighbors difference
+				//diff[k]+=diff_sq[k][i+1][j]; //neighbors difference
+				diff[k] += diff_sq[k].at<double>(i+1, j);
 
 				if (j + 1 <= cols - 1)
 				{
-					(diff[k] += diff_sq[k][i + 1][j + 1]); //neighbors difference//////////////////////////////////////error
+					//(diff[k] += diff_sq[k][i + 1][j + 1]); //neighbors difference//////////////////////////////////////error
+					diff[k] += diff_sq[k].at<double>(i+1, j+1);
 				}
 			}
 
@@ -397,7 +415,8 @@ double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], Mat xtt
 					prior[k] += weight*(double)abs(xttemp.at<unsigned char>(i, j - 1) - k);
 				}
 									
-				diff[k]+=diff_sq[k][i][j-1]; //neighbors difference
+				//diff[k]+=diff_sq[k][i][j-1]; //neighbors difference
+				diff[k] += diff_sq[k].at<double>(i, j-1);
 			}
 
 			//**************************************************************************//
@@ -437,7 +456,8 @@ double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], Mat xtt
 					prior[k] += weight*(double)abs(xttemp.at<unsigned char>(i, j + 1) - k);
 				}
 									
-				diff[k]+=diff_sq[k][i][j+1]; //neighbors difference
+				//diff[k]+=diff_sq[k][i][j+1]; //neighbors difference
+				diff[k] += diff_sq[k].at<double>(i, j+1);
 			}		
 		}
 	}	// end of if (texturevalue == 255  ) 
@@ -488,7 +508,10 @@ double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], Mat xtt
 
 // new function def
 //void map3(double **y[], Mat &Depth_Map, double **diff_y[], double **diff_Cr[], double **diff_Cb[], double **atlas[], double beta, double gama, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, unsigned char **xttemp[], unsigned char **xttempCr[], unsigned char **xttempCb[], IplImage* texture_I, IplImage* textureCb_I, IplImage* textureCr_I, IplImage* highpass_I, IplImage* highpassCr_I, IplImage* highpassCb_I)
-void map3(double **y_pp[], Mat &Depth_Map, double **diff_y_pp[], double **diff_Cr_pp[], double **diff_Cb_pp[], double **atlas[], double beta, double gama, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, IplImage* texture_I, IplImage* textureCb_I, IplImage* textureCr_I, IplImage* highpass_I, IplImage* highpassCr_I, IplImage* highpassCb_I)
+//void map3(double **y_pp[], Mat &Depth_Map, double **diff_y_pp[], double **diff_Cr_pp[], double **diff_Cb_pp[], double **atlas[], double beta, double gama, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, IplImage* texture_I, IplImage* textureCb_I, IplImage* textureCr_I, IplImage* highpass_I, IplImage* highpassCr_I, IplImage* highpassCb_I)
+//void map3(Mat yY, Mat &Depth_Map, double **diff_y[], double **diff_Cr[], double **diff_Cb[], double **atlas[], double beta, double gamma, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb)
+//void map3(Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, double **diff_Cr_pp[], double **diff_Cb_pp[], double **atlas[], double beta, double gamma, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb)
+void map3(Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, vector<Mat> &diff_Cr, vector<Mat> &diff_Cb, double **atlas[], double beta, double gamma, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb)
 {
 	int idx, jdx, kdx;
 	double tick, tock, delta_T;
@@ -501,14 +524,14 @@ void map3(double **y_pp[], Mat &Depth_Map, double **diff_y_pp[], double **diff_C
 	//double **logpost1[MAX_CLASSES];
 	cv::Point pixel;
 	cv::Size logSize = cv::Size(cols, rows);
-	vector<cv::Mat> logpost1(classes);
+	vector<Mat> logpost1(classes);
 
-	Mat texture(texture_I);
-	Mat textureCb(textureCb_I);
-	Mat textureCr(textureCr_I);
-	Mat highpass(highpass_I);
-	Mat highpassCr(highpassCr_I);
-	Mat highpassCb(highpassCb_I);
+	//Mat texture(texture_I);
+	//Mat textureCb(textureCb_I);
+	//Mat textureCr(textureCr_I);
+	//Mat highpass(highpass_I);
+	//Mat highpassCr(highpassCr_I);
+	//Mat highpassCb(highpassCb_I);
 
 	tick = (double)cvGetTickCount();
 
@@ -519,14 +542,14 @@ void map3(double **y_pp[], Mat &Depth_Map, double **diff_y_pp[], double **diff_C
 	}
 	//int **logpost1[MAX_CLASSES] = new int[MAX_CLASSES][600][600];
 
-	Mat y = Mat(Size(cols, rows), CV_64F, *y_pp[0], cols * 8);
+	//Mat y = Mat(Size(cols, rows), CV_64F, *y_pp[0], cols * 8);
 
-	vector<cv::Mat> diff_y(classes);
+	//vector<cv::Mat> diff_y(classes);
 
-	for (idx = 0; idx < MAX_CLASSES; idx++)
-	{
-		diff_y[idx] = Mat(Size(cols, rows), CV_64FC1, *diff_y_pp[idx], cols * 8);
-	}
+	//for (idx = 0; idx < MAX_CLASSES; idx++)
+	//{
+	//	diff_y[idx] = Mat(Size(cols, rows), CV_64FC1, *diff_y_pp[idx], cols * 8);
+	//}
 
 
 	xrv= (double **)get_img(cols,rows,sizeof(double));
@@ -619,18 +642,24 @@ void map3(double **y_pp[], Mat &Depth_Map, double **diff_y_pp[], double **diff_C
 				//edgevalue = cvGetReal2D(highpass_I, idx, jdx);
 				edgevalue = highpass.at<unsigned char>(idx, jdx);
 				//*logposty = callogpost(pixel, diff_y, atlas, xttemp, cols, rows, ATLAS, gama, classes, beta, d, con, logposty, edgevalue, texturevalue, highpass_I, texture_I);
-				//callogpost(pixel, diff_y, atlas, xttempY, cols, rows, ATLAS, gama, classes, beta, d, con, logposty, edgevalue, texturevalue, highpass, texture);
+				callogpost(pixel, diff_Y, atlas, xttempY, cols, rows, ATLAS, gamma, classes, beta, d, con, logposty, edgevalue, texturevalue, highpass, texture);
+				//std::thread lp_Y(callogpost, pixel, diff_Y, atlas, xttempY, cols, rows, ATLAS, gamma, classes, beta, d, con, logposty, edgevalue, texturevalue, highpass, texture);
 
 				//edgevalueCr = cvGetReal2D(highpassCr_I, idx, jdx);
 				edgevalueCr = highpassCr.at<unsigned char>(idx, jdx);
 				//*logpostCr = callogpost(pixel, diff_Cr, atlas, xttempCr, cols, rows, ATLAS, gama, classes, beta, d, con, logpostCr, edgevalueCr, texturevalueCr, highpassCr_I, textureCr_I);
-				//callogpost(pixel, diff_Cr, atlas, xttempCr, cols, rows, ATLAS, gama, classes, beta, d, con, logpostCr, edgevalueCr, texturevalueCr, highpassCr, textureCr);
+				callogpost(pixel, diff_Cr, atlas, xttempCr, cols, rows, ATLAS, gamma, classes, beta, d, con, logpostCr, edgevalueCr, texturevalueCr, highpassCr, textureCr);
+				//std::thread lp_Cr(callogpost, pixel, diff_Cr, atlas, xttempCr, cols, rows, ATLAS, gamma, classes, beta, d, con, logpostCr, edgevalueCr, texturevalueCr, highpassCr, textureCr);
 
 				//edgevalueCb = cvGetReal2D(highpassCb_I, idx, jdx);
 				edgevalueCb = highpassCb.at<unsigned char>(idx, jdx);
 				//*logpostCb = callogpost(pixel, diff_Cb, atlas, xttempCb, cols, rows, ATLAS, gama, classes, beta, d, con, logpostCb, edgevalueCb, texturevalueCb, highpassCb_I, textureCb_I);
-				//callogpost(pixel, diff_Cb, atlas, xttempCb, cols, rows, ATLAS, gama, classes, beta, d, con, logpostCb, edgevalueCb, texturevalueCb, highpassCb, textureCb);
+				callogpost(pixel, diff_Cb, atlas, xttempCb, cols, rows, ATLAS, gamma, classes, beta, d, con, logpostCb, edgevalueCb, texturevalueCb, highpassCb, textureCb);
+				//std::thread lp_Cb(callogpost, pixel, diff_Cb, atlas, xttempCb, cols, rows, ATLAS, gamma, classes, beta, d, con, logpostCb, edgevalueCb, texturevalueCb, highpassCb, textureCb);
 
+				//lp_Y.join();
+				//lp_Cr.join();
+				//lp_Cb.join();
 
 				for (kdx = 0; kdx < MAX_CLASSES; kdx++)
 				{
@@ -643,12 +672,14 @@ void map3(double **y_pp[], Mat &Depth_Map, double **diff_y_pp[], double **diff_C
 		}
 
 		//int num_pixels = cols * rows;
-		double start= (double)cvGetTickCount();
               
 		cv::Mat gridResult = cv::Mat(Size(cols, rows), CV_8U, Scalar::all(0));
 		cv::Mat gridResult_N = cv::Mat(cv::Size(cols, rows), CV_8U);
 
 		//cv::Mat gridResult = cv::Mat(cv::Size(cols, rows), CV_32S);
+
+		cout << "Starting GridGraph routines..." << endl;
+		double start= (double)cvGetTickCount();
 
 		GridGraph_DArraySArray(cols, rows, MAX_CLASSES, logpost1, gridResult);
 		//GridGraph_DArraySArray(cols, rows, MAX_CLASSES, logpost1, result);
@@ -675,7 +706,7 @@ void map3(double **y_pp[], Mat &Depth_Map, double **diff_y_pp[], double **diff_C
 			for (jdx = 0; jdx < cols; jdx++)
 			{
 				int index = gridResult.at<unsigned char>(idx, jdx);
-				double temp_y = y.at<double>(idx, jdx);
+				double temp_y = yY.at<double>(idx, jdx);
 				yaccum[index] += temp_y;										// for mean EM calculation
 				ysquaredaccum[index] += temp_y*temp_y;		// for variance EM caculation 
 //				yaccum[index] += (double)y[0][idx][jdx];										// for mean EM calculation

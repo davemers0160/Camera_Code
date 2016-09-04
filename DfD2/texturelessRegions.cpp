@@ -17,7 +17,7 @@
 using namespace std;
 using namespace cv;
 
-void texturelessRegions(Mat &inputImage, int windowSize, int thresh)
+void texturelessRegions(Mat &inputImage, Mat &textureImage, int windowSize, int thresh)
 {
 	int idx, jdx, kdx, ldx;
 	int nChannels = inputImage.channels();
@@ -35,8 +35,8 @@ void texturelessRegions(Mat &inputImage, int windowSize, int thresh)
 
 	if (windowSize % 2 == 0)
 	{
-		windowSize--;
-		cout << "Window size not odd, reducing by 1." << endl;
+		windowSize++;
+		cout << "Window size not odd, increasing by 1." << endl;
 		cout << "New window size: " << windowSize << endl;
 	}
 	
@@ -68,16 +68,13 @@ void texturelessRegions(Mat &inputImage, int windowSize, int thresh)
 	//Sobel(inputImage, sob_y, CV_8UC1, 0, 1, 5, scale, delta, BORDER_REPLICATE);
 	//addWeighted(sob_x, 0.5, sob_y, 0.5, 0, sobelGrad);
 
-
 	Laplacian(inputImage, lapGrad, CV_8UC1, windowSize, scale, delta, BORDER_REPLICATE);
-
-
 
 	threshold(lapGrad, threshGrad, thresh, 255, THRESH_BINARY_INV);
 
-
-	erode(threshGrad, erodeThresh, element);
-
+	//erode(threshGrad, erodeThresh, element);
+	erode(threshGrad, textureImage, element);
+	
 	
 		
 	bp_stop = 0;
