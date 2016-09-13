@@ -30,12 +30,12 @@ using namespace cv;
 #define PI        3.14159265358979323846
 
 //unsigned char	**get_img(int,int,unsigned char);
-//unsigned char	**gamma[1000], **atlas[1000];
-int				i, j, l, k, c, r, edgevalue, edgevalueCr, edgevalueCb, texturevalue, texturevalueCr, texturevalueCb, tempmin, counter = 0;
-double			random2(),mm,sum,AveCost,diff[MAX_CLASSES+1], prior[MAX_CLASSES+1],DiSum,PiSum, assist;
-double			**xrv, x, flag, ratio,current,invannealtemp, compare[MAX_CLASSES];
-
-ofstream outfile("logpost.txt",ios::out);
+//int				i, j, l, k, c, r;
+//int				edgevalueCr, edgevalueCb, texturevalue, texturevalueCr, texturevalueCb;
+//int			edgevalue,tempmin, counter = 0;
+//double		**xrv, random2(),mm,sum,AveCost,DiSum,PiSum, assist;
+double			 x, flag,diff[MAX_CLASSES+1], prior[MAX_CLASSES+1];
+//double ratio, current, invannealtemp, compare[MAX_CLASSES];
 
 // 0. double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], unsigned char **xttemp[], int cols, int rows, int ATLAS, double gama, int classes, double beta, double *d, double *con, double *logpost, int edgevalue, int texturevalue, IplImage *highpass, IplImage* texture);
 // 1. double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], unsigned char **xttemp[], int cols, int rows, int ATLAS, double gama, int classes, double beta, double *d, double *con, double *logpost, int edgevalue, int texturevalue, Mat highpass, Mat texture);
@@ -155,20 +155,20 @@ double random2()
 void callogpost(cv::Point pixel, vector<Mat> &diff_sq, Mat xttemp, int cols, int rows, int classes, double beta, double *logpost, int edgevalue, int texturevalue, Mat highpass, Mat texture)
 {
 	int idx, jdx, kdx;
+	int i, j, k;
 	int edgevalue1,texture1;
 	double weight;
-	double alpha = 1.0;
+	//double alpha = 1.0;
 	double tempsq;
 
 //////////// More Texture region //////////////////////////////////////////////////////////////////////////////////////
-	int i, j;
 
 	i = pixel.x;
 	j = pixel.y;
 
 	if (texturevalue == 0 ) // more texture region
 	{					
-		for (k=0; k<=MAX_CLASSES; k++)
+		for (k = 0; k <= MAX_CLASSES; k++)
 		{
 			prior[k] = 0;
 			diff[k] = 0;
@@ -264,7 +264,7 @@ void callogpost(cv::Point pixel, vector<Mat> &diff_sq, Mat xttemp, int cols, int
 					texture1 = texture.at<unsigned char>(i - 1, j);
 					if (texture1==0 ) 
 					{
-						alpha=0;
+						//alpha=0;
 						weight=10;
 						//if (abs(xttemp[0][i - 1][j] - xttemp[0][i][j]) < 1)
 						if (xttemp.at<unsigned char>(i - 1, j) - xttemp.at<unsigned char>(i, j) == 0)
@@ -314,7 +314,7 @@ void callogpost(cv::Point pixel, vector<Mat> &diff_sq, Mat xttemp, int cols, int
 					texture1 = texture.at<unsigned char>(i + 1, j);
 					if (texture1==0 )
 					{
-						alpha=0;
+						//alpha=0;
 						weight=10;
 						//if (abs(xttemp[0][i + 1][j] - xttemp[0][i][j]) < 1)
 						if (xttemp.at<unsigned char>(i + 1, j) - xttemp.at<unsigned char>(i, j) == 0)
@@ -366,7 +366,7 @@ void callogpost(cv::Point pixel, vector<Mat> &diff_sq, Mat xttemp, int cols, int
 					texture1 = texture.at<unsigned char>(i, j-1);
 					if (texture1==0 ) 
 					{
-						alpha=0;
+						//alpha=0;
 						weight=10;
 						//if (abs(xttemp[0][i][j - 1] - xttemp[0][i][j]) < 1)
 						if (xttemp.at<unsigned char>(i, j - 1) - xttemp.at<unsigned char>(i, j) == 0)
@@ -407,7 +407,7 @@ void callogpost(cv::Point pixel, vector<Mat> &diff_sq, Mat xttemp, int cols, int
 					texture1 = texture.at<unsigned char>(i, j+1);
 					if (texture1==0 ) 
 					{
-						alpha=0;
+						//alpha=0;
 						weight=10;
 						//if (abs(xttemp[0][i][j + 1] - xttemp[0][i][j]) < 1)
 						if (xttemp.at<unsigned char>(i, j + 1) - xttemp.at<unsigned char>(i, j) == 0)
@@ -460,7 +460,8 @@ void callogpost(cv::Point pixel, vector<Mat> &diff_sq, Mat xttemp, int cols, int
 	}
 
 	//return *logpost;
-}
+
+}	// end of logpost
 
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -469,7 +470,6 @@ void callogpost(cv::Point pixel, vector<Mat> &diff_sq, Mat xttemp, int cols, int
 //			Revised MAP Estimation Function                                      //
 //                                                                               //
 ///////////////////////////////////////////////////////////////////////////////////
-
 
 //original function def
 //void map3(double **y[], double **xt[], double **diff_y[], double **diff_Cr[], double **diff_Cb[], double **atlas[], double beta,double gama, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum,double *Num,unsigned char **xttemp[],unsigned char **xttempCr[],unsigned char **xttempCb[],IplImage*texture,IplImage*textureCb,IplImage*textureCr,IplImage*highpass,IplImage*highpassCr,IplImage*highpassCb)////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -483,6 +483,8 @@ void callogpost(cv::Point pixel, vector<Mat> &diff_sq, Mat xttemp, int cols, int
 void map3(string &DataLog, Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, vector<Mat> &diff_Cr, vector<Mat> &diff_Cb, double beta, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb)
 {
 	int idx, jdx, kdx;
+	int edgevalueY, edgevalueCr, edgevalueCb;
+	int texturevalueY, texturevalueCr, texturevalueCb;
 	double tick, tock, delta_T;
 	double tick_Freq = ((double)cvGetTickFrequency()*1000.0);
 
@@ -537,7 +539,7 @@ void map3(string &DataLog, Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, vector<M
 ///////////////////////////////////////////////////////////////////////////////////////
 
     /* Map loop */
-	for (l=0; l<map_iter; l++)
+	for (kdx=0; kdx<map_iter; kdx++)
 	{
 		//AveCost = 0; 
 
@@ -563,22 +565,22 @@ void map3(string &DataLog, Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, vector<M
 
 /////////////////////////////////   read in texture and edge information for each pixel ////////////////////////////
 
-				texturevalue = texture.at<unsigned char>(idx, jdx);
+				texturevalueY = texture.at<unsigned char>(idx, jdx);
 				texturevalueCr = textureCr.at<unsigned char>(idx, jdx);
 				texturevalueCb = textureCb.at<unsigned char>(idx, jdx);
 
-				if (texturevalue == 255)
+				if (texturevalueY == 255)
 				{
 					beta = 0.1; //    texture
 				}
-				else if (texturevalue == 0)
+				else if (texturevalueY == 0)
 				{
 					beta = 0.01;
 				}
 
-				edgevalue = highpass.at<unsigned char>(idx, jdx);
+				edgevalueY = highpass.at<unsigned char>(idx, jdx);
 				//*logposty = callogpost(pixel, diff_y, atlas, xttemp, cols, rows, ATLAS, gama, classes, beta, d, con, logposty, edgevalue, texturevalue, highpass_I, texture_I);
-				callogpost(pixel, diff_Y, xttempY, cols, rows, classes, beta, logposty, edgevalue, texturevalue, highpass, texture);
+				callogpost(pixel, diff_Y, xttempY, cols, rows, classes, beta, logposty, edgevalueY, texturevalueY, highpass, texture);
 				//std::thread lp_Y(callogpost, pixel, diff_Y, atlas, xttempY, cols, rows, ATLAS, gamma, classes, beta, d, con, logposty, edgevalue, texturevalue, highpass, texture);
 
 				edgevalueCr = highpassCr.at<unsigned char>(idx, jdx);
@@ -645,7 +647,8 @@ void map3(string &DataLog, Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, vector<M
 		tock = (double)cvGetTickCount();  
 		delta_T = (tock - tick) / tick_Freq; 
 		cout << "Elapsed time for MAP Estimation: " << delta_T << endl;
-	}
+
+	}	// end of Map Loop
 
 }	// end of map3
 
