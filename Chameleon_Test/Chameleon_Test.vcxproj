@@ -158,7 +158,7 @@
     <ClCompile Include="..\Camera_Shared_Code\imageCapture.cpp" />
     <ClCompile Include="..\Camera_Shared_Code\Lens_Driver.cpp" />
     <ClCompile Include="..\Camera_Shared_Code\stdafx.cpp" />
-    <ClCompile Include="..\Camera_Shared_Code\videoCapture_2.cpp" />
+    <ClCompile Include="..\Camera_Shared_Code\videoCaptureInterleave.cpp" />
     <ClCompile Include="Camera_Main.cpp" />
   </ItemGroup>
   <ItemGroup>

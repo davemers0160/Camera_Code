@@ -3,11 +3,9 @@
 //#include "stdafx.h"
 #include <math.h>
 #include <stdlib.h>
-//#include <omp.h>
+#include <algorithm>
 #include "allocate.h"
 //#include "random.h"
-//#include "cv.h"	// removed
-//#include "highgui.h" // removed
 
 // added
 #include <opencv2/core/core.hpp>           
@@ -18,7 +16,9 @@
 #include "time.h"
 #include <iostream>
 #include <thread>
-
+#include <iostream>
+#include <sstream>
+#include <fstream>
 
 #define MAX_CLASSES 256.0
 #define MaxSigma 2.5
@@ -46,6 +46,8 @@ using namespace cv;
 
 //#define GEN_DEFOCUS_IMAGE
 
+////////// read in files  ////////////////////////////////////////////////////////////////
+void readFile(Mat &img1, Mat &img2, string f1, string f2, int type, int num);
 
 ////////// MAP estimation ////////////////////////////////////////////////////////////////
 // 0. void map3(double **yY[], double **xtY[],double **diff_y[], double **diff_Cr[], double **diff_Cb[], double **atlas[], double beta,double gamma, int ATLAS, int ICM, int cols, int rows, int classes,int map_iter,double *, double *,double *, double *,unsigned char **xttemp[],unsigned char **xttempCr[],unsigned char **xttempCb[],IplImage*texture,IplImage*textureCb,IplImage*textureCr,IplImage*highpass,IplImage*highpassCr,IplImage*highpassCb);
@@ -54,7 +56,7 @@ using namespace cv;
 // 3. void map3(double **y_pp[], Mat &Depth_Map, double **diff_y_pp[], double **diff_Cr_pp[], double **diff_Cb_pp[], double **atlas[], double beta, double gamma, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb);
 // 4. void map3(Mat yY, Mat &Depth_Map, double **diff_y_pp[], double **diff_Cr_pp[], double **diff_Cb_pp[], double **atlas[], double beta, double gamma, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb);
 // 5. void map3(Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, double **diff_Cr_pp[], double **diff_Cb_pp[], double **atlas[], double beta, double gamma, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb);
-void map3(Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, vector<Mat> &diff_Cr, vector<Mat> &diff_Cb, double **atlas[], double beta, double gamma, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb);
+void map3(string &DataLog, Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, vector<Mat> &diff_Cr, vector<Mat> &diff_Cb, double beta, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -63,7 +65,8 @@ void map3(Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, vector<Mat> &diff_Cr, vec
 // 2. void createblur(int col, int row, IplImage* ImageInFocus, int classes, double **y[], double **xt[], double **atlas[], int ATLAS, IplImage*ImageOutOfFocus, IplImage * ImageInFocustemp, IplImage* GauBlur[], Mat &xttemp);
 // 3. void createblur(int col, int row, IplImage* ImageInFocus, int classes, double **xt[], double **atlas[], int ATLAS, IplImage*ImageOutOfFocus, IplImage * ImageInFocustemp, Mat &xttemp);
 // 4. void createblur(int col, int row, Mat ImageInFocus, int classes, double **xt[], double **atlas[], int ATLAS, Mat ImageOutOfFocus, Mat ImageInFocustemp, Mat &xttemp);
-void createblur(int col, int row, Mat ImageInFocus, int classes, vector<Mat> &xt, double **atlas[], int ATLAS, Mat ImageOutOfFocus, Mat ImageInFocustemp, Mat &xttemp);
+// 5. void createblur(int col, int row, Mat ImageInFocus, int classes, vector<Mat> &xt, double **atlas[], int ATLAS, Mat ImageOutOfFocus, Mat ImageInFocustemp, Mat &xttemp);
+void createblur(int col, int row, Mat ImageInFocus, int classes, vector<Mat> &xt, Mat SyntheticDefocus, Mat &xttemp);
 
 ///////// Space Varying 2D filter ///////////////////////////////////////////////////////
 void SpaceVaryingfilter2D (IplImage * image, int kernel_size,double min_sigma, double max_sigma, IplImage * filter);
@@ -77,9 +80,21 @@ int main( int argc, char** argv )
 	int idx, jdx, kdx;
 	int col, row;
 
-	//string image_locations = "Image_Files";
-	string image_locations = "D:\\IUPUI\\Test_Data\\Data1\\";
-	string file_path;
+	double section_start, section_stop;
+	double section_time;
+
+	ofstream DataLogStream;
+	string logfileName = "DfD_v2_logfile.txt";
+
+	// base image locations
+	string image_locations = "Image_Files\\";
+	//string image_locations = "D:\\IUPUI\\Test_Data\\Data1\\";
+	//string image_locations = "D:\\IUPUI\\Test_Data\\Test_Pics1\\";
+	//string image_locations = "D:\\IUPUI\\Test_Data\\Test_Pics2\\";
+	//string file_path;
+
+	DataLogStream.open((image_locations+logfileName), ios::out);
+
 
 	vector<int> compression_params;
 	compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
@@ -89,16 +104,16 @@ int main( int argc, char** argv )
 	//																				 //
 	//      Step 1:																	 //
 	//				Use all in focus and ground truth to generate defocus image      //
-	//																			     //
 	//																				 //	
 	///////////////////////////////////////////////////////////////////////////////////
 
 	cout << "Starting Step 1..." << endl;
+	section_start = (double)cvGetTickCount();
 
 #ifdef GEN_DEFOCUS_IMAGE
 
  /////// read in focus color image ///////////////////////////////////////////////////////
-	file_path = image_locations + "\\view5_color.tif";
+	file_path = image_locations + "view5_color.tif";
 	IplImage*   ImageInFocus3 = cvLoadImage(file_path.c_str(), CV_LOAD_IMAGE_COLOR);
 
 	Mat infocus3 = Mat(ImageInFocus3);
@@ -121,7 +136,7 @@ int main( int argc, char** argv )
 
  ///////  read in ground truth image ///////////////////////////////////////////////////// 
 	
-	file_path = image_locations + "\\ground_truth.png";
+	file_path = image_locations + "ground_truth.png";
 
 	IplImage*   groundtruth = cvLoadImage(file_path.c_str(), 0);
 	//IplImage*   groundtruth = cvLoadImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/disp1_1.png", 0);
@@ -206,84 +221,81 @@ int main( int argc, char** argv )
 
 	//cvSaveImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/blurmap_color.tif",Blurmap);
 	
-	file_path = image_locations + "\\blurmap_color.tif";
+	file_path = image_locations + "blurmap_color.tif";
 	cvSaveImage(file_path.c_str(), Blurmap);
 #else
-	cout << "Skipping defous image generation" << endl;
+	cout << "Skipping defocus image generation" << endl;
+	DataLogStream << "Skipping defocus image generation" << endl;
 #endif
-	cout << "Completed Step 1." << endl;
+	section_stop = (double)cvGetTickCount();
+	section_time = (section_stop - section_start) / ((double)cvGetTickFrequency()*1000.0);
+
+	cout << "Completed Step 1 in " << section_time << "ms." << endl;
+	DataLogStream << "Completed Step 1 in " << section_time << "ms." << endl;
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
- 
 	
 	///////////////////////////////////////////////////////////////////////////////////
 	//																				 //
 	//    Step 2:																	 //
 	//			Read all in focus image and true defocus image                       //
     //          Convert the color images to YCrCb channel                            //
-	//																			     //
 	//																				 //	
 	///////////////////////////////////////////////////////////////////////////////////
 
 	cout << "Starting Step 2" << endl;
-
-///////  Create image matrix for color image  ////////////////////////////////////////////////
-	//IplImage * inf=0;
-	//IplImage * outf=0;
-	//IplImage * yCbCrin=0;
-	//IplImage * yCbCrout=0;
-	//IplImage * yin=0;
-	//IplImage * yout=0;
-	//IplImage * Cbin=0;
-	//IplImage * Cbout=0;
-	//IplImage * Crin=0;
-	//IplImage * Crout=0;
+	section_start = (double)cvGetTickCount();
 
 //////// Read all in focus image and true defocus image /////////////////////////////////////////
-	//inf = cvLoadImage(file_path.c_str(), CV_LOAD_IMAGE_COLOR);
-	//outf = cvLoadImage(file_path.c_str(), CV_LOAD_IMAGE_COLOR);
 	Mat infocusImage, defocusImage;
-
-	//file_path = image_locations + "\\view5_color.tif";
-	//infocusImage = imread(file_path, CV_LOAD_IMAGE_COLOR);
-	//file_path = image_locations + "\\blurmap_color.tif";
-	//defocusImage = imread(file_path, CV_LOAD_IMAGE_COLOR);	
-	
 	string focusfilename, defocusfilename;
-	focusfilename = "20160805_140903_test_recording_15356234_focus.avi"; 
-	defocusfilename = "20160805_140903_test_recording_15356234_defocus.avi";
 
+	focusfilename = "view5_color.tif";
+	defocusfilename = "blurmap_color.tif";
 
-	VideoCapture focusVideo, defocusVideo;
+	//focusfilename = "20160805_140903_test_recording_15356234_focus.avi"; 
+	//defocusfilename = "20160805_140903_test_recording_15356234_defocus.avi";
 
-	focusVideo.open(image_locations + focusfilename);
-	defocusVideo.open(image_locations + defocusfilename);
+	//focusfilename = "Test1_137_2016-09-11-132609-0000.tif";
+	//defocusfilename = "Test1_139_2016-09-11-132747-0000.tif";
+//	defocusfilename = "Test1_141_2016-09-11-132636-0000.tif";
+//	defocusfilename = "Test1_143_2016-09-11-132732-0000.tif";
+//	defocusfilename = "Test1_145_2016-09-11-132720-0000.tif";
 
-	focusVideo.read(infocusImage);
-	defocusVideo.read(defocusImage);
-	focusVideo.read(infocusImage);
-	defocusVideo.read(defocusImage);
+	// read in still images
+	infocusImage = imread((image_locations + focusfilename), CV_LOAD_IMAGE_COLOR);
+	defocusImage = imread((image_locations + defocusfilename), CV_LOAD_IMAGE_COLOR);	
+
+	// read in video and advance to a given frame
+	//VideoCapture focusVideo, defocusVideo;
+
+	//focusVideo.open(image_locations + focusfilename);
+	//defocusVideo.open(image_locations + defocusfilename);
+	//double frame_count = focusVideo.get(CV_CAP_PROP_FRAME_COUNT);
+
+	//for (idx = 0; idx < 240; idx++)
+	//{
+	//	focusVideo.read(infocusImage);
+	//	defocusVideo.read(defocusImage);
+	//}
+
+	//double current_frame = focusVideo.get(CV_CAP_PROP_POS_FRAMES);
+
+	// read in multiple files to time average
+	//focusfilename = "Test1_128_2016-09-11-140945-";
+	//defocusfilename = "Test1_130_2016-09-11-140955-";
+	//readFile(infocusImage, defocusImage, (image_locations + focusfilename), (image_locations + defocusfilename), 2, 10);
+
 
 	Size imageSize = infocusImage.size();
 	row = infocusImage.rows;
 	col = infocusImage.cols;
 
 ////// Convert the two images from RGB to YCrCb (Here "in" means in focus and "out" means defocus) ///
-	//yCbCrin=cvCreateImage(cvGetSize(inf), 8, 3);
-	//yCbCrout=cvCreateImage(cvGetSize(outf), 8, 3);
-	//cvCvtColor(inf, yCbCrin, CV_RGB2YCrCb);
-	//cvCvtColor(outf, yCbCrout, CV_RGB2YCrCb);
-
 	Mat YCbCrin = Mat(imageSize, CV_8UC3);
 	Mat YCbCrout = Mat(imageSize, CV_8UC3);
 	cvtColor(infocusImage, YCbCrin, CV_BGR2YCrCb, 3);
 	cvtColor(defocusImage, YCbCrout, CV_BGR2YCrCb, 3);
-
-	//yin=cvCreateImage(cvGetSize(inf), 8, 1);
-	//yout=cvCreateImage(cvGetSize(outf), 8, 1);  
-	//Cbin=cvCreateImage(cvGetSize(inf), 8, 1);
-	//Cbout=cvCreateImage(cvGetSize(outf), 8, 1);
-	//Crin=cvCreateImage(cvGetSize(inf), 8, 1);
-	//Crout=cvCreateImage(cvGetSize(outf), 8, 1);  
 
 	vector<Mat> YCRCB_IN(3);
 	vector<Mat> YCRCB_OUT(3);
@@ -297,21 +309,18 @@ int main( int argc, char** argv )
 	split(YCbCrin, YCRCB_IN);
 	split(YCbCrout, YCRCB_OUT);
 
-	//cvSaveImage((image_locations + "\\yin.png").c_str(),yin);
-	//cvSaveImage((image_locations + "\\yout.png").c_str(), yout);
-	//cvSaveImage((image_locations + "\\Crin.png").c_str(), Crin);
-	//cvSaveImage((image_locations + "\\Crout.png").c_str(), Crout);
-	//cvSaveImage((image_locations + "\\Cbin.png").c_str(), Cbin);
-	//cvSaveImage((image_locations + "\\Cbout.png").c_str(), Cbout);
-
 	imwrite((image_locations + "\\yin.png"), YCRCB_IN[0]);
 	imwrite((image_locations + "\\Crin.png"), YCRCB_IN[1]);  
 	imwrite((image_locations + "\\Cbin.png"), YCRCB_IN[2]);  
 	imwrite((image_locations + "\\yout.png"), YCRCB_OUT[0]);
 	imwrite((image_locations + "\\Crout.png"), YCRCB_OUT[1]);
 	imwrite((image_locations + "\\Cbout.png"), YCRCB_OUT[2]);
+	
+	section_stop = (double)cvGetTickCount();
+	section_time = (section_stop - section_start)/((double)cvGetTickFrequency()*1000.0);
 
-	cout << "Completed Step 2." << endl;
+	cout << "Completed Step 2 in " << section_time << "ms." << endl;
+	DataLogStream << "Completed Step 2 in " << section_time << "ms." << endl;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -319,30 +328,11 @@ int main( int argc, char** argv )
 	//																				 //
 	//    Step 3:																	 //
 	//			Convert all pixels in Y, Cr, Cb  from integer to floating point      //
-    //                                                                               //
-	//																			     //
 	//																				 //	
 	///////////////////////////////////////////////////////////////////////////////////
 
 	cout << "Starting Step 3..." << endl;
-
-	//IplImage* ImageInFocusY = cvCreateImage(cvGetSize(inf),IPL_DEPTH_64F,0);  
-	//IplImage* ImageOutOfFocusY = cvCreateImage(cvGetSize(inf),IPL_DEPTH_64F,0);  
-	//IplImage* SyntheticDefocusY = cvCreateImage(cvGetSize(inf), IPL_DEPTH_64F, 0);
-	//cvConvertScale(yin,ImageInFocusY,1.0,0.0); 
-	//cvConvertScale(yout,ImageOutOfFocusY,1.0,0.0);
-  
-	//IplImage* ImageInFocusCr = cvCreateImage(cvGetSize(inf),IPL_DEPTH_64F,0);  
-	//IplImage* ImageOutOfFocusCr = cvCreateImage(cvGetSize(inf),IPL_DEPTH_64F,0);  
-	//IplImage* SyntheticDefocusCr = cvCreateImage(cvGetSize(inf), IPL_DEPTH_64F, 0);
-	//cvConvertScale(Crin,ImageInFocusCr,1.0,0.0); 
-	//cvConvertScale(Crout,ImageOutOfFocusCr,1.0,0.0);
-
-	//IplImage* ImageInFocusCb = cvCreateImage(cvGetSize(inf),IPL_DEPTH_64F,0);  
-	//IplImage* ImageOutOfFocusCb = cvCreateImage(cvGetSize(inf),IPL_DEPTH_64F,0);  
-	//IplImage* SyntheticDefocusCb = cvCreateImage(cvGetSize(inf), IPL_DEPTH_64F, 0);
-	//cvConvertScale(Cbin,ImageInFocusCb,1.0,0.0); 
-	//cvConvertScale(Cbout,ImageOutOfFocusCb,1.0,0.0);
+	section_start = (double)cvGetTickCount();
 
 	Mat ImageInFocusY = Mat(imageSize, CV_64FC1);
 	Mat ImageInFocusCr = Mat(imageSize, CV_64FC1);
@@ -362,7 +352,11 @@ int main( int argc, char** argv )
 	Mat SyntheticDefocusCr = Mat(imageSize, CV_64FC1);
 	Mat SyntheticDefocusCb = Mat(imageSize, CV_64FC1);
 
-	cout << "Completed Step 3." << endl;
+	section_stop = (double)cvGetTickCount();
+	section_time = (section_stop - section_start) / ((double)cvGetTickFrequency()*1000.0);
+
+	cout << "Completed Step 3 in " << section_time << "ms." << endl;
+	DataLogStream << "Completed Step 3 in " << section_time << "ms." << endl;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -371,11 +365,11 @@ int main( int argc, char** argv )
 	//    Step 4:																	 //
 	//			use highpass filter to generate edge map                             //
     //          for each channel                                                     //
-	//																			     //
 	//																				 //	
 	///////////////////////////////////////////////////////////////////////////////////
  
 	cout << "Starting Step 4..." << endl;
+	section_start = (double)cvGetTickCount();
 
  //////// use highpass filter to generate edge map /////////////////////////////////////
 	Mat scr;
@@ -403,7 +397,11 @@ int main( int argc, char** argv )
 	filter2D(scr, highpassCb, scr.depth(), kernel);
 	imwrite(image_locations + "\\highpassCb.png", highpassCb, compression_params);
 
-	cout << "Completed Step 4." << endl;
+	section_stop = (double)cvGetTickCount();
+	section_time = (section_stop - section_start) / ((double)cvGetTickFrequency()*1000.0);
+
+	cout << "Completed Step 4 in " << section_time << "ms." << endl;
+	DataLogStream << "Completed Step 4 in " << section_time << "ms." << endl;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -413,44 +411,39 @@ int main( int argc, char** argv )
 	//			use texture identifer to generate texture map                        //
     //          for each channel                                                     //
 	//																			     //
-	//																				 //	
 	///////////////////////////////////////////////////////////////////////////////////
 
 	cout << "Starting Step 5..." << endl;
+	section_start = (double)cvGetTickCount();
 
-	//Mat highpassY = imread((image_locations + "\\highpass.png"), CV_LOAD_IMAGE_ANYDEPTH);
-	//Mat highpassCr = imread((image_locations + "\\highpassCr.png"), CV_LOAD_IMAGE_ANYDEPTH);
-	//Mat highpassCb = imread((image_locations + "\\highpassCb.png"), CV_LOAD_IMAGE_ANYDEPTH);
 	Mat textureY;
 	Mat textureCr;
 	Mat textureCb;
 
-	texturelessRegions(highpassY, textureY, 3, 128);
-	texturelessRegions(highpassCr, textureCr, 3, 128);
-	texturelessRegions(highpassCr, textureCb, 3, 128);
-
-
+	texturelessRegions(highpassY, textureY, 3, 100);
+	texturelessRegions(highpassCr, textureCr, 3, 64);
+	texturelessRegions(highpassCb, textureCb, 3, 64);
 
 	imwrite((image_locations + "\\texturelessregionY.png"), textureY, compression_params);
-	imwrite((image_locations + "\\texturelessregionCb.png"), textureCb, compression_params);
 	imwrite((image_locations + "\\texturelessregionCr.png"), textureCr, compression_params);
+	imwrite((image_locations + "\\texturelessregionCb.png"), textureCb, compression_params);
 
-	cout << "Completed Step 5." << endl;
+	section_stop = (double)cvGetTickCount();
+	section_time = (section_stop - section_start) / ((double)cvGetTickFrequency()*1000.0);
+
+	cout << "Completed Step 5 in " << section_time << "ms." << endl;
+	DataLogStream << "Completed Step 5 in " << section_time << "ms." << endl;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
 
   	///////////////////////////////////////////////////////////////////////////////////
 	//																				 //
 	//    Step 6:																	 //
-	//																				 //
 	//			Initialization of MAP estimation                                     //
     //                                                                               //
-	//																			     //
-	//																				 //	
 	///////////////////////////////////////////////////////////////////////////////////
 	cout << "Starting Step 6..." << endl;
+	section_start = (double)cvGetTickCount();
 
  ///// Initialize parameters for MAP subrutine  /////////////////////////////////////////////
 	int    ICM         = Optimmization_method;
@@ -465,33 +458,24 @@ int main( int argc, char** argv )
 	//IplImage* preresult = cvCreateImage(cvGetSize(inf),IPL_DEPTH_64F,0);  
 	//preresult = cvLoadImage( "\\preresult.png" , 0 );
 
- ///// Bring in edge information and texture information
-	//IplImage* textureY = cvLoadImage((image_locations + "\\texturelessregion.png").c_str(), 0);
-	//IplImage* textureCb = cvLoadImage((image_locations + "\\texturelessregionCb.png").c_str(), 0);
-	//IplImage* textureCr = cvLoadImage((image_locations + "\\texturelessregionCr.png").c_str(), 0);
-	//IplImage* highpassY = cvLoadImage((image_locations + "\\highpass.png").c_str(), 0);
-	//IplImage* highpassCr = cvLoadImage((image_locations + "\\highpassCr.png").c_str(), 0);
-	//IplImage* highpassCb = cvLoadImage((image_locations + "\\highpassCb.png").c_str(), 0);
-	//Mat textureY = imread((image_locations + "\\texturelessregion.png"), CV_LOAD_IMAGE_ANYDEPTH);
-	//Mat textureCb = imread((image_locations + "\\texturelessregionCb.png"), CV_LOAD_IMAGE_ANYDEPTH);
-	//Mat textureCr = imread((image_locations + "\\texturelessregionCr.png"), CV_LOAD_IMAGE_ANYDEPTH);
+	section_stop = (double)cvGetTickCount();
+	section_time = (section_stop - section_start) / ((double)cvGetTickFrequency()*1000.0);
 
-
-	cout << "Completed Step 6." << endl;
+	cout << "Completed Step 6 in " << section_time << "ms." << endl;
+	DataLogStream << "Completed Step 6 in " << section_time << "ms." << endl;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 	///////////////////////////////////////////////////////////////////////////////////
 	//																				 //
 	//    Step 7:																	 //
 	//			use all in focus image to generate 256 synthetic defocus images      //
     //          And use pre depth result to initial xttemp                           //
-	//																			     //
 	//																				 //	
 	///////////////////////////////////////////////////////////////////////////////////
  
-  cout << "Starting Step 7..." << endl;
+	cout << "Starting Step 7..." << endl;
+	section_start = (double)cvGetTickCount();
 
 	//IplImage* GauBlur[260];
  ////// Store blur index for each pixel each channel /////////////////////////////////////////	
@@ -507,7 +491,7 @@ int main( int argc, char** argv )
  ////// xt : 256 synthetic defocus images ////////////////////////////////////////////////////
 	double **yY[1], **yCr[1], **yCb[1];
 	double **xtY[260], **xtCr[260], **xtCb[260];
-	double **atlas[1];
+	//double **atlas[1];
 
 	vector<Mat> xt_Y(257);
 	vector<Mat> xt_Cr(257);
@@ -519,81 +503,90 @@ int main( int argc, char** argv )
 		xt_Cb[idx] = Mat(imageSize, CV_64FC1);
 	}
 
-	
-
-	//createblur(col, row, ImageInFocusY, classes, yY, xtY, atlas, ATLAS, ImageOutOfFocusY, SyntheticDefocusY, GauBlur, xttempy, preresult);
-	//createblur(col, row, ImageInFocusCr, classes, yCr, xtCr, atlas, ATLAS, ImageOutOfFocusCr, SyntheticDefocusCr, GauBlur, xttempCr,preresult);
-	//createblur(col, row, ImageInFocusCb, classes, yCb, xtCb, atlas, ATLAS, ImageOutOfFocusCb, SyntheticDefocusCb, GauBlur, xttempCb,preresult);
-	//std::thread t_Y(createblur, col, row, ImageInFocusY, classes, xtY, atlas, ATLAS, ImageOutOfFocusY, SyntheticDefocusY, xttempY);
-	//std::thread t_Cr(createblur, col, row, ImageInFocusCr, classes, xtCr, atlas, ATLAS, ImageOutOfFocusCr, SyntheticDefocusCr, xttempCr);
-	//std::thread t_Cb(createblur, col, row, ImageInFocusCb, classes, xtCb, atlas, ATLAS, ImageOutOfFocusCb, SyntheticDefocusCb, xttempCb);
-	std::thread t_Y(createblur, col, row, ImageInFocusY, classes, xt_Y, atlas, ATLAS, ImageOutOfFocusY, SyntheticDefocusY, xttempY);
-	std::thread t_Cr(createblur, col, row, ImageInFocusCr, classes, xt_Cr, atlas, ATLAS, ImageOutOfFocusCr, SyntheticDefocusCr, xttempCr);
-	std::thread t_Cb(createblur, col, row, ImageInFocusCb, classes, xt_Cb, atlas, ATLAS, ImageOutOfFocusCb, SyntheticDefocusCb, xttempCb);
+	std::thread t_Y(createblur, col, row, ImageInFocusY, classes, xt_Y, SyntheticDefocusY, xttempY);
+	std::thread t_Cr(createblur, col, row, ImageInFocusCr, classes, xt_Cr, SyntheticDefocusCr, xttempCr);
+	std::thread t_Cb(createblur, col, row, ImageInFocusCb, classes, xt_Cb, SyntheticDefocusCb, xttempCb);
 	
 	t_Y.join();
 	t_Cr.join();
 	t_Cb.join();
 
-	cout << "Completed Step 7." << endl;
+	section_stop = (double)cvGetTickCount();
+	section_time = (section_stop - section_start) / ((double)cvGetTickFrequency()*1000.0);
+
+	cout << "Completed Step 7 in " << section_time << "ms." << endl;
+	DataLogStream << "Completed Step 7 in " << section_time << "ms." << endl;
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 	///////////////////////////////////////////////////////////////////////////////////
 	//																				 //
 	//    Step 8:																	 //
 	//			EM calculation                                                       //
-	//																			     //
 	//																				 //	
 	///////////////////////////////////////////////////////////////////////////////////
 
 	cout << "Starting Step 8..." << endl;
+	section_start = (double)cvGetTickCount();
 
 	//double **diff_y[260];	// , **diff_Cr[260], **diff_Cb[260];
 	vector<Mat> diff_Y(257);
-
+	vector<Mat> diff_Cr(257);
+	vector<Mat> diff_Cb(257);
+	vector<Mat> diff_Y1(257);
+	vector<Mat> diff_Cr1(257);
+	vector<Mat> diff_Cb1(257);
 //// calculate Data term (y-b)^2 ////////////////////////////////////////////////////////
-
-	for (idx = 0; idx <= MAX_CLASSES; idx++)
-	{
-		//diff_y[idx] = (double **)get_img(col,row,sizeof(double));
-		//diff_Cr[idx] = (double **)get_img(col,row,sizeof(double));
-		//diff_Cb[idx] = (double **)get_img(col,row,sizeof(double));
-		diff_Y[idx] = Mat(imageSize, CV_64FC1);
-	}
-
 ////// In order to save memory, here replace  diff_Cr, diff_cb with xtCr, xtCb/////////
 	int64 temp_add = 0;
 	Mat temp_image;
 	for (kdx = 0; kdx <= MAX_CLASSES; kdx++)
 	{
-		for (idx = 0; idx < row; idx++)
-		{
-			for (jdx = 0; jdx < col; jdx++)
-			{
-				//diff_y[k][i][j] = (double)(yY[1][i][j] - xtY[k][i][j])*(double)(yY[1][i][j] - xtY[k][i][j]);
-				//xtCr[k][i][j] = (double)(yCr[1][i][j] - xtCr[k][i][j])*(double)(yCr[1][i][j] - xtCr[k][i][j]);
-				//xtCb[k][i][j] = (double)(yCb[1][i][j] - xtCb[k][i][j])*(double)(yCb[1][i][j] - xtCb[k][i][j]);
-				double y_Y = ImageOutOfFocusY.at<double>(idx, jdx);		//cvGetReal2D(ImageOutOfFocusY, idx, jdx);
-				double y_Cr = ImageOutOfFocusCr.at<double>(idx, jdx);	//cvGetReal2D(ImageOutOfFocusCr, idx, jdx);
-				double y_Cb = ImageOutOfFocusCb.at<double>(idx, jdx);	//cvGetReal2D(ImageOutOfFocusCb, idx, jdx);
-				//diff_y[kdx][idx][jdx] = (double)(yY[0][idx][jdx] - xtY[kdx][idx][jdx])*(double)(yY[0][idx][jdx] - xtY[kdx][idx][jdx]);
-				//xtCr[kdx][idx][jdx] = (double)(yCr[0][idx][jdx] - xtCr[kdx][idx][jdx])*(double)(yCr[0][idx][jdx] - xtCr[kdx][idx][jdx]);
-				//xtCb[kdx][idx][jdx] = (double)(yCb[0][idx][jdx] - xtCb[kdx][idx][jdx])*(double)(yCb[0][idx][jdx] - xtCb[kdx][idx][jdx]);
-				
-				//diff_y[kdx][idx][jdx] = (double)(y_Y - xtY[kdx][idx][jdx])*(double)(y_Y - xtY[kdx][idx][jdx]);
-				//xtCr[kdx][idx][jdx] = (double)(y_Cr - xtCr[kdx][idx][jdx])*(double)(y_Cr - xtCr[kdx][idx][jdx]);
-				//xtCb[kdx][idx][jdx] = (double)(y_Cb - xtCb[kdx][idx][jdx])*(double)(y_Cb - xtCb[kdx][idx][jdx]);
+		//diff_Y[kdx] = Mat(imageSize, CV_64FC1);
+		//diff_Cr[kdx] = Mat(imageSize, CV_64FC1);
+		//diff_Cb[kdx] = Mat(imageSize, CV_64FC1);
 
-				diff_Y[kdx].at<double>(idx, jdx) = (double)(y_Y - xt_Y[kdx].at<double>(idx, jdx))*(double)(y_Y - xt_Y[kdx].at<double>(idx, jdx));
-				xt_Cr[kdx].at<double>(idx, jdx) = (double)(y_Cr - xt_Cr[kdx].at<double>(idx, jdx))*(double)(y_Cr - xt_Cr[kdx].at<double>(idx, jdx));
-				xt_Cb[kdx].at<double>(idx, jdx) = (double)(y_Cb - xt_Cb[kdx].at<double>(idx, jdx))*(double)(y_Cb - xt_Cb[kdx].at<double>(idx, jdx));
-			
+		diff_Y[kdx] = Mat(imageSize, CV_64FC1, Scalar::all(0.0));
+		diff_Cr[kdx] = Mat(imageSize, CV_64FC1, Scalar::all(0.0));
+		diff_Cb[kdx] = Mat(imageSize, CV_64FC1, Scalar::all(0.0));
+		Mat temp_sub = Mat(imageSize, CV_64FC1, Scalar::all(0.0));
+		//Mat temp_sub2 = Mat(imageSize, CV_64FC1);
 
-			}	// end of jdx loop
+		subtract(ImageOutOfFocusY, xt_Y[kdx], temp_sub);
+		//multiply(temp_sub, temp_sub, diff_Y1[kdx]);
+		accumulateSquare(temp_sub, diff_Y[kdx]);
 
-		}	// end of idx loop
+		subtract(ImageOutOfFocusCr, xt_Cr[kdx], temp_sub);
+		//multiply(temp_sub, temp_sub, diff_Cr1[kdx]);
+		accumulateSquare(temp_sub, diff_Cr[kdx]);
+
+		subtract(ImageOutOfFocusCb, xt_Cb[kdx], temp_sub);
+		//multiply(temp_sub, temp_sub, diff_Cb1[kdx]);
+		accumulateSquare(temp_sub, diff_Cb[kdx]);
+
+		//for (idx = 0; idx < row; idx++)
+		//{
+		//	for (jdx = 0; jdx < col; jdx++)
+		//	{
+		//		double y_Y = ImageOutOfFocusY.at<double>(idx, jdx);		//cvGetReal2D(ImageOutOfFocusY, idx, jdx);
+		//		double y_Cr = ImageOutOfFocusCr.at<double>(idx, jdx);	//cvGetReal2D(ImageOutOfFocusCr, idx, jdx);
+		//		double y_Cb = ImageOutOfFocusCb.at<double>(idx, jdx);	//cvGetReal2D(ImageOutOfFocusCb, idx, jdx);
+		//		//diff_y[kdx][idx][jdx] = (double)(yY[0][idx][jdx] - xtY[kdx][idx][jdx])*(double)(yY[0][idx][jdx] - xtY[kdx][idx][jdx]);
+		//		//xtCr[kdx][idx][jdx] = (double)(yCr[0][idx][jdx] - xtCr[kdx][idx][jdx])*(double)(yCr[0][idx][jdx] - xtCr[kdx][idx][jdx]);
+		//		//xtCb[kdx][idx][jdx] = (double)(yCb[0][idx][jdx] - xtCb[kdx][idx][jdx])*(double)(yCb[0][idx][jdx] - xtCb[kdx][idx][jdx]);
+		//		
+		//		//diff_y[kdx][idx][jdx] = (double)(y_Y - xtY[kdx][idx][jdx])*(double)(y_Y - xtY[kdx][idx][jdx]);
+		//		//xtCr[kdx][idx][jdx] = (double)(y_Cr - xtCr[kdx][idx][jdx])*(double)(y_Cr - xtCr[kdx][idx][jdx]);
+		//		//xtCb[kdx][idx][jdx] = (double)(y_Cb - xtCb[kdx][idx][jdx])*(double)(y_Cb - xtCb[kdx][idx][jdx]);
+
+		//		diff_Y[kdx].at<double>(idx, jdx) = (double)(y_Y - xt_Y[kdx].at<double>(idx, jdx))*(double)(y_Y - xt_Y[kdx].at<double>(idx, jdx));
+		//		xt_Cr[kdx].at<double>(idx, jdx) = (double)(y_Cr - xt_Cr[kdx].at<double>(idx, jdx))*(double)(y_Cr - xt_Cr[kdx].at<double>(idx, jdx));
+		//		xt_Cb[kdx].at<double>(idx, jdx) = (double)(y_Cb - xt_Cb[kdx].at<double>(idx, jdx))*(double)(y_Cb - xt_Cb[kdx].at<double>(idx, jdx));
+		//	
+
+		//	}	// end of jdx loop
+
+		//}	// end of idx loop
 
 		//temp_add = (int64)&xt_Y[kdx].data;
 		temp_image = xt_Y[kdx];
@@ -606,24 +599,29 @@ int main( int argc, char** argv )
 	double m_Y[257], v_Y[257], N_Y[257];	
   
  ////// Choose initial conditions for mean and variance ////////////////////////////////
-	for (int l=0; l<=classes; l++)
+	m_Y[0] = 0;
+	for (int l=1; l<=classes; l++)
 	{
-		if (l==0) 
-		{
-			m_Y[l] =0;
-		}
-		else 
-		{
+		//if (l==0) 
+		//{
+		//	m_Y[l] =0;
+		//}
+		//else 
+		//{
 			//m_Y[l]  = m_Y[l-1]  + 255/(classes+1); 
 			m_Y[l] = m_Y[l - 1] + 255.0 / (classes + 1);
-		}
-		N_Y[l]  = 0;
-		v_Y[l]  = 0.5;
+		//}
+		//N_Y[l]  = 0;
+		//v_Y[l]  = 0.5;
 	}
+	memset(N_Y, 0, classes+1);
+	std::fill_n(&v_Y[0], classes + 1, 0.5);
 
- //// EM brgin /////////////////////////////////////////////////////////////////////////
+ //// EM begin /////////////////////////////////////////////////////////////////////////
 	Mat DepthMap = Mat(Size(col, row), CV_8UC1);
 	double start= (double)cvGetTickCount();
+
+	//DataLogStream.close();
 
 	for (int i=0; i<EMiteration; i++)
 	{
@@ -632,12 +630,14 @@ int main( int argc, char** argv )
     /* Call MAP subtutine */	
 		//map3(yY, xtY, yCr, xtCr, yCb, xtCb, atlas, beta, gama, ATLAS, ICM, col, row, classes, mapiter, v_Y, yaccum, ysquaredaccum, Num,xttempy, xttempCr, xttempCb,texture,textureCb,textureCr,highpass,highpassCr,highpassCb);	  
 		cout << "Running MAP..." << endl;
-
+		string DataLog = ".";
 //		map3(yY, xtY, diff_y, xtCr, xtCb, atlas, beta, gama, ATLAS, ICM, col, row, classes, mapiter, v_Y, yaccum, ysquaredaccum, Num,xttempy, xttempCr, xttempCb,texture,textureCb,textureCr,highpass,highpassCr,highpassCb);	  
-		std::thread t(map3, ImageOutOfFocusY, DepthMap, diff_Y, xt_Cr, xt_Cb, atlas, beta, gamma, ATLAS, ICM, col, row, classes, mapiter, v_Y, yaccum, ysquaredaccum, Num, xttempY, xttempCr, xttempCb, textureY, textureCb, textureCr, highpassY, highpassCr, highpassCb);
+//		std::thread t(map3, std::ref(DataLog), ImageOutOfFocusY, DepthMap, diff_Y, diff_Cr, diff_Cb, atlas, beta, gamma, ATLAS, ICM, col, row, classes, mapiter, v_Y, yaccum, ysquaredaccum, Num, xttempY, xttempCr, xttempCb, textureY, textureCb, textureCr, highpassY, highpassCr, highpassCb);
+		std::thread t(map3, std::ref(DataLog), ImageOutOfFocusY, DepthMap, diff_Y, diff_Cr, diff_Cb, beta, col, row, classes, mapiter, v_Y, yaccum, ysquaredaccum, Num, xttempY, xttempCr, xttempCb, textureY, textureCb, textureCr, highpassY, highpassCr, highpassCb);
 		t.join();
 
 		cout << "MAP Complete." << endl;
+		DataLogStream << DataLog;
 
 		for (int l=0; l<=classes; l++)  
 		{
@@ -690,7 +690,15 @@ int main( int argc, char** argv )
 
 //	cvSaveImage("/Users/ChaoLiu/Pictures/Depth_from_Defocus_Database/Temp_data_for_program/blurmaplc64.png",BlurMap);
 
-	cout << "Completed Step 8." << endl;
+	section_stop = (double)cvGetTickCount();
+	section_time = (section_stop - section_start) / ((double)cvGetTickFrequency()*1000.0);
+
+	cout << "Completed Step 8 in " << section_time << "ms." << endl;
+	DataLogStream << "Completed Step 8 in " << section_time << "ms." << endl;
+
+	DataLogStream.close();
+
+
 	cout << "End of Program." << endl;
 
 	cin.ignore();

@@ -152,12 +152,13 @@
   <ItemGroup>
     <ClCompile Include="allocate.cpp" />
     <ClCompile Include="Calculate_logpost.cpp" />
-    <ClCompile Include="createblur_v2.cpp" />
+    <ClCompile Include="createblur_v3.cpp" />
     <ClCompile Include="gco-v3.0\GCoptimization.cpp" />
     <ClCompile Include="gco-v3.0\LinkedBlockList.cpp" />
-    <ClCompile Include="map_v3.cpp" />
-    <ClCompile Include="OpenCV_Shell.cpp" />
+    <ClCompile Include="map_v4.cpp" />
+    <ClCompile Include="OpenCV_Shell_v2.cpp" />
     <ClCompile Include="random.c" />
+    <ClCompile Include="readFile.cpp" />
     <ClCompile Include="space_varying.cpp" />
     <ClCompile Include="texturelessRegions.cpp" />
   </ItemGroup>

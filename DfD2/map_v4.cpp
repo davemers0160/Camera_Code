@@ -25,8 +25,6 @@
 using namespace std;
 using namespace cv;
 
-
-#define PI  3.1415926535897932386
 #define MAX_CLASSES 256
 #define MAXPRIME  2147483647       /*  MAXPRIME = (2^31)-1     */
 #define PI        3.14159265358979323846
@@ -42,7 +40,8 @@ ofstream outfile("logpost.txt",ios::out);
 // 0. double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], unsigned char **xttemp[], int cols, int rows, int ATLAS, double gama, int classes, double beta, double *d, double *con, double *logpost, int edgevalue, int texturevalue, IplImage *highpass, IplImage* texture);
 // 1. double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], unsigned char **xttemp[], int cols, int rows, int ATLAS, double gama, int classes, double beta, double *d, double *con, double *logpost, int edgevalue, int texturevalue, Mat highpass, Mat texture);
 // 2. double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], Mat xttemp, int cols, int rows, int ATLAS, double gamma, int classes, double beta, double *d, double *con, double *logpost, int edgevalue, int texturevalue, Mat highpass, Mat texture);
-double callogpost(cv::Point pixel, vector<Mat> &diff_sq, double **atlas[], Mat xttemp, int cols, int rows, int ATLAS, double gamma, int classes, double beta, double *d, double *con, double *logpost, int edgevalue, int texturevalue, Mat highpass, Mat texture);
+// 3. double callogpost(cv::Point pixel, vector<Mat> &diff_sq, Mat xttemp, int cols, int rows, double gamma, int classes, double beta, double *d, double *con, double *logpost, int edgevalue, int texturevalue, Mat highpass, Mat texture);
+void callogpost(cv::Point pixel, vector<Mat> &diff_sq, Mat xttemp, int cols, int rows, int classes, double beta, double *logpost, int edgevalue, int texturevalue, Mat highpass, Mat texture);
 
 //void GridGraph_DArraySArray(int width,int height,int num_labels,double **logpost1[],int *result);
 //void GridGraph_DArraySArray(int width, int height, int num_labels, vector<cv::Mat> &logpost1, int *result);
@@ -153,17 +152,13 @@ double random2()
 
 //double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], unsigned char **xttemp[], int cols, int rows, int ATLAS, double gama, int classes, double beta, double *d, double *con, double logpost[], int edgevalue, int texturevalue, Mat highpass, Mat texture)
 //double callogpost(cv::Point pixel, double **diff_sq[], double **atlas[], Mat xttemp, int cols, int rows, int ATLAS, double gamma, int classes, double beta, double *d, double *con, double logpost[], int edgevalue, int texturevalue, Mat highpass, Mat texture)
-double callogpost(cv::Point pixel, vector<Mat> &diff_sq, double **atlas[], Mat xttemp, int cols, int rows, int ATLAS, double gamma, int classes, double beta, double *d, double *con, double *logpost, int edgevalue, int texturevalue, Mat highpass, Mat texture)
+void callogpost(cv::Point pixel, vector<Mat> &diff_sq, Mat xttemp, int cols, int rows, int classes, double beta, double *logpost, int edgevalue, int texturevalue, Mat highpass, Mat texture)
 {
-	int idx, jdx;
+	int idx, jdx, kdx;
 	int edgevalue1,texture1;
 	double weight;
 	double alpha = 1.0;
 	double tempsq;
-
-
-	//Mat highpass(highpass_I);
-	//Mat texture(texture_I);
 
 //////////// More Texture region //////////////////////////////////////////////////////////////////////////////////////
 	int i, j;
@@ -171,28 +166,12 @@ double callogpost(cv::Point pixel, vector<Mat> &diff_sq, double **atlas[], Mat x
 	i = pixel.x;
 	j = pixel.y;
 
-	// debug code to put xtemp into a Mat to see what it really is
-	//unsigned char **dst;
-	//dst = malloc(rows*cols*sizeof(unsigned char*));
-
-	//Mat xtemp_Mat = Mat(Size(cols, rows), CV_8UC1);
-	//for (idx = 0; idx < rows; idx++)
-	//{
-	//	for (jdx = 0; jdx < cols; jdx++)
-	//	{
-	//		xtemp_Mat.at<unsigned char>(idx, jdx) = xttemp[0][idx][jdx];
-	//	}
-	//}
-
-	// end of debug code
-
 	if (texturevalue == 0 ) // more texture region
 	{					
 		for (k=0; k<=MAX_CLASSES; k++)
 		{
 			prior[k] = 0;
 			diff[k] = 0;
-			//diff[k] += diff_sq[k][i][j];
 			diff[k] += diff_sq[k].at<double>(i, j);
 
 			//**************************************************************************//
@@ -290,13 +269,11 @@ double callogpost(cv::Point pixel, vector<Mat> &diff_sq, double **atlas[], Mat x
 						//if (abs(xttemp[0][i - 1][j] - xttemp[0][i][j]) < 1)
 						if (xttemp.at<unsigned char>(i - 1, j) - xttemp.at<unsigned char>(i, j) == 0)
 						{
-							//cvSetReal2D(texture, i, j, 0);
 							texture.at<unsigned char>(i, j) = 0;
 						}
 					}
 					else 
 					{
-						//edgevalue1=cvGetReal2D(highpass, i-1, j); 
 						edgevalue1 = highpass.at<unsigned char>(i - 1, j);
 						if (edgevalue1 == 0)
 						{
@@ -465,34 +442,24 @@ double callogpost(cv::Point pixel, vector<Mat> &diff_sq, double **atlas[], Mat x
 
 
 //////////// combine by Bayes rule log p(X|Y) = log(p(Y|X)  + p(X)  + Gamma , using attenuation Function call //////////////////////////////////////////////////////////////////////////////
-	for (k=0; k<=classes; k++)
+	for (kdx = 0; kdx <= classes; kdx++)
 	{
-		if (texturevalue == 0 & edgevalue == 0 ) beta = 0.1;   // more texture region and pixel not on edge
-		if (texturevalue == 0 & edgevalue != 0 ) beta = 0.01;	// more texture region and pixel  on edge
-		if (texturevalue == 255 & edgevalue == 0 ) beta = 1.5; // less texture region and pixel not on edge
-		if (texturevalue == 255 & edgevalue != 0 ) beta = 0.01; // less texture region and pixel  on edge
+		//if (texturevalue == 0 & edgevalue == 0 ) 
+		//	beta = 0.1;   // more texture region and pixel not on edge
 
-		/* calculating gamma term */
-		//	    if (atlas[0][i][j] == k)   gamma[0][i][j] = 0;
-		//        if (atlas[0][i][j] != k)   gamma[0][i][j] = 1;
+		//if (texturevalue == 0 & edgevalue != 0 ) 
+		//	beta = 0.01;	// more texture region and pixel  on edge
 
-		//			if (prior[k] < 0) (prior[k]=0); assist =  gama * gamma[0][i][j];
-		
-		/* Switch for atlas method */
-		if (ATLAS == 1)
-		{
-			logpost[k] = diff[k] + beta*(double)(prior[k]) + assist;
-		}
+		//if (texturevalue == 255 & edgevalue == 0 ) 
+		//	beta = 1.5; // less texture region and pixel not on edge
 
-		if (ATLAS == 0)
-		{
-			logpost[k] = 3 * (diff[k]);
-			//logpost[k] = (con[k] + alpha*(diff[k]/d[k])) ;
-			//;+ beta*(double)(prior[k]);
-		}
+		//if (texturevalue == 255 & edgevalue != 0 ) 
+		//	beta = 0.01; // less texture region and pixel  on edge
+
+		logpost[kdx] = 3 * (diff[kdx]);
 	}
 
-	return *logpost;
+	//return *logpost;
 }
 
 
@@ -512,77 +479,54 @@ double callogpost(cv::Point pixel, vector<Mat> &diff_sq, double **atlas[], Mat x
 //void map3(double **y_pp[], Mat &Depth_Map, double **diff_y_pp[], double **diff_Cr_pp[], double **diff_Cb_pp[], double **atlas[], double beta, double gama, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, IplImage* texture_I, IplImage* textureCb_I, IplImage* textureCr_I, IplImage* highpass_I, IplImage* highpassCr_I, IplImage* highpassCb_I)
 //void map3(Mat yY, Mat &Depth_Map, double **diff_y[], double **diff_Cr[], double **diff_Cb[], double **atlas[], double beta, double gamma, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb)
 //void map3(Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, double **diff_Cr_pp[], double **diff_Cb_pp[], double **atlas[], double beta, double gamma, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb)
-void map3(string &DataLog, Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, vector<Mat> &diff_Cr, vector<Mat> &diff_Cb, double **atlas[], double beta, double gamma, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb)
+//void map3(string &DataLog, Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, vector<Mat> &diff_Cr, vector<Mat> &diff_Cb, double **atlas[], double beta, double gamma, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb)
+void map3(string &DataLog, Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, vector<Mat> &diff_Cr, vector<Mat> &diff_Cb, double beta, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb)
 {
 	int idx, jdx, kdx;
 	double tick, tock, delta_T;
 	double tick_Freq = ((double)cvGetTickFrequency()*1000.0);
 
-	//	gamma[0] = (unsigned char **)get_img(cols,rows,sizeof(unsigned char));
 	double logpostCr[MAX_CLASSES + 1];
 	double logpostCb[MAX_CLASSES + 1];
 	double logposty[MAX_CLASSES + 1];
-	//double **logpost1[MAX_CLASSES];
+
 	cv::Point pixel;
 	cv::Size logSize = cv::Size(cols, rows);
-	vector<Mat> logpost1(classes);
-
-	//Mat texture(texture_I);
-	//Mat textureCb(textureCb_I);
-	//Mat textureCr(textureCr_I);
-	//Mat highpass(highpass_I);
-	//Mat highpassCr(highpassCr_I);
-	//Mat highpassCb(highpassCb_I);
+	vector<Mat> logpost1(MAX_CLASSES);
 
 	tick = (double)cvGetTickCount();
 
 	for (idx = 0; idx < MAX_CLASSES; idx++)
 	{
-		//logpost1[idx] = (double **)get_img(cols,rows,sizeof(double));	
 		logpost1[idx] = cv::Mat(logSize, CV_64F, cv::Scalar(0.0));
 	}
-	//int **logpost1[MAX_CLASSES] = new int[MAX_CLASSES][600][600];
 
-	//Mat y = Mat(Size(cols, rows), CV_64F, *y_pp[0], cols * 8);
-
-	//vector<cv::Mat> diff_y(classes);
-
-	//for (idx = 0; idx < MAX_CLASSES; idx++)
-	//{
-	//	diff_y[idx] = Mat(Size(cols, rows), CV_64FC1, *diff_y_pp[idx], cols * 8);
-	//}
-
-
-	xrv= (double **)get_img(cols,rows,sizeof(double));
+	//xrv= (double **)get_img(cols,rows,sizeof(double));
 	diff[0]=0;
-	//logpost[0]=0;
 	prior[0]=0;
-
-
-	//readseed();
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	double sqrt2pi,con[MAX_CLASSES+1],d[MAX_CLASSES+1];
-	double mean[MAX_CLASSES+1], var[MAX_CLASSES+1];
+	//double sqrt2pi,con[MAX_CLASSES+1],d[MAX_CLASSES+1];
+	//double mean[MAX_CLASSES+1], var[MAX_CLASSES+1];
 
 	/*  constant  */
-	sqrt2pi = sqrt(2.0*PI);
+	//sqrt2pi = sqrt(2.0*PI);
 
 	/*  constants for each class due to variance  */
-	for (idx = 0; idx < classes; idx++)
-	{
-		if (v[idx]<0.025) v[idx] = 0.025;
-		else con[idx] = log(sqrt2pi*sqrt(v[idx]));
+	//for (idx = 0; idx < classes; idx++)
+	//{
+	//	if (v[idx]<0.025) v[idx] = 0.025;
+	//	else con[idx] = log(sqrt2pi*sqrt(v[idx]));
 
-		if (con[idx] < 0) con[idx] = 0;
-		else d[idx] = 2.0*v[idx];
+	//	if (con[idx] < 0) con[idx] = 0;
+	//	else d[idx] = 2.0*v[idx];
 
-	}
+	//}
 
 	/* initialize accumulation registers */
-	std::fill_n(&mean[0], classes + 1, 0.0);
-	std::fill_n(&var[0], classes + 1, 0.0);
+	//std::fill_n(&mean[0], classes + 1, 0.0);
+	//std::fill_n(&var[0], classes + 1, 0.0);
 	std::fill_n(&yaccum[0], classes + 1, 0.0);
 	std::fill_n(&ysquaredaccum[0], classes + 1, 0.0);
 	std::fill_n(&Num[0], classes + 1, 0.0);
@@ -595,16 +539,16 @@ void map3(string &DataLog, Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, vector<M
     /* Map loop */
 	for (l=0; l<map_iter; l++)
 	{
-		AveCost = 0; 
+		//AveCost = 0; 
 
 		/* Initialize random variable array */
-		for (idx = 0; idx < rows; idx++)
-		{
-			for (jdx = 0; jdx < cols; jdx++)
-			{
-				xrv[idx][jdx] = random2();
-			}
-		}
+		//for (idx = 0; idx < rows; idx++)
+		//{
+		//	for (jdx = 0; jdx < cols; jdx++)
+		//	{
+		//		xrv[idx][jdx] = random2();
+		//	}
+		//}
 
 		//**************************************************************************//
 		// Begin calculation pixel by pixel
@@ -617,15 +561,8 @@ void map3(string &DataLog, Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, vector<M
 				pixel.x = idx;
 				pixel.y = jdx;
 
-				//**************************************************************************//
-				// Calculating diff temm 
-				//mm = (double)y[1][idx][jdx];
-				//mm = (double)y[0][idx][jdx];
+/////////////////////////////////   read in texture and edge information for each pixel ////////////////////////////
 
-				/////////////////////////////////   read in texture and edge information for each pixel ////////////////////////////
-				//texturevalue = cvGetReal2D(texture, idx, jdx);
-				//texturevalueCr = cvGetReal2D(textureCr, idx, jdx);
-				//texturevalueCb = cvGetReal2D(textureCb, idx, jdx);
 				texturevalue = texture.at<unsigned char>(idx, jdx);
 				texturevalueCr = textureCr.at<unsigned char>(idx, jdx);
 				texturevalueCb = textureCb.at<unsigned char>(idx, jdx);
@@ -639,22 +576,19 @@ void map3(string &DataLog, Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, vector<M
 					beta = 0.01;
 				}
 
-				//edgevalue = cvGetReal2D(highpass_I, idx, jdx);
 				edgevalue = highpass.at<unsigned char>(idx, jdx);
 				//*logposty = callogpost(pixel, diff_y, atlas, xttemp, cols, rows, ATLAS, gama, classes, beta, d, con, logposty, edgevalue, texturevalue, highpass_I, texture_I);
-				callogpost(pixel, diff_Y, atlas, xttempY, cols, rows, ATLAS, gamma, classes, beta, d, con, logposty, edgevalue, texturevalue, highpass, texture);
+				callogpost(pixel, diff_Y, xttempY, cols, rows, classes, beta, logposty, edgevalue, texturevalue, highpass, texture);
 				//std::thread lp_Y(callogpost, pixel, diff_Y, atlas, xttempY, cols, rows, ATLAS, gamma, classes, beta, d, con, logposty, edgevalue, texturevalue, highpass, texture);
 
-				//edgevalueCr = cvGetReal2D(highpassCr_I, idx, jdx);
 				edgevalueCr = highpassCr.at<unsigned char>(idx, jdx);
 				//*logpostCr = callogpost(pixel, diff_Cr, atlas, xttempCr, cols, rows, ATLAS, gama, classes, beta, d, con, logpostCr, edgevalueCr, texturevalueCr, highpassCr_I, textureCr_I);
-				callogpost(pixel, diff_Cr, atlas, xttempCr, cols, rows, ATLAS, gamma, classes, beta, d, con, logpostCr, edgevalueCr, texturevalueCr, highpassCr, textureCr);
+				callogpost(pixel, diff_Cr, xttempCr, cols, rows, classes, beta, logpostCr, edgevalueCr, texturevalueCr, highpassCr, textureCr);
 				//std::thread lp_Cr(callogpost, pixel, diff_Cr, atlas, xttempCr, cols, rows, ATLAS, gamma, classes, beta, d, con, logpostCr, edgevalueCr, texturevalueCr, highpassCr, textureCr);
 
-				//edgevalueCb = cvGetReal2D(highpassCb_I, idx, jdx);
 				edgevalueCb = highpassCb.at<unsigned char>(idx, jdx);
 				//*logpostCb = callogpost(pixel, diff_Cb, atlas, xttempCb, cols, rows, ATLAS, gama, classes, beta, d, con, logpostCb, edgevalueCb, texturevalueCb, highpassCb_I, textureCb_I);
-				callogpost(pixel, diff_Cb, atlas, xttempCb, cols, rows, ATLAS, gamma, classes, beta, d, con, logpostCb, edgevalueCb, texturevalueCb, highpassCb, textureCb);
+				callogpost(pixel, diff_Cb, xttempCb, cols, rows, classes, beta, logpostCb, edgevalueCb, texturevalueCb, highpassCb, textureCb);
 				//std::thread lp_Cb(callogpost, pixel, diff_Cb, atlas, xttempCb, cols, rows, ATLAS, gamma, classes, beta, d, con, logpostCb, edgevalueCb, texturevalueCb, highpassCb, textureCb);
 
 				//lp_Y.join();
@@ -663,38 +597,32 @@ void map3(string &DataLog, Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, vector<M
 
 				for (kdx = 0; kdx < MAX_CLASSES; kdx++)
 				{
-					//logpost1[kdx][idx][jdx] = (logposty[kdx] + logpostCr[kdx] + logpostCb[kdx]);
 					logpost1[kdx].at<double>(idx,jdx) = (logposty[kdx] + logpostCr[kdx] + logpostCb[kdx]);
 				}
 
+			}	// end of jdx loop
 
-			}
-		}
+		}	// end of idx loop
 
 		//int num_pixels = cols * rows;
               
 		cv::Mat gridResult = cv::Mat(Size(cols, rows), CV_8U, Scalar::all(0));
 		cv::Mat gridResult_N = cv::Mat(cv::Size(cols, rows), CV_8U);
 
-		//cv::Mat gridResult = cv::Mat(cv::Size(cols, rows), CV_32S);
-
 		cout << "Starting GridGraph routines..." << endl;
 		double start= (double)cvGetTickCount();
 
 		GridGraph_DArraySArray(cols, rows, MAX_CLASSES, logpost1, gridResult, DataLog);
-		//GridGraph_DArraySArray(cols, rows, MAX_CLASSES, logpost1, result);
 		//GeneralGraph_DArraySArray(cols,rows,MAX_CLASSES,logpost1,result);
 		
 		double end = (double)cvGetTickCount();  
 		double  t1 = (end - start) / tick_Freq;
-		//printf( "Run time without OpenMP = %g ms\r\n", t1 );
 		cout << "Run time without OpenMP = " << t1 << "ms." << endl;
 		
 		//**************************************************************************//
 		//	std::cout<<"Total cost for iteration #"<<l<<" is : "<<AveCost<<"\n";
 		for (int dd = 0; dd < MAX_CLASSES; dd++)
 		{
-			//free_img((void **)logpost1[dd]);
 			logpost1[dd].~Mat();
 		}
 
@@ -708,16 +636,12 @@ void map3(string &DataLog, Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, vector<M
 			{
 				int index = gridResult.at<unsigned char>(idx, jdx);
 				double temp_y = yY.at<double>(idx, jdx);
-				yaccum[index] += temp_y;										// for mean EM calculation
-				ysquaredaccum[index] += temp_y*temp_y;		// for variance EM caculation 
-//				yaccum[index] += (double)y[0][idx][jdx];										// for mean EM calculation
-//				ysquaredaccum[index] += ((double)y[0][idx][jdx])*((double)y[0][idx][jdx]);		// for variance EM caculation 
-				Num[index] += 1;																// for mean & variance EM calculation
+				yaccum[index] += temp_y;								// for mean EM calculation
+				ysquaredaccum[index] += temp_y*temp_y;					// for variance EM caculation 
+				Num[index] += 1;										// for mean & variance EM calculation
 			}
 		}
 
-
-		//delete [] result;
 		tock = (double)cvGetTickCount();  
 		delta_T = (tock - tick) / tick_Freq; 
 		cout << "Elapsed time for MAP Estimation: " << delta_T << endl;
@@ -786,8 +710,6 @@ void GridGraph_DArraySArray(int width, int height, int num_labels, vector<cv::Ma
 		gc->setDataCost(data);
 
 		gc->setSmoothCost(smooth);
-
-		//printf("\nBefore optimization energy is %d\n", gc->compute_energy());
 		
 		string energy = to_string(gc->compute_energy());
 		cout << endl << "Before optimization energy is " << energy << endl;
@@ -795,7 +717,6 @@ void GridGraph_DArraySArray(int width, int height, int num_labels, vector<cv::Ma
 
 		gc->expansion();// run expansion for 2 iterations. For swap use gc->swap(num_iterations);
 		
-		//printf("\nAfter optimization energy is %d\n", gc->compute_energy());
 		energy = to_string(gc->compute_energy());
 		cout << "After optimization energy is " << energy << endl;
 		DataLog += "After optimization energy is " + energy + "\n\n";
@@ -803,17 +724,10 @@ void GridGraph_DArraySArray(int width, int height, int num_labels, vector<cv::Ma
 		for (idx = 0; idx < num_pixels; idx++)
 		{
 			result[idx] = gc->whatLabel(idx);
-			//cout<<result[i]<<endl;
 		}
-		//cv::Mat test_Result = cv::Mat(cv::Size(width, height), CV_8U, result, (height*2));
-//		cv::Mat test_Result1 = cv::Mat(cv::Size(width, height), CV_32S, result, (width * 2));
-		//cv::Mat test_Result2 = cv::Mat(cv::Size(width, height), CV_32S, result, (width * 4));
-		//cv::Mat test_Result3 = cv::Mat(cv::Size(width, height), CV_32S, result, (height * 2));
-//		cv::Mat test_Result4 = cv::Mat(cv::Size(width, height), CV_32S, result, (height * 4));
+
 		gridResult = cv::Mat(cv::Size(width, height), CV_32S, result, (width * 4));
 		gridResult.convertTo(gridResult, CV_8U, 1.0, 0.0);
-	//	test_Result4.convertTo(test_Result4, CV_8U, 1.0, 0.0);
-
 
 		delete gc;
 	}
@@ -822,7 +736,6 @@ void GridGraph_DArraySArray(int width, int height, int num_labels, vector<cv::Ma
 		e.Report();
 	}
 
-	//delete [] result;
 	delete[] smooth;
 	delete[] data;
 	delete[] result;

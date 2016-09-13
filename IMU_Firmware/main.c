@@ -143,10 +143,11 @@ int main(void)
   uint16_t COUNT, STBY_COUNT, states;
 
   uint8_t odroid_status=0;
-  uint8_t stdby_threshold = 24;
-  uint8_t on_threshold = 12;
+  uint8_t stdby_threshold = 20;
+  uint8_t on_threshold = 12; 
   
   uint16_t on_count = 5;
+  uint16_t record_count = 15;
   uint16_t stdby_count = 20;
   uint16_t off_count = 200;
 
@@ -171,7 +172,7 @@ int main(void)
   // the Odroid will power up and begin recording
   states=RECORDING;
 
-  delay_ms(10000);
+  delay_ms(20000);
   
   while(1)
   { 
@@ -316,7 +317,7 @@ int main(void)
         
         // turn on the standb pin to start recording
         sbi(PORTB, STNDBY_PIN);
-        delay_ms(10000);  // wait a little to allow the Odroid to boot up   
+        delay_ms(20000);  // wait a little to allow the Odroid to boot up   
           
         states = RECORDING;
         printf("Exiting POWERON mode\r");
@@ -346,7 +347,8 @@ int main(void)
         if (COUNT>=stdby_count)
         {
           printf("Exiting RECORDING mode\r"); 
-          STBY_COUNT = COUNT;
+          COUNT = record_count;
+          STBY_COUNT = record_count;
           // clear the stnadby pin to cause Odroid to enter standby mode
           cbi(PORTB, STNDBY_PIN);
           states = STANDBY;
@@ -378,7 +380,7 @@ int main(void)
         }    
         else if (V<=stdby_threshold)
         {
-          if (COUNT<stdby_count)
+          if (COUNT<record_count)
           {
             COUNT++;
           }

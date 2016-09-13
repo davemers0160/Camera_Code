@@ -57,42 +57,15 @@ bool configLensDriver(LPCWSTR port, HANDLE &serialHandle);
 
 // Camera Video/Image Capture routines
 //int videoCapture(Camera *cam, HANDLE serialHandle, string save_file, unsigned int numCaptures, float fps);
-int videoCapture(Camera *cam, HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps);
+//int videoCapture(Camera *cam, HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps);
+int videoCaptureInt(Camera *cam, HANDLE lensDriver, string focus_save_file, string defocus_save_file, unsigned int numCaptures, float fps);
+
 int imageCapture(Camera *cam, HANDLE lensDriver, string file_base, unsigned int numCaptures, float fps);
 
 // double tickFreq = 1.0 / getTickFrequency();
 
-//void PrintBuildInfo()
-//{
-//    FC2Version fc2Version;
-//    Utilities::GetLibraryVersion( &fc2Version );
-//    
-//	ostringstream version;
-//	version << "FlyCapture2 library version: " << fc2Version.major << "." << fc2Version.minor << "." << fc2Version.type << "." << fc2Version.build;
-//	cout << version.str() << endl;  
-//    
-//	ostringstream timeStamp;
-//    timeStamp <<"Application build date: " << __DATE__ << " " << __TIME__;
-//	cout << timeStamp.str() << endl << endl;  
-//}
 
-
-//void PrintDriverInfo(LensDriverInfo *LensInfo)
-//{
-//	cout << "*** LENS DRIVER INFO ***" << endl;
-//	cout << "Serial Number: " << (unsigned int)LensInfo->SerialNumber << endl;
-//	cout << "Firmware Version: " << (unsigned int)LensInfo->FirmwareVersion[0] << "." << setfill('0') << setw(2) << (unsigned int)LensInfo->FirmwareVersion[1] << endl;
-//	if (LensInfo->DriverType == 0)
-//	{
-//		cout << "Driver Type: Microchip HV892" << endl;
-//	}
-//	cout << endl;
-//	
-//
-//}	// end of PrintDriverInfo
-
-
-int main(int /*argc*/, char** /*argv*/)
+int main(int argc, char** argv)
 {    
 	
 	// Camera specific variables
@@ -101,13 +74,15 @@ int main(int /*argc*/, char** /*argv*/)
     PGRGuid guid;
 	Camera cam;
 	FC2Config cameraConfig;
+	CameraInfo camInfo;
+	char camSerialNumber[16];
 	unsigned int numCameras;
 	unsigned int offsetX, offsetY, width, height;
 	PixelFormat pixelFormat;
 	float shutter, gain, brightness, auto_exp;
 	int sharpness;
 	float framerate = 60.0;
-	float cam_framerate = 50.0;
+	float cam_framerate = 120.0;
 	
 	//Lens_Driver test_lens;
 	LensTxPacket LensTx(CON,0);
@@ -120,7 +95,7 @@ int main(int /*argc*/, char** /*argv*/)
 	// Serial Port specific variables
 	//wstring port = L"\\\\.\\COM9";
 	//LPCWSTR lensPort = port.c_str();	//L"\\\\.\\COM9"; //(LPCWSTR)port.c_str();	//"\\\\.\\COM7";
-	string port_num = "COM7";
+	string port_num = "COM11";
 	wstring port = L"\\\\.\\" + wstring(port_num.begin(), port_num.end());
 	LPCWSTR lensPort = port.c_str();
 	HANDLE lensDriver = NULL;
@@ -185,6 +160,16 @@ int main(int /*argc*/, char** /*argv*/)
 		return -1;
 	}
 
+	// get the infor from the camera
+	error = cam.GetCameraInfo(&camInfo);
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+	}
+
+	PrintCameraInfo(&camInfo);
+	sprintf(camSerialNumber, "%u", camInfo.serialNumber);
+
 	// Get the camera configuration
 	error = cam.GetConfiguration(&cameraConfig);
 	if (error != PGRERROR_OK)
@@ -194,8 +179,8 @@ int main(int /*argc*/, char** /*argv*/)
 	}
 
 
-	cameraConfig.grabTimeout = 40;// (unsigned int)(1000 / framerate);
-	//cameraConfig.highPerformanceRetrieveBuffer = true;
+	cameraConfig.grabTimeout = 500;// (unsigned int)(1000 / framerate);
+	cameraConfig.highPerformanceRetrieveBuffer = true;
 	cameraConfig.asyncBusSpeed = BUSSPEED_ANY;
 
 	// Set the camera configuration
@@ -211,15 +196,17 @@ int main(int /*argc*/, char** /*argv*/)
 
 	// configure the image size and the pixel format for the video
 	// 1.216 MB/s
-	offsetX = 80;		// 40
-	width = 1120;		// 1200;
-	
-	offsetY = 228;		// 224;
-	height = 724;		// 768;
+	offsetX = 40;		// 40
+	width = 1200;		// 1200;
+
+	offsetY = 228;		// 228;
+	height = 720;		// 724;
+
+	cout << "Configuring Camera!" << endl;
 
 	//pixelFormat = PIXEL_FORMAT_422YUV8;
-	pixelFormat = PIXEL_FORMAT_444YUV8;
-	//pixelFormat = PIXEL_FORMAT_RGB8;
+	//pixelFormat = PIXEL_FORMAT_444YUV8;
+	pixelFormat = PIXEL_FORMAT_RGB8;
 	error = configImagerFormat(&cam, offsetX, offsetY, width, height, pixelFormat);
 	if (error != PGRERROR_OK)
 	{
@@ -227,88 +214,103 @@ int main(int /*argc*/, char** /*argv*/)
 		return -1;
 	}
 
-	error = cam.StartCapture();
-	if (error != PGRERROR_OK)
+
+	unsigned char key = 0;
+
+	while (key != 'q')
 	{
-		PrintError(error);
-		return -1;
-	}
+		error = cam.StartCapture();
+		if (error != PGRERROR_OK)
+		{
+			PrintError(error);
+			return -1;
+		}
 
-///////////////////////////////////////////////////////////////////////////////
-// Start monitoring the states of the pins for the odroid
-///////////////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////////////
+		// Start monitoring the states of the pins for the odroid
+		///////////////////////////////////////////////////////////////////////////////
 
-	// psuedo code
-	// start a never ending loop
-	// if the standby pin is high then start recording 
-	// otherwise skip
+		// psuedo code
+		// start a never ending loop
+		// if the standby pin is high then start recording 
+		// otherwise skip
 
-	getcurrenttime(currenttime);
+		getcurrenttime(currenttime);
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
-	save_path = "d:\\IUPUI\\Test_Data\\";
+		save_path = "d:\\IUPUI\\Test_Data\\Data2\\";
 #else
-	save_path = "/home/odroid/Videos/test_recording_" + (string)currenttime + ".avi";
-	//save_path = "/media/odroid/TOSHIBA EXT/Videos/test_recording_" + (string)currenttime + ".avi";
+		save_path = "/home/odroid/Videos/test_recording_" + (string)currenttime + ".avi";
+		//save_path = "/media/odroid/TOSHIBA EXT/Videos/test_recording_" + (string)currenttime + ".avi";
 #endif
 
-	file_base = (string)currenttime + "_" + recording_name + "_raw";
-	video_save_file = (string)currenttime + "_" + recording_name + "_raw" + file_extension;
-	focus_save_file = (string)currenttime + "_" + recording_name + "_focus" + file_extension;
-	defocus_save_file = (string)currenttime + "_" + recording_name + "_defocus" + file_extension;
-	config_save_file = (string)currenttime + "_" + recording_name + "_config.txt";
-	configFile.open((save_path+config_save_file).c_str(), ios::out | ios::app);
-	///////////////////////////////////////////////////////////////////////////
+		//file_base = (string)currenttime + "_" + recording_name + "_raw";
+		//video_save_file = (string)currenttime + "_" + recording_name + "_raw" + file_extension;
+		//focus_save_file = (string)currenttime + "_" + recording_name + "_focus" + file_extension;
+		//defocus_save_file = (string)currenttime + "_" + recording_name + "_defocus" + file_extension;
+		//config_save_file = (string)currenttime + "_" + recording_name + "_config.txt";
+		//configFile.open((save_path+config_save_file).c_str(), ios::out | ios::app);
 
-	//error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, framerate);
-	error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, &brightness, &auto_exp, 2*cam_framerate);
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		return 1;
-	}
+		file_base = (string)currenttime + "_" + recording_name + "_" + (string)camSerialNumber;
+		focus_save_file = file_base + "_focus" + file_extension;
+		defocus_save_file = file_base + "_defocus" + file_extension;
+		config_save_file = file_base + "_config.txt";
+		configFile.open((save_path + config_save_file).c_str(), ios::out | ios::app);
+		///////////////////////////////////////////////////////////////////////////
 
-	cout << "Shutter Speed (ms): " << shutter << endl;
-	cout << "Gain (dB): " << gain << endl;
-	cout << "Sharpness: " << sharpness << endl;
-	cout << "Brightness: " << brightness << endl;
-	cout << "Auto Exposure: " << auto_exp << endl;
-	cout << endl;
+		//error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, framerate);
+		error = configCameraPropeties(&cam, &sharpness, &shutter, &gain, &brightness, &auto_exp, 2 * cam_framerate);
+		if (error != PGRERROR_OK)
+		{
+			PrintError(error);
+			return 1;
+		}
 
-	// write camera configuration values to a file
-	configFile << "Shutter Speed (ms): " << shutter << endl;
-	configFile << "Gain (dB): " << gain << endl;
-	configFile << "Sharpness: " << sharpness << endl;
-	configFile << "Brightness: " << brightness << endl;
-	configFile << "Auto Exposure: " << auto_exp << endl;
-	configFile << endl;
-	configFile.close();
+		cout << "Shutter Speed (ms): " << shutter << endl;
+		cout << "Gain (dB): " << gain << endl;
+		cout << "Sharpness: " << sharpness << endl;
+		cout << "Brightness: " << brightness << endl;
+		cout << "Auto Exposure: " << auto_exp << endl;
+		cout << endl;
 
-	setSoftwareTrigger(&cam, true);
+		// write camera configuration values to a file
+		configFile << "Shutter Speed (ms): " << shutter << endl;
+		configFile << "Gain (dB): " << gain << endl;
+		configFile << "Sharpness: " << sharpness << endl;
+		configFile << "Brightness: " << brightness << endl;
+		configFile << "Auto Exposure: " << auto_exp << endl;
+		configFile << endl;
+		configFile.close();
 
-	// begin the capture process
+		setSoftwareTrigger(&cam, true);
+
+		// begin the capture process
 #ifdef IMG_CAP
-	string dir_name = (string)currenttime + "_" + recording_name + "_raw";
-	mkDir(save_path, dir_name);
-	imageCapture(&cam, lensDriver, (save_path + dir_name + "\\" + file_base), framerate, framerate);
+		string dir_name = (string)currenttime + "_" + recording_name + "_raw";
+		mkDir(save_path, dir_name);
+		imageCapture(&cam, lensDriver, (save_path + dir_name + "\\" + file_base), framerate, framerate);
 
 #else
-	// videoCapture(&cam, lensDriver, video_save_file, framerate, framerate);
-	videoCapture(&cam, lensDriver, save_path + focus_save_file, save_path + defocus_save_file, (unsigned int)cam_framerate*20, 48.0);
+		// videoCapture(&cam, lensDriver, video_save_file, framerate, framerate);
+		//videoCapture(&cam, lensDriver, save_path + focus_save_file, save_path + defocus_save_file, (unsigned int)cam_framerate*20, 48.0);
+		videoCaptureInt(&cam, lensDriver, save_path + focus_save_file, save_path + defocus_save_file, (unsigned int)cam_framerate * 2, 30.0);
 
 #endif
 
 
-	// stop the capture process
-	error = cam.StopCapture();
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
-		return -1;
-	}
+		// stop the capture process
+		error = cam.StopCapture();
+		if (error != PGRERROR_OK)
+		{
+			PrintError(error);
+			return -1;
+		}
 
-	setSoftwareTrigger(&cam, false);
+		setSoftwareTrigger(&cam, false);
 
+		cout << "waiting for 0.5s to quit" << endl;
+		key = waitKey(500);
 
+	}	// end of while key
 ///////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////

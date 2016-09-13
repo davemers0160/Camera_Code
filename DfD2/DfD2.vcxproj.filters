@@ -21,9 +21,6 @@
     <ClCompile Include="Calculate_logpost.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="OpenCV_Shell.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="random.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -36,13 +33,19 @@
     <ClCompile Include="gco-v3.0\LinkedBlockList.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="map_v3.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="createblur_v2.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="texturelessRegions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OpenCV_Shell_v2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="readFile.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="createblur_v3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="map_v4.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

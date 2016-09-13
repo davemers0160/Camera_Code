@@ -53,7 +53,7 @@ void texturelessRegions(Mat &inputImage, Mat &textureImage, int windowSize, int 
 
 	// BORDER_REPLICATE / BORDER_DEFAULT
 	//MORPH_RECT / MORPH_ELLIPSE / MORPH_CROSS
-	Mat element = getStructuringElement(MORPH_RECT,	Size(5,5),	Point(-1, -1));
+	Mat element = getStructuringElement(MORPH_RECT,	Size(7,7),	Point(-1, -1));
 
 	//Mat grad_x, grad_y;
 	//Mat scharrGrad;
@@ -74,11 +74,6 @@ void texturelessRegions(Mat &inputImage, Mat &textureImage, int windowSize, int 
 
 	//erode(threshGrad, erodeThresh, element);
 	erode(threshGrad, textureImage, element);
-	
-	
-		
-	bp_stop = 0;
-
 
 
 		//% Produce Squared Horizontal Gradient image sqGradImg

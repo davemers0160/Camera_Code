@@ -57,7 +57,7 @@ using namespace Lens_Driver;
 	BOOL status;
 
 	// Lens Driver Variables
-	LensFocus LensDfD((unsigned char)137, (unsigned char)142);
+	LensFocus LensDfD((unsigned char)133, (unsigned char)136);
 	LensTxPacket Focus(FAST_SET_VOLT, 1, &LensDfD.Focus[0]);
 	LensTxPacket DeFocus(FAST_SET_VOLT, 1, &LensDfD.Focus[1]);
 

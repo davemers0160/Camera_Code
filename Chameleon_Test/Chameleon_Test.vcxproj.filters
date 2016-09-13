@@ -27,10 +27,10 @@
     <ClCompile Include="..\Camera_Shared_Code\Lens_Driver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Camera_Shared_Code\videoCapture_2.cpp">
+    <ClCompile Include="..\Camera_Shared_Code\stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Camera_Shared_Code\stdafx.cpp">
+    <ClCompile Include="..\Camera_Shared_Code\videoCaptureInterleave.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

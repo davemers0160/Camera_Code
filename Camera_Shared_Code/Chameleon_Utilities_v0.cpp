@@ -7,9 +7,8 @@ This file contains the configures the routines for the Chameleon 3 camera.
 #include <iostream>
 #include <ctime>
 #include <sstream>
-#include <fstream>
-#include <string>
-#include <iomanip>
+//#include <string>
+//#include <iomanip>
 
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
 	#include <Windows.h>
@@ -78,7 +77,8 @@ void PrintBuildInfo(void)
 void cameraConnect(PGRGuid guid, Camera *cam)
 {
 	FlyCapture2::Error error;
-	//CameraInfo camInfo;
+	//	Camera cam;
+	CameraInfo camInfo;
 
 	error = cam->Connect(&guid);
 	if (error != PGRERROR_OK)
@@ -86,13 +86,13 @@ void cameraConnect(PGRGuid guid, Camera *cam)
 		PrintError(error);
 	}
 
-	//error = cam->GetCameraInfo(&camInfo);
-	//if (error != PGRERROR_OK)
-	//{
-	//	PrintError(error);
-	//}
+	error = cam->GetCameraInfo(&camInfo);
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+	}
 
-	//PrintCameraInfo(&camInfo);
+	PrintCameraInfo(&camInfo);
 
 	//return cam;
 
@@ -205,7 +205,7 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 	Property Shutter, Gain, Sharpness, Framerate, Brightness, Auto_Exposure;
 	
 	*sharpness = 1200;
-	*shutter = 12.0;
+	*shutter = 16.0;
 	*gain = 10.0;
 	*auto_exp = 1.0;
 	*brightness = 2.0;
@@ -272,7 +272,7 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 	//sleep_ms(500);
 
 	// get the auto values
-	*shutter = getABSProperty(cam, Shutter);
+	//*shutter = getABSProperty(cam, Shutter);
 	//*gain = getABSProperty(cam, Gain);
 	//*sharpness = getProperty(cam, Sharpness);
 	//*brightness = getABSProperty(cam, Brightness);
@@ -281,14 +281,14 @@ FlyCapture2::Error configCameraPropeties(Camera *cam, int *sharpness, float *shu
 
 
 	// set the auto values to fixed
-	configProperty(cam, Shutter, SHUTTER, false, false, true);
-	error = setProperty(cam, Shutter, *shutter);
-	// configProperty(cam, Gain, GAIN, false, false, true);
-	// error = setProperty(cam, Gain, *gain);
-	// configProperty(cam, Sharpness, SHARPNESS, false, false, false);
-	// error = setProperty(cam, Sharpness, (float)*sharpness);
-	// configProperty(cam, Auto_Exposure, AUTO_EXPOSURE, false, false, true);
-	// error = setProperty(cam, Auto_Exposure, *auto_exp);
+	//configProperty(cam, Shutter, SHUTTER, false, false, true);
+	//error = setProperty(cam, Shutter, *shutter);
+	//configProperty(cam, Gain, GAIN, false, false, true);
+	//error = setProperty(cam, Gain, *gain);
+	//configProperty(cam, Sharpness, SHARPNESS, false, false, false);
+	//error = setProperty(cam, Sharpness, (float)*sharpness);
+	//configProperty(cam, Auto_Exposure, AUTO_EXPOSURE, false, false, true);
+	//error = setProperty(cam, Auto_Exposure, *auto_exp);
 
 	return error;
 
@@ -412,67 +412,6 @@ bool FireSoftwareTrigger(Camera *cam)
 	return true;
 }	// end of FireSoftwareTrigger
 
-#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
-void saveVideo_t(videoSaveStruct videoSaveParam)
-#else
-void *saveVideo_t(void *args )
-#endif
-{
-	int idx;
-#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
-
-
-	videoSaveParam.VideoFile.write(videoSaveParam.VideoFrame);
-
-#else
-	videoSaveStruct *videoSaveParam = (videoSaveStruct *)(args);
-	videoSaveParam->VideoFile.write(videoSaveParam->VideoFrame);
-	pthread_exit(NULL);
-
-#endif
-
-}	// end of saveVideo
-#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
-void saveBinVideo_t(videoSaveStruct videoSaveParam)
-#else
-void *saveBinVideo_t(void *args )
-#endif
-{
-	
-
-	int idx=0;
-	int frameSize;
-	ofstream saveFile;
-
-#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
-
-	saveFile.open(videoSaveParam.FileName.c_str(), ios::out | ios::binary);
-	frameSize = 3 * videoSaveParam.VideoFrame.rows * videoSaveParam.VideoFrame.cols;
-
-	for(idx=0; idx<videoSaveParam.FrameCount ; idx++)
-	{
-		//const char *data = (char *)videoSaveParam->VideoFrame[idx].data;
-		saveFile.write((char *)videoSaveParam.VideoFrame.data,frameSize);
-	}
-
-	saveFile.close();
-#else
-	videoSaveStruct *videoSaveParam = (videoSaveStruct *)(args);
-	saveFile.open(videoSaveParam->FileName.c_str(), ios::out | ios::binary);
-	frameSize = 3 * videoSaveParam->VideoFrame.rows * videoSaveParam->VideoFrame.cols;
-
-	for(idx=0; idx<videoSaveParam->FrameCount ; idx++)
-	{
-		//const char *data = (char *)videoSaveParam->VideoFrame[idx].data;
-		saveFile.write((char *)videoSaveParam->VideoFrame.data,frameSize);
-	}
-
-	saveFile.close();
-
-	pthread_exit(NULL);
-#endif
-
-}	// end of saveBinVideo_t
 
 // create a sleep function that can be used in both Windows and Linux
 void sleep_ms(int value)
