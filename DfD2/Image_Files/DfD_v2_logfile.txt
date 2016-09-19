@@ -1,13 +1,13 @@
 Skipping defocus image generation
-Completed Step 1 in 1.7367ms.
-Completed Step 2 in 49.2332ms.
-Completed Step 3 in 9.44515ms.
-Completed Step 4 in 36.841ms.
-Completed Step 5 in 19.353ms.
+Completed Step 1 in 1.15424ms.
+Completed Step 2 in 84.3307ms.
+Completed Step 3 in 10.4424ms.
+Completed Step 4 in 49.6719ms.
+Completed Step 5 in 32.7886ms.
 Completed Step 6 in 0.000427653ms.
-Completed Step 7 in 4649.8ms.
+Completed Step 7 in 4625.17ms.
 
-Before optimization energy is 26183431146
-After optimization energy is 1648903
+Before optimization energy is 8727810382
+After optimization energy is 605895
 
-Completed Step 8 in 151193ms.
+Completed Step 8 in 107918ms.

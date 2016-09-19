@@ -56,7 +56,7 @@ void readFile(Mat &img1, Mat &img2, string f1, string f2, int type, int num);
 // 3. void map3(double **y_pp[], Mat &Depth_Map, double **diff_y_pp[], double **diff_Cr_pp[], double **diff_Cb_pp[], double **atlas[], double beta, double gamma, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb);
 // 4. void map3(Mat yY, Mat &Depth_Map, double **diff_y_pp[], double **diff_Cr_pp[], double **diff_Cb_pp[], double **atlas[], double beta, double gamma, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb);
 // 5. void map3(Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, double **diff_Cr_pp[], double **diff_Cb_pp[], double **atlas[], double beta, double gamma, int ATLAS, int ICM, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb);
-void map3(string &DataLog, Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, vector<Mat> &diff_Cr, vector<Mat> &diff_Cb, double beta, int cols, int rows, int classes, int map_iter, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb);
+void map3(string &DataLog, Mat yY, Mat &Depth_Map, vector<Mat> &diff_Y, vector<Mat> &diff_Cr, vector<Mat> &diff_Cb, int cols, int rows, int classes, double *v, double *yaccum, double *ysquaredaccum, double *Num, Mat xttempY, Mat xttempCr, Mat xttempCb, Mat texture, Mat textureCb, Mat textureCr, Mat highpass, Mat highpassCr, Mat highpassCb);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -633,7 +633,7 @@ int main( int argc, char** argv )
 		string DataLog = ".";
 //		map3(yY, xtY, diff_y, xtCr, xtCb, atlas, beta, gama, ATLAS, ICM, col, row, classes, mapiter, v_Y, yaccum, ysquaredaccum, Num,xttempy, xttempCr, xttempCb,texture,textureCb,textureCr,highpass,highpassCr,highpassCb);	  
 //		std::thread t(map3, std::ref(DataLog), ImageOutOfFocusY, DepthMap, diff_Y, diff_Cr, diff_Cb, atlas, beta, gamma, ATLAS, ICM, col, row, classes, mapiter, v_Y, yaccum, ysquaredaccum, Num, xttempY, xttempCr, xttempCb, textureY, textureCb, textureCr, highpassY, highpassCr, highpassCb);
-		std::thread t(map3, std::ref(DataLog), ImageOutOfFocusY, DepthMap, diff_Y, diff_Cr, diff_Cb, beta, col, row, classes, mapiter, v_Y, yaccum, ysquaredaccum, Num, xttempY, xttempCr, xttempCb, textureY, textureCb, textureCr, highpassY, highpassCr, highpassCb);
+		std::thread t(map3, std::ref(DataLog), ImageOutOfFocusY, DepthMap, diff_Y, diff_Cr, diff_Cb, col, row, classes, v_Y, yaccum, ysquaredaccum, Num, xttempY, xttempCr, xttempCb, textureY, textureCb, textureCr, highpassY, highpassCr, highpassCb);
 		t.join();
 
 		cout << "MAP Complete." << endl;
