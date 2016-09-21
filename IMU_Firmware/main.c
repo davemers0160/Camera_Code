@@ -143,8 +143,8 @@ int main(void)
   uint16_t COUNT, STBY_COUNT, states;
 
   uint8_t odroid_status=0;
-  uint8_t stdby_threshold = 20;
-  uint8_t on_threshold = 12; 
+  uint8_t stdby_threshold = 15;
+  uint8_t on_threshold = 11; 
   
   uint16_t on_count = 5;
   uint16_t record_count = 15;
