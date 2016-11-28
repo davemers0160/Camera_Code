@@ -72,6 +72,8 @@ int main(int argc, char** argv)
 	string filepath = "D:\\IUPUI\\Test_Data\\Data1\\";
 	//string filepath = "G:\\Data\\";
 
+
+
 	if (argc < 3)
 	{
 		printHelp();
@@ -97,6 +99,16 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
+	// get the desktop size
+	RECT desktop;
+	// Get a handle to the desktop window
+	const HWND hDesktop = GetDesktopWindow();
+	// Get the size of screen to the variable desktop
+	GetWindowRect(hDesktop, &desktop);
+
+	cout << "Desktop size: " << desktop.right << " x " << desktop.bottom << endl;
+
+
 	VideoCaptureInfo focusVideoCap, defocusVideoCap;
 	getVideoInfo(focusfilename, focusVideoCap);
 	getVideoInfo(defocusfilename, defocusVideoCap);
@@ -107,8 +119,15 @@ int main(int argc, char** argv)
 	int frameCount = 0;
 
 	bool frameRead;
-	namedWindow(Window1, WINDOW_NORMAL);
-	namedWindow(Window2, WINDOW_NORMAL);
+	int windowBoarder = 19;
+	int windowHeight = 600;
+	int windowWidth = 800;
+	cv::namedWindow(Window1, WINDOW_NORMAL | WINDOW_KEEPRATIO);
+	cv::namedWindow(Window2, WINDOW_NORMAL | WINDOW_KEEPRATIO);
+	cv::resizeWindow(Window1, windowWidth, windowHeight);
+	cv::resizeWindow(Window2, windowWidth, windowHeight);
+	cv::moveWindow(Window1, 100, 100);
+	cv::moveWindow(Window2, 100 + windowWidth + windowBoarder, 100);
 
 	while (key != 'q')
 	{
