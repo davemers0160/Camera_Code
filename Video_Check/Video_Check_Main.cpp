@@ -46,17 +46,19 @@ struct VideoCaptureInfo
 };
 
 void getVideoInfo(string filename, VideoCaptureInfo &VidCapInfo);
+void saveLabel(ofstream &file, string imgfilename, cv::Mat image, int label);
+
 
 void printHelp()
 {
 	system("cls");
-	cout << "Lens Driver Command Line Interface (CLI)" << endl;
-	cout << "David Emerson" << endl << endl;
-	cout << "Set the Lens Driver to a single step." << endl;
-	cout << "Usage: LensDriver-cli -s <Step Number>" << endl << endl;
+	//cout << "Lens Driver Command Line Interface (CLI)" << endl;
+	//cout << "David Emerson" << endl << endl;
+	//cout << "Set the Lens Driver to a single step." << endl;
+	//cout << "Usage: LensDriver-cli -s <Step Number>" << endl << endl;
 
-	cout << "Set the Lens Driver to toggle between two values with a given delay." << endl;
-	cout << "Usage: LensDriver-cli -s <Step Number> -t <Step Number> -d <Delay in units of seconds>" << endl << endl;
+	//cout << "Set the Lens Driver to toggle between two values with a given delay." << endl;
+	//cout << "Usage: LensDriver-cli -s <Step Number> -t <Step Number> -d <Delay in units of seconds>" << endl << endl;
 
 	//cout << "Run program and track objects in recorded video file." << endl;
 	//cout << "Usage: Final_Project -f <Input File Name>" << endl;
@@ -129,6 +131,17 @@ int main(int argc, char** argv)
 	cv::moveWindow(Window1, 100, 100);
 	cv::moveWindow(Window2, 100 + windowWidth + windowBoarder, 100);
 
+	// quick little check of the process to save a section of the images and a label
+	// delete when not needed
+	ofstream labelfile;
+	string imgfilename = "testImage_";
+	char index[5] = { 0, 0, 0, 0, 0 };
+	cv::Mat saveImage;
+	cv::Rect segment = cv::Rect(100, 100, 20, 30);
+
+	labelfile.open("testLabel.txt", ios::out);
+
+
 	while (key != 'q')
 	{
 		frameRead = focusVideoCap.Video.read(focus);
@@ -137,11 +150,21 @@ int main(int argc, char** argv)
 		imshow(Window1, focus);
 		imshow(Window2, defocus);
 
-		frameCount++;
 
+		if (frameCount < 15)
+		{
+
+			focus(segment).copyTo(saveImage);
+			sprintf(index, "%04d", frameCount);
+			string i(index);
+			string temp = (imgfilename + index + ".png");
+			saveLabel(std::ref(labelfile), temp, saveImage, frameCount);
+		}
+
+		frameCount++;
 		if (frameCount < focusVideoCap.frameCount)
 		{
-			key = waitKey(500);
+			key = waitKey(100);
 		}
 		else
 		{
@@ -150,6 +173,7 @@ int main(int argc, char** argv)
 
 	}
 
+	labelfile.close();
 
 	cout << "Press any key to continue..." << endl;
 	waitKey(0);
